@@ -1,5 +1,5 @@
 # AdminBot
-A simple bot used for administrating.
+A simple bot used for administration.
 ## Commands
 See: [src/main/java/io/github/xf8b/adminbot/handler](https://github.com/xf8b/AdminBot/branch/master/src/main/java/io/github/xf8b/adminbot/handler)
 ## License
