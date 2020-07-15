@@ -1,0 +1,18 @@
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea
+
+# gradle
+build
+.gradle
+
+# MacOS generated files
+.DS_Store
+._*
+
+# Secret/confidential
+databases
+secrets
