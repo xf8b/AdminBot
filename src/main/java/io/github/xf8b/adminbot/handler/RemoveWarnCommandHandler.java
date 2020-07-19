@@ -15,7 +15,7 @@ public class RemoveWarnCommandHandler extends CommandHandler {
     public RemoveWarnCommandHandler() {
         super(
                 "${prefix}removewarn",
-                "${prefix}removewarn  <member> <warnId> <reason>",
+                "${prefix}removewarn <member> <warnId> <reason>",
                 "Removes the specified member's warns with the warnId and reason provided. " +
                         "\nIf the warnId is all, all warns with the same reason will be removed. " +
                         "\nIf the reason is all, all warns with the same warnId will be removed.",

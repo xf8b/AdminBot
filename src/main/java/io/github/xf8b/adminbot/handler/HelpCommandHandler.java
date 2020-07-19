@@ -66,26 +66,23 @@ public class HelpCommandHandler extends CommandHandler {
         } else {
             String command = content.split(" ")[1].replace(AdminBot.prefix, "");
             for (CommandHandler commandHandler : AdminBot.commandRegistry) {
-                String name = commandHandler.getName().replace(AdminBot.prefix, "");
+                String name = commandHandler.getName();
                 List<String> aliases = commandHandler.getAliases();
-                aliases.forEach(alias -> {
-                    aliases.remove(alias);
-                    alias = alias.replace("${prefix}", AdminBot.prefix);
-                    aliases.add(alias);
-                });
-                if (command.equals(name)) {
+                List<String> aliasesWithPrefixesAdded = new ArrayList<>();
+                aliases.forEach(alias -> aliasesWithPrefixesAdded.add(alias.replace("${prefix}", AdminBot.prefix)));
+                if (command.equals(name.replace("${prefix}", ""))) {
                     String description = commandHandler.getDescription();
                     String usage = commandHandler.getUsage().replace("${prefix}", AdminBot.prefix);
                     Map<String, String> actions = commandHandler.getActions();
-                    MessageEmbed embed = generateEmbed(name, description, usage, aliases, actions);
+                    MessageEmbed embed = generateEmbed(name.replace("${prefix}", AdminBot.prefix), description, usage, aliasesWithPrefixesAdded, actions);
                     channel.sendMessage(embed).queue();
                 } else if (!aliases.isEmpty()) {
                     for (String alias : aliases) {
-                        if (command.equals(alias.replace(AdminBot.prefix, ""))) {
+                        if (command.equals(alias.replace("${prefix}", ""))) {
                             String description = commandHandler.getDescription();
                             String usage = commandHandler.getUsage().replace("${prefix}", AdminBot.prefix);
                             Map<String, String> actions = commandHandler.getActions();
-                            MessageEmbed embed = generateEmbed(name, description, usage, aliases, actions);
+                            MessageEmbed embed = generateEmbed(name.replace("${prefix}", AdminBot.prefix), description, usage, aliasesWithPrefixesAdded, actions);
                             channel.sendMessage(embed).queue();
                         }
                     }
@@ -98,7 +95,7 @@ public class HelpCommandHandler extends CommandHandler {
         String aliasesFormatted = "";
         EmbedBuilder embedBuilder = new EmbedBuilder()
                 .setTitle("Help Page For `" + name + "`")
-                .addField("`" + AdminBot.prefix + name + "`", description + "\nUsage: `" + usage + "`", false)
+                .addField("`" + name + "`", description + "\nUsage: `" + usage + "`", false)
                 .setColor(Color.BLUE);
         if (!actions.isEmpty()) {
             String[] actionsFormatted = {""};
