@@ -20,7 +20,7 @@ public class RemoveWarnCommandHandler extends CommandHandler {
                         "\nIf the warnId is all, all warns with the same reason will be removed. " +
                         "\nIf the reason is all, all warns with the same warnId will be removed.",
                 ImmutableMap.of(),
-                ImmutableList.of("removewarns"),
+                ImmutableList.of("${prefix}removewarns"),
                 CommandType.ADMINISTRATION
         );
     }

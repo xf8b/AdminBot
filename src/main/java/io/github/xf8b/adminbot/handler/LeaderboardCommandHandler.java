@@ -22,7 +22,7 @@ public class LeaderboardCommandHandler extends CommandHandler {
                 "${prefix}leaderboard",
                 "Shows the top five people who have the most XP in the guild.",
                 ImmutableMap.of(),
-                ImmutableList.of("top"),
+                ImmutableList.of("${prefix}top"),
                 CommandType.LEVELING
         );
     }

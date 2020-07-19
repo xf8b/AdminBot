@@ -18,7 +18,7 @@ public class NicknameCommandHandler extends CommandHandler {
                 "${prefix}nickname <member> [nickname]",
                 "Sets the nickname of the specified member, or resets it if none was provided.",
                 ImmutableMap.of(),
-                ImmutableList.of("nick"),
+                ImmutableList.of("${prefix}nick"),
                 CommandType.ADMINISTRATION
         );
     }
