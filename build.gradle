@@ -20,8 +20,8 @@ dependencies {
     compile "club.minnced:discord-webhooks:0.3.1"
     implementation "org.xerial:sqlite-jdbc:3.32.3"
     implementation "com.google.guava:guava:29.0-jre"
-    implementation "org.reflections:reflections:0.9.12"
     implementation "org.apache.commons:commons-text:1.8"
+    implementation "com.google.code.gson:gson:2.8.6"
 }
 
 sourceCompatibility = targetCompatibility = 1.8

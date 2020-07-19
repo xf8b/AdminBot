@@ -1,101 +1,117 @@
 package io.github.xf8b.adminbot.handler;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.util.CommandHandler;
+import io.github.xf8b.adminbot.util.RegexUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-@CommandHandler(
-        name = "${prefix}help",
-        usage = "${prefix}help [command/page]",
-        description = "Brings up the help page for the specified command or if none was specified, all of them."
-)
-public class HelpCommandHandler {
+public class HelpCommandHandler extends CommandHandler {
     public static Message currentMessage = null;
-    public static ArrayList<Class<?>> commandsShown = new ArrayList<>();
+    public static ArrayList<CommandHandler> commandsShown = new ArrayList<>();
 
-    public static void onHelpCommand(MessageReceivedEvent event) {
+    public HelpCommandHandler() {
+        super(
+                "${prefix}help",
+                "${prefix}help [command]",
+                "Shows the command's description, usage, aliases, and actions. If no command was specified, all the commands will be shown.",
+                ImmutableMap.of(),
+                ImmutableList.of(),
+                CommandType.OTHER
+        );
+    }
+
+    @Override
+    public void onCommandFired(MessageReceivedEvent event) {
         String content = event.getMessage().getContentRaw();
         MessageChannel channel = event.getChannel();
-        if (content.trim().matches("^\\" + AdminBot.prefix + "help$")) {
+        String regex;
+        if (RegexUtil.containsIllegals(AdminBot.prefix)) {
+            regex = "^\\" + AdminBot.prefix + "help$";
+        } else {
+            regex = "^" + AdminBot.prefix + "help$";
+        }
+        if (content.trim().matches(regex)) {
             commandsShown.clear();
             EmbedBuilder embedBuilder = new EmbedBuilder()
                     .setTitle("AdminBot Help Page")
                     .setDescription("Actions are not listed on this page. To see them, do `" + AdminBot.prefix + "help <command>`.")
                     .setColor(Color.BLUE);
             int amountOfCommandsDisplayed = 0;
-            for (Class<?> clazz : AdminBot.commandRegistry) {
-                String name = AdminBot.commandRegistry.getNameOfCommand(clazz);
-                String description = AdminBot.commandRegistry.getDescriptionOfCommand(clazz);
-                String usage = AdminBot.commandRegistry.getUsageOfCommand(clazz);
+            for (CommandHandler commandHandler : AdminBot.commandRegistry) {
+                String name = commandHandler.getName().replace("${prefix}", AdminBot.prefix);
+                String description = commandHandler.getDescription();
+                String usage = commandHandler.getUsage().replace("${prefix}", AdminBot.prefix);
                 embedBuilder.addField("`" + name + "`", description + "\nUsage: `" + usage + "`", false);
                 if (amountOfCommandsDisplayed >= 6) {
                     break;
                 }
                 amountOfCommandsDisplayed++;
-                commandsShown.add(clazz);
+                commandsShown.add(commandHandler);
             }
             channel.sendMessage(embedBuilder.build()).queue(message -> {
-                message.addReaction("⬅️").queue();
-                message.addReaction("➡️").queue();
+                message.addReaction("⬅").queue();
+                message.addReaction("➡").queue();
                 currentMessage = message;
             });
         } else {
             String command = content.split(" ")[1].replace(AdminBot.prefix, "");
-            for (Class<?> clazz : AdminBot.commandRegistry) {
-                String name = AdminBot.commandRegistry.getNameOfCommand(clazz).replace(AdminBot.prefix, "");
-                String[] aliases = AdminBot.commandRegistry.getAliasesOfCommand(clazz);
-                boolean ignoreAliases = false;
-                if (aliases.length == 0) ignoreAliases = true;
+            for (CommandHandler commandHandler : AdminBot.commandRegistry) {
+                String name = commandHandler.getName().replace(AdminBot.prefix, "");
+                List<String> aliases = commandHandler.getAliases();
+                aliases.forEach(alias -> {
+                    aliases.remove(alias);
+                    alias = alias.replace("${prefix}", AdminBot.prefix);
+                    aliases.add(alias);
+                });
                 if (command.equals(name)) {
-                    String description = AdminBot.commandRegistry.getDescriptionOfCommand(clazz);
-                    String usage = AdminBot.commandRegistry.getUsageOfCommand(clazz);
-                    String actions = AdminBot.commandRegistry.getActionsOfCommand(clazz);
-                    String aliasesFormatted = "";
-                    EmbedBuilder embedBuilder = new EmbedBuilder()
-                            .setTitle("Help Page For `" + command + "`")
-                            .addField("`" + AdminBot.prefix + command + "`", description + "\nUsage: `" + usage + "`", false)
-                            .setColor(Color.BLUE);
-                    if (!actions.equals("")) {
-                        embedBuilder.addField("Actions", actions, false);
-                    }
-                    if (!ignoreAliases) {
-                        for (String string : aliases) {
-                            aliasesFormatted = aliasesFormatted.concat("`" + string + "`\n");
-                        }
-                        aliasesFormatted = aliasesFormatted.replace("[\n]*$", "");
-                        embedBuilder.addField("Aliases", aliasesFormatted, false);
-                    }
-                    channel.sendMessage(embedBuilder.build()).queue();
-                } else if (!ignoreAliases) {
+                    String description = commandHandler.getDescription();
+                    String usage = commandHandler.getUsage().replace("${prefix}", AdminBot.prefix);
+                    Map<String, String> actions = commandHandler.getActions();
+                    MessageEmbed embed = generateEmbed(name, description, usage, aliases, actions);
+                    channel.sendMessage(embed).queue();
+                } else if (!aliases.isEmpty()) {
                     for (String alias : aliases) {
                         if (command.equals(alias.replace(AdminBot.prefix, ""))) {
-                            String description = AdminBot.commandRegistry.getDescriptionOfCommand(clazz);
-                            String usage = AdminBot.commandRegistry.getUsageOfCommand(clazz);
-                            String actions = AdminBot.commandRegistry.getActionsOfCommand(clazz);
-                            String aliasesFormatted = "";
-                            EmbedBuilder embedBuilder = new EmbedBuilder()
-                                    .setTitle("Help Page For `" + command + "`")
-                                    .addField("`" + AdminBot.prefix + command + "`", description + "\nUsage: `" + usage + "`", false)
-                                    .setColor(Color.BLUE);
-                            if (!actions.equals("")) {
-                                embedBuilder.addField("Actions", actions, false);
-                            }
-                            for (String string : aliases) {
-                                aliasesFormatted = aliasesFormatted.concat("`" + string + "`\n");
-                            }
-                            aliasesFormatted = aliasesFormatted.replace("[\n]*$", "");
-                            embedBuilder.addField("Aliases", aliasesFormatted, false);
-                            channel.sendMessage(embedBuilder.build()).queue();
+                            String description = commandHandler.getDescription();
+                            String usage = commandHandler.getUsage().replace("${prefix}", AdminBot.prefix);
+                            Map<String, String> actions = commandHandler.getActions();
+                            MessageEmbed embed = generateEmbed(name, description, usage, aliases, actions);
+                            channel.sendMessage(embed).queue();
                         }
                     }
                 }
             }
         }
+    }
+
+    private MessageEmbed generateEmbed(String name, String description, String usage, List<String> aliases, Map<String, String> actions) {
+        String aliasesFormatted = "";
+        EmbedBuilder embedBuilder = new EmbedBuilder()
+                .setTitle("Help Page For `" + name + "`")
+                .addField("`" + AdminBot.prefix + name + "`", description + "\nUsage: `" + usage + "`", false)
+                .setColor(Color.BLUE);
+        if (!actions.isEmpty()) {
+            String[] actionsFormatted = {""};
+            actions.forEach((action, actionDescription) -> actionsFormatted[0] = action + ": " + actionDescription + "\n");
+            embedBuilder.addField("Actions", actionsFormatted[0], false);
+        }
+        if (!aliases.isEmpty()) {
+            for (String string : aliases) {
+                aliasesFormatted = aliasesFormatted.concat("`" + string + "`\n");
+            }
+            aliasesFormatted = aliasesFormatted.replace("[\n]*$", "");
+            embedBuilder.addField("Aliases", aliasesFormatted, false);
+        }
+        return embedBuilder.build();
     }
 }

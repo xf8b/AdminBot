@@ -1,6 +1,7 @@
 package io.github.xf8b.adminbot.listener;
 
 import io.github.xf8b.adminbot.AdminBot;
+import io.github.xf8b.adminbot.handler.CommandHandler;
 import io.github.xf8b.adminbot.helper.LevelsDatabaseHelper;
 import io.github.xf8b.adminbot.helper.PrefixesDatabaseHelper;
 import io.github.xf8b.adminbot.util.LevelUtil;
@@ -8,12 +9,10 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
-import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
+import java.util.List;
 
 public class MessageListener extends ListenerAdapter {
-    boolean hasPrefixBeenRead = false;
-
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if (!event.getMessage().isFromGuild()) return;
@@ -21,13 +20,10 @@ public class MessageListener extends ListenerAdapter {
         String guildId = event.getGuild().getId();
         String userId = event.getAuthor().getId();
         try {
-            if (!hasPrefixBeenRead) {
-                if (!PrefixesDatabaseHelper.doesGuildExistInDatabase(guildId)) {
-                    PrefixesDatabaseHelper.insertIntoPrefixes(guildId, AdminBot.DEFAULT_PREFIX);
-                }
-                AdminBot.prefix = PrefixesDatabaseHelper.readFromPrefixes(guildId);
-                hasPrefixBeenRead = true;
+            if (!PrefixesDatabaseHelper.doesGuildExistInDatabase(guildId)) {
+                PrefixesDatabaseHelper.insertIntoPrefixes(guildId, AdminBot.DEFAULT_PREFIX);
             }
+            AdminBot.prefix = PrefixesDatabaseHelper.readFromPrefixes(guildId);
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
@@ -42,27 +38,17 @@ public class MessageListener extends ListenerAdapter {
         String content = message.getContentRaw();
         String commandType = content.split(" ")[0];
         boolean wasCommandUsed = false;
-        for (Class<?> clazz : AdminBot.commandRegistry) {
-            String name = AdminBot.commandRegistry.getNameOfCommand(clazz);
-            String[] aliases = AdminBot.commandRegistry.getAliasesOfCommand(clazz);
-            boolean ignoreAliases = false;
-            if (aliases.length == 0) ignoreAliases = true;
+        for (CommandHandler commandHandler : AdminBot.commandRegistry) {
+            String name = commandHandler.getName().replace("${prefix}", AdminBot.prefix);
+            List<String> aliases = commandHandler.getAliases();
             if (commandType.toLowerCase().equals(name)) {
-                try {
-                    AdminBot.commandRegistry.getMethodOfCommand(clazz).invoke(null, event);
-                    wasCommandUsed = true;
-                } catch (IllegalAccessException | InvocationTargetException exception) {
-                    exception.printStackTrace();
-                }
-            } else if (!ignoreAliases) {
+                commandHandler.onCommandFired(event);
+                wasCommandUsed = true;
+            } else if (!aliases.isEmpty()) {
                 for (String alias : aliases) {
-                    if (commandType.toLowerCase().equals(alias)) {
-                        try {
-                            AdminBot.commandRegistry.getMethodOfCommand(clazz).invoke(null, event);
-                            wasCommandUsed = true;
-                        } catch (IllegalAccessException | InvocationTargetException exception) {
-                            exception.printStackTrace();
-                        }
+                    if (commandType.toLowerCase().equals(alias.replace("${prefix}", AdminBot.prefix))) {
+                        commandHandler.onCommandFired(event);
+                        wasCommandUsed = true;
                     }
                 }
             }

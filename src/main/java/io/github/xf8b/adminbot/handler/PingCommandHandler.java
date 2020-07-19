@@ -18,19 +18,27 @@
  */
 package io.github.xf8b.adminbot.handler;
 
-import io.github.xf8b.adminbot.util.CommandHandler;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import java.time.temporal.ChronoUnit;
 
-@CommandHandler(
-        name = "${prefix}ping",
-        usage = "${prefix}ping",
-        description = "Gets the ping. Pretty useless."
-)
-public class PingCommandHandler {
-    public static void onPingCommand(MessageReceivedEvent event) {
+public class PingCommandHandler extends CommandHandler {
+    public PingCommandHandler() {
+        super(
+                "${prefix}ping",
+                "${prefix}ping",
+                "Gets the ping. Pretty useless.",
+                ImmutableMap.of(),
+                ImmutableList.of(),
+                CommandType.OTHER
+        );
+    }
+
+    @Override
+    public void onCommandFired(MessageReceivedEvent event) {
         MessageChannel channel = event.getChannel();
         long gatewayPing = event.getJDA().getGatewayPing();
         channel.sendMessage("Getting ping...").queue(message -> {
