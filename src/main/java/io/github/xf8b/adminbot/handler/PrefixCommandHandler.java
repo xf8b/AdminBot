@@ -3,12 +3,12 @@ package io.github.xf8b.adminbot.handler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.helper.AdministratorsDatabaseHelper;
 import io.github.xf8b.adminbot.helper.PrefixesDatabaseHelper;
+import io.github.xf8b.adminbot.util.PermissionUtil;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import java.sql.SQLException;
@@ -21,7 +21,8 @@ public class PrefixCommandHandler extends CommandHandler {
                 "Sets the prefix to the specified prefix.",
                 ImmutableMap.of(),
                 ImmutableList.of(),
-                CommandType.OTHER
+                CommandType.OTHER,
+                3
         );
     }
 
@@ -32,30 +33,21 @@ public class PrefixCommandHandler extends CommandHandler {
             String content = message.getContentRaw();
             MessageChannel channel = event.getChannel();
             Guild guild = event.getGuild();
-            String guildId = guild.getId();
-            String command = content.split(" ")[0];
-            String previousPrefix = AdminBot.prefix;
-            String newPrefix = content.replace(command, "").trim();
-            boolean isAdministrator = false;
-            for (Role role : event.getMember().getRoles()) {
-                String id = role.getId();
-                if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, id)) {
-                    isAdministrator = true;
-                }
+            Member author = event.getMember();
+            boolean isAdministrator = PermissionUtil.isAdministrator(guild, author) &&
+                    PermissionUtil.getAdministratorLevel(guild, author) >= this.getLevelRequired();
+            if (content.trim().split(" ").length < 2) {
+                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix() + "`.").queue();
+                return;
             }
-            if (event.getMember().isOwner()) isAdministrator = true;
             if (isAdministrator) {
+                String previousPrefix = AdminBot.getInstance().prefix;
+                String newPrefix = content.trim().split(" ")[1].trim();
                 if (previousPrefix.equals(newPrefix)) {
                     event.getChannel().sendMessage("You can't set the prefix to the same thing, silly.").queue();
-                } else if (newPrefix.equals("")) {
-                    event.getChannel().sendMessage("Huh? Could you repeat that? The usage of this command is: `" + AdminBot.prefix + "prefix <prefix>`").queue();
                 } else {
-                    AdminBot.prefix = newPrefix;
-                    try {
-                        PrefixesDatabaseHelper.overwritePrefixForGuild(event.getGuild().getId(), newPrefix);
-                    } catch (ClassNotFoundException | SQLException e) {
-                        e.printStackTrace();
-                    }
+                    AdminBot.getInstance().prefix = newPrefix;
+                    PrefixesDatabaseHelper.overwritePrefixForGuild(event.getGuild().getId(), newPrefix);
                     event.getChannel().sendMessage("Successfully set prefix from " + previousPrefix + " to " + newPrefix + ".").queue();
                 }
             } else {

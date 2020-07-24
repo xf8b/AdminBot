@@ -33,7 +33,8 @@ public class PingCommandHandler extends CommandHandler {
                 "Gets the ping. Pretty useless.",
                 ImmutableMap.of(),
                 ImmutableList.of(),
-                CommandType.OTHER
+                CommandType.OTHER,
+                0
         );
     }
 

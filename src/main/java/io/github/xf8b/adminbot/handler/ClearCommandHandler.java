@@ -2,11 +2,10 @@ package io.github.xf8b.adminbot.handler;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.helper.AdministratorsDatabaseHelper;
+import io.github.xf8b.adminbot.util.PermissionUtil;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 
@@ -20,8 +19,9 @@ public class ClearCommandHandler extends CommandHandler {
                 "${prefix}clear <amount>",
                 "Clears the specified amount of messages. The amount of messages to be cleared cannot exceed 100, or be below 1.",
                 ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.ADMINISTRATION
+                ImmutableList.of("${prefix}purge"),
+                CommandType.ADMINISTRATION,
+                2
         );
     }
 
@@ -31,24 +31,17 @@ public class ClearCommandHandler extends CommandHandler {
             String content = event.getMessage().getContentRaw();
             MessageChannel channel = event.getChannel();
             Guild guild = event.getGuild();
-            String guildId = guild.getId();
-            boolean isAdministrator = false;
-            for (Role role : event.getMember().getRoles()) {
-                String id = role.getId();
-                if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, id)) {
-                    isAdministrator = true;
-                }
-            }
-            if (event.getMember().isOwner()) isAdministrator = true;
-            String command = content.split(" ")[0];
-            if (content.trim().equals(command)) {
-                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + AdminBot.prefix + "clear <amount>`.").queue();
+            Member member = event.getMember();
+            boolean isAdministrator = PermissionUtil.isAdministrator(guild, member) &&
+                    PermissionUtil.getAdministratorLevel(guild, member) >= this.getLevelRequired();
+            if (content.trim().split(" ").length < 2) {
+                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix() + "`.").queue();
                 return;
             }
             if (isAdministrator) {
                 int amountToClear;
                 try {
-                    amountToClear = Integer.parseInt(content.replace(command, "").trim());
+                    amountToClear = Integer.parseInt(content.trim().split(" ")[1].trim());
                 } catch (NumberFormatException exception) {
                     channel.sendMessage("The amount of messages to be cleared is not a number!").queue();
                     return;

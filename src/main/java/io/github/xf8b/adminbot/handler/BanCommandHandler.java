@@ -2,18 +2,20 @@ package io.github.xf8b.adminbot.handler;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.helper.AdministratorsDatabaseHelper;
+import io.github.xf8b.adminbot.util.PermissionUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 
 import java.awt.*;
 import java.sql.SQLException;
+import java.time.Instant;
 
 public class BanCommandHandler extends CommandHandler {
     public BanCommandHandler() {
@@ -23,7 +25,8 @@ public class BanCommandHandler extends CommandHandler {
                 "Bans the specified member with the specified reason, or `No ban reason was provided` if there was none.",
                 ImmutableMap.of(),
                 ImmutableList.of(),
-                CommandType.ADMINISTRATION
+                CommandType.ADMINISTRATION,
+                3
         );
     }
 
@@ -33,38 +36,32 @@ public class BanCommandHandler extends CommandHandler {
             String content = event.getMessage().getContentRaw();
             MessageChannel channel = event.getChannel();
             Guild guild = event.getGuild();
-            String guildId = guild.getId();
-            boolean isAdministrator = false;
-            for (Role role : event.getMember().getRoles()) {
-                String id = role.getId();
-                if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, id)) {
-                    isAdministrator = true;
-                }
-            }
-            if (event.getMember().isOwner()) isAdministrator = true;
-            String command = content.split(" ")[0];
-            if (content.trim().equals(command)) {
-                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + AdminBot.prefix + "ban <member> [reason]`.").queue();
+            Member author = event.getMember();
+            boolean isAdministrator = PermissionUtil.isAdministrator(guild, author) &&
+                    PermissionUtil.getAdministratorLevel(guild, author) >= this.getLevelRequired();
+            if (content.trim().split(" ").length < 2) {
+                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix() + "`.").queue();
                 return;
             }
             if (isAdministrator) {
-                String args = content.replace(command, "").trim();
-                String userId = args.replaceAll("(<@!|>)", "").replaceAll("(?<=\\s).*", "").trim();
-                String reason = args.replaceAll("^[^ ]* ", "").trim();
+                String userId = content.trim().split(" ")[1].replaceAll("[<@!>]", "").trim();
+                String reason = "";
+                if (content.trim().split(" ").length < 3) {
+                    reason = "No ban reason was provided.";
+                } else {
+                    reason = content.trim().substring(content.trim().indexOf(" ", content.trim().indexOf(" ") + 1) + 1).trim();
+                }
                 try {
                     Long.parseLong(userId);
                 } catch (NumberFormatException exception) {
                     channel.sendMessage("The member does not exist!").queue();
                     return;
                 }
-                if (userId.equals(reason) || reason.equals("")) {
-                    reason = "No ban reason was provided.";
-                }
                 if (userId.equals("")) {
                     channel.sendMessage("The member does not exist!").queue();
                     return;
                 }
-                if (!guild.getMember(event.getJDA().getSelfUser()).hasPermission(Permission.BAN_MEMBERS)) {
+                if (!guild.getSelfMember().hasPermission(Permission.BAN_MEMBERS)) {
                     channel.sendMessage("Cannot ban member due to insufficient permissions!").queue();
                     return;
                 }
@@ -83,23 +80,28 @@ public class BanCommandHandler extends CommandHandler {
                                 channel.sendMessage("Cannot ban member due to insufficient permissions!").queue();
                                 return;
                             }
-                            member.getUser().openPrivateChannel().queue(privateChannel -> {
-                                if (member.getUser().isBot()) {
-                                    return;
-                                }
-                                MessageEmbed embed = new EmbedBuilder()
-                                        .setTitle("You were banned!")
-                                        .addField("Server", guild.getName(), false)
-                                        .addField("Reason", finalReason, false)
-                                        .setColor(Color.RED)
-                                        .build();
-                                privateChannel.sendMessage(embed).queue();
-                            });
                             String username = member.getUser().getName();
                             member.ban(0, finalReason).queue(
                                     success -> channel.sendMessage("Successfully banned " + username + "!").queue(),
                                     failure -> channel.sendMessage("Failed to ban " + username + ".").queue()
                             );
+                            member.getUser().openPrivateChannel().queue(privateChannel -> {
+                                if (member.getUser().isBot()) return;
+                                MessageEmbed embed = new EmbedBuilder()
+                                        .setTitle("You were banned!")
+                                        .addField("Server", guild.getName(), false)
+                                        .addField("Reason", finalReason, false)
+                                        .setTimestamp(Instant.now())
+                                        .setColor(Color.RED)
+                                        .build();
+                                privateChannel.sendMessage(embed).queue();
+                            });
+                        }, throwable1 -> {
+                            if (throwable1 instanceof ErrorResponseException) {
+                                if (((ErrorResponseException) throwable1).getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) {
+                                    channel.sendMessage("The member is not in the guild!").queue();
+                                }
+                            }
                         }));
             } else {
                 channel.sendMessage("Sorry, you don't have high enough permissions.").queue();

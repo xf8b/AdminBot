@@ -1,7 +1,9 @@
 package io.github.xf8b.adminbot.handler;
 
+import io.github.xf8b.adminbot.AdminBot;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -12,14 +14,16 @@ public abstract class CommandHandler {
     private final Map<String, String> actions;
     private final List<String> aliases;
     private final CommandType commandType;
+    private final int levelRequired;
 
-    public CommandHandler(String name, String usage, String description, Map<String, String> actions, List<String> aliases, CommandType commandType) {
+    public CommandHandler(String name, String usage, String description, Map<String, String> actions, List<String> aliases, CommandType commandType, int levelRequired) {
         this.name = name;
         this.usage = usage;
         this.description = description;
         this.actions = actions;
         this.aliases = aliases;
         this.commandType = commandType;
+        this.levelRequired = levelRequired;
     }
 
     public abstract void onCommandFired(MessageReceivedEvent event);
@@ -28,8 +32,16 @@ public abstract class CommandHandler {
         return name;
     }
 
+    public String getNameWithPrefix() {
+        return name.replace("${prefix}", AdminBot.getInstance().prefix);
+    }
+
     public String getUsage() {
         return usage;
+    }
+
+    public String getUsageWithPrefix() {
+        return usage.replace("${prefix}", AdminBot.getInstance().prefix);
     }
 
     public String getDescription() {
@@ -44,23 +56,35 @@ public abstract class CommandHandler {
         return aliases;
     }
 
+    public List<String> getAliasesWithPrefixes() {
+        List<String> aliasesWithPrefixes = new ArrayList<>();
+        for (String string : aliases) {
+            aliasesWithPrefixes.add(string.replace("${prefix}", AdminBot.getInstance().prefix));
+        }
+        return aliasesWithPrefixes;
+    }
+
     public CommandType getCommandType() {
         return commandType;
     }
 
+    public int getLevelRequired() {
+        return levelRequired;
+    }
+
     public enum CommandType {
-        ADMINISTRATION(0),
-        LEVELING(1),
-        OTHER(2);
+        ADMINISTRATION("Commands related with administration."),
+        LEVELING("Commands related with leveling."),
+        OTHER("Other commands which do not fit in any of the above categories.");
 
-        private final int index;
+        private final String description;
 
-        CommandType(int index) {
-            this.index = index;
+        CommandType(String description) {
+            this.description = description;
         }
 
-        public int getIndex() {
-            return index;
+        public String getDescription() {
+            return description;
         }
     }
 }

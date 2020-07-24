@@ -2,12 +2,13 @@ package io.github.xf8b.adminbot.handler;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.helper.AdministratorsDatabaseHelper;
+import io.github.xf8b.adminbot.util.PermissionUtil;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 
 import java.sql.SQLException;
 
@@ -19,7 +20,8 @@ public class NicknameCommandHandler extends CommandHandler {
                 "Sets the nickname of the specified member, or resets it if none was provided.",
                 ImmutableMap.of(),
                 ImmutableList.of("${prefix}nick"),
-                CommandType.ADMINISTRATION
+                CommandType.ADMINISTRATION,
+                1
         );
     }
 
@@ -29,39 +31,30 @@ public class NicknameCommandHandler extends CommandHandler {
             String content = event.getMessage().getContentRaw();
             MessageChannel channel = event.getChannel();
             Guild guild = event.getGuild();
-            String guildId = guild.getId();
-            boolean isAdministrator = false;
-            String command = content.split(" ")[0];
-            for (Role role : event.getMember().getRoles()) {
-                String id = role.getId();
-                if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, id)) {
-                    isAdministrator = true;
-                }
-            }
-            if (event.getMember().isOwner()) isAdministrator = true;
-            if (content.trim().equals(command)) {
-                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + AdminBot.prefix + "nickname <member> [nickname]`.").queue();
+            Member author = event.getMember();
+            boolean isAdministrator = PermissionUtil.isAdministrator(guild, author) &&
+                    PermissionUtil.getAdministratorLevel(guild, author) >= this.getLevelRequired();
+            if (content.trim().split(" ").length < 2) {
+                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix() + "`.").queue();
                 return;
             }
             if (isAdministrator) {
-                String args = content.replace(command, "").trim();
-                String userId = args.replaceAll("(<@!|>)", "").replaceAll("(?<=\\s).*", "").trim();
-                String nickname = args.replaceAll("^[^ ]* ", "").trim();
+                String userId = content.trim().split(" ")[1].replaceAll("[<@!>]", "").trim();
                 boolean resetNickname = false;
+                String nickname = "";
+                if (content.trim().split(" ").length < 3) {
+                    resetNickname = true;
+                } else {
+                    nickname = content.trim().substring(content.trim().indexOf(" ", content.trim().indexOf(" ") + 1) + 1).trim();
+                }
                 try {
                     Long.parseLong(userId);
                 } catch (NumberFormatException exception) {
                     channel.sendMessage("The member does not exist!").queue();
                     return;
                 }
-                if (userId.equals("")) {
-                    channel.sendMessage("The member does not exist!").queue();
-                    return;
-                }
-                if (nickname.equals("")) {
-                    resetNickname = true;
-                }
                 boolean finalResetNickname = resetNickname;
+                String finalNickname = nickname;
                 guild.retrieveMemberById(userId).queue(member -> {
                     if (member == null) {
                         throw new IllegalStateException("Member is null!");
@@ -74,9 +67,15 @@ public class NicknameCommandHandler extends CommandHandler {
                                 success -> channel.sendMessage("Successfully reset nickname of " + member.getUser().getName() + "!").queue(),
                                 failure -> channel.sendMessage("Failed to reset nickname of " + member.getUser().getName() + ".").queue());
                     } else {
-                        member.modifyNickname(nickname).queue(
+                        member.modifyNickname(finalNickname).queue(
                                 success -> channel.sendMessage("Successfully set nickname of " + member.getUser().getName() + "!").queue(),
                                 failure -> channel.sendMessage("Failed to set nickname of " + member.getUser().getName() + ".").queue());
+                    }
+                }, throwable -> {
+                    if (throwable instanceof ErrorResponseException) {
+                        if (((ErrorResponseException) throwable).getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) {
+                            channel.sendMessage("The member is not in the guild!").queue();
+                        }
                     }
                 });
             } else {

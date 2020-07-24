@@ -16,56 +16,70 @@ public class MessageReactionAddListener extends ListenerAdapter {
         event.retrieveMessage().queue(message -> message.retrieveReactionUsers("⬅").queue(users -> users.forEach(user -> {
             if (user != event.getJDA().getSelfUser() && message.equals(HelpCommandHandler.currentMessage)) {
                 message.removeReaction("⬅", user).queue();
-                EmbedBuilder embedBuilderForEditedMessage = new EmbedBuilder()
-                        .setDescription("Actions are not listed on this page. To see them, do `" + AdminBot.prefix + "help <command>`.")
-                        .setColor(Color.BLUE);
-                int amountOfCommandsDisplayedOnEditedMessage = 0;
-                for (CommandHandler commandHandler : AdminBot.commandRegistry) {
-                    if (HelpCommandHandler.commandsShown.contains(commandHandler)) {
-                        String name = commandHandler.getName().replace("${prefix}", AdminBot.prefix);
-                        String description = commandHandler.getDescription();
-                        String usage = commandHandler.getUsage().replace("${prefix}", AdminBot.prefix);
-                        embedBuilderForEditedMessage.addField("`" + name + "`", description + "\nUsage: `" + usage + "`", false);
-                        if (amountOfCommandsDisplayedOnEditedMessage >= 6) {
-                            break;
-                        }
-                        amountOfCommandsDisplayedOnEditedMessage++;
-                        HelpCommandHandler.commandsShown.remove(commandHandler);
-                    }
-                }
                 if (HelpCommandHandler.commandsShown.isEmpty()) {
                     return;
                 }
-                embedBuilderForEditedMessage
-                        .setTitle("AdminBot Help Page");
+                EmbedBuilder embedBuilderForEditedMessage = new EmbedBuilder()
+                        .setDescription("Actions are not listed on this page. To see them, do `" + AdminBot.getInstance().prefix + "help <section> <command>`.")
+                        .setColor(Color.BLUE);
+                int amountOfCommandsDisplayedOnEditedMessage = 0;
+                for (CommandHandler commandHandler : AdminBot.getInstance().COMMAND_REGISTRY) {
+                    if (commandHandler.getCommandType() == HelpCommandHandler.currentCommandType) {
+                        if (HelpCommandHandler.commandsShown.contains(commandHandler)) {
+                            if (amountOfCommandsDisplayedOnEditedMessage >= 6) break;
+                            String name = commandHandler.getNameWithPrefix();
+                            String nameWithPrefixRemoved = commandHandler.getName().replace("${prefix}", "");
+                            String description = commandHandler.getDescription();
+                            String usage = commandHandler.getUsageWithPrefix();
+                            embedBuilderForEditedMessage.addField(
+                                    "`" + name + "`",
+                                    description + "\n" +
+                                            "Usage: `" + usage + "`\n" +
+                                            "If you want to go to the help page for this command, use `" + AdminBot.getInstance().prefix + "help " + HelpCommandHandler.currentCommandType.name().toLowerCase() + " " + nameWithPrefixRemoved + "`.",
+                                    false
+                            );
+                            amountOfCommandsDisplayedOnEditedMessage++;
+                            HelpCommandHandler.commandsShown.remove(commandHandler);
+                        }
+                    }
+                }
+                if (amountOfCommandsDisplayedOnEditedMessage == 0) return;
+                embedBuilderForEditedMessage.setTitle("AdminBot Help Page");
                 message.editMessage(embedBuilderForEditedMessage.build()).queue();
             }
         })));
         event.retrieveMessage().queue(message -> message.retrieveReactionUsers("➡").queue(users -> users.forEach(user -> {
             if (user != event.getJDA().getSelfUser() && message.equals(HelpCommandHandler.currentMessage)) {
                 message.removeReaction("➡", user).queue();
-                EmbedBuilder embedBuilderForEditedMessage = new EmbedBuilder()
-                        .setDescription("Actions are not listed on this page. To see them, do `" + AdminBot.prefix + "help <command>`.")
-                        .setColor(Color.BLUE);
-                int amountOfCommandsDisplayedOnEditedMessage = 0;
-                for (CommandHandler commandHandler : AdminBot.commandRegistry) {
-                    if (!HelpCommandHandler.commandsShown.contains(commandHandler)) {
-                        String name = commandHandler.getName().replace("${prefix}", AdminBot.prefix);
-                        String description = commandHandler.getDescription();
-                        String usage = commandHandler.getUsage().replace("${prefix}", AdminBot.prefix);
-                        embedBuilderForEditedMessage.addField("`" + name + "`", description + "\nUsage: `" + usage + "`", false);
-                        if (amountOfCommandsDisplayedOnEditedMessage >= 6) {
-                            break;
-                        }
-                        amountOfCommandsDisplayedOnEditedMessage++;
-                        HelpCommandHandler.commandsShown.add(commandHandler);
-                    }
-                }
-                if (HelpCommandHandler.commandsShown.size() == AdminBot.commandRegistry.amountOfCommands()) {
+                if (HelpCommandHandler.commandsShown.size() == AdminBot.getInstance().COMMAND_REGISTRY.amountOfCommands()) {
                     return;
                 }
-                embedBuilderForEditedMessage
-                        .setTitle("AdminBot Help Page");
+                EmbedBuilder embedBuilderForEditedMessage = new EmbedBuilder()
+                        .setDescription("Actions are not listed on this page. To see them, do `" + AdminBot.getInstance().prefix + "help <section> <command>`.")
+                        .setColor(Color.BLUE);
+                int amountOfCommandsDisplayedOnEditedMessage = 0;
+                for (CommandHandler commandHandler : AdminBot.getInstance().COMMAND_REGISTRY) {
+                    if (commandHandler.getCommandType() == HelpCommandHandler.currentCommandType) {
+                        if (!HelpCommandHandler.commandsShown.contains(commandHandler)) {
+                            if (amountOfCommandsDisplayedOnEditedMessage >= 6) break;
+                            String name = commandHandler.getNameWithPrefix();
+                            String nameWithPrefixRemoved = commandHandler.getName().replace("${prefix}", "");
+                            String description = commandHandler.getDescription();
+                            String usage = commandHandler.getUsageWithPrefix();
+                            embedBuilderForEditedMessage.addField(
+                                    "`" + name + "`",
+                                    description + "\n" +
+                                            "Usage: `" + usage + "`\n" +
+                                            "If you want to go to the help page for this command, use `" + AdminBot.getInstance().prefix + "help " + HelpCommandHandler.currentCommandType.name().toLowerCase() + " " + nameWithPrefixRemoved + "`.",
+                                    false
+                            );
+                            amountOfCommandsDisplayedOnEditedMessage++;
+                            HelpCommandHandler.commandsShown.add(commandHandler);
+                        }
+                    }
+                }
+                if (amountOfCommandsDisplayedOnEditedMessage == 0) return;
+                embedBuilderForEditedMessage.setTitle("AdminBot Help Page");
                 message.editMessage(embedBuilderForEditedMessage.build()).queue();
             }
         })));

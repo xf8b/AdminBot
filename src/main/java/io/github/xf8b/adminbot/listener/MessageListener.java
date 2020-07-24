@@ -16,18 +16,15 @@ public class MessageListener extends ListenerAdapter {
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if (!event.getMessage().isFromGuild()) return;
+        if (event.isWebhookMessage()) return;
         if (event.getAuthor().isBot()) return;
         String guildId = event.getGuild().getId();
         String userId = event.getAuthor().getId();
         try {
             if (!PrefixesDatabaseHelper.doesGuildExistInDatabase(guildId)) {
-                PrefixesDatabaseHelper.insertIntoPrefixes(guildId, AdminBot.DEFAULT_PREFIX);
+                PrefixesDatabaseHelper.insertIntoPrefixes(guildId, AdminBot.getInstance().DEFAULT_PREFIX);
             }
-            AdminBot.prefix = PrefixesDatabaseHelper.readFromPrefixes(guildId);
-        } catch (ClassNotFoundException | SQLException e) {
-            e.printStackTrace();
-        }
-        try {
+            AdminBot.getInstance().prefix = PrefixesDatabaseHelper.readFromPrefixes(guildId);
             if (!LevelsDatabaseHelper.isUserInDatabase(guildId, userId)) {
                 LevelsDatabaseHelper.insertIntoLevels(guildId, userId, 0, 0);
             }
@@ -36,17 +33,17 @@ public class MessageListener extends ListenerAdapter {
         }
         Message message = event.getMessage();
         String content = message.getContentRaw();
-        String commandType = content.split(" ")[0];
+        String commandType = content.trim().split(" ")[0];
         boolean wasCommandUsed = false;
-        for (CommandHandler commandHandler : AdminBot.commandRegistry) {
-            String name = commandHandler.getName().replace("${prefix}", AdminBot.prefix);
-            List<String> aliases = commandHandler.getAliases();
+        for (CommandHandler commandHandler : AdminBot.getInstance().COMMAND_REGISTRY) {
+            String name = commandHandler.getNameWithPrefix();
+            List<String> aliases = commandHandler.getAliasesWithPrefixes();
             if (commandType.toLowerCase().equals(name)) {
                 commandHandler.onCommandFired(event);
                 wasCommandUsed = true;
             } else if (!aliases.isEmpty()) {
                 for (String alias : aliases) {
-                    if (commandType.toLowerCase().equals(alias.replace("${prefix}", AdminBot.prefix))) {
+                    if (commandType.toLowerCase().equals(alias)) {
                         commandHandler.onCommandFired(event);
                         wasCommandUsed = true;
                     }

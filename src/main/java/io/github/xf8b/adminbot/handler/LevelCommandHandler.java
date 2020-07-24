@@ -20,7 +20,8 @@ public class LevelCommandHandler extends CommandHandler {
                 "Shows your XP and level.",
                 ImmutableMap.of(),
                 ImmutableList.of("${prefix}rank"),
-                CommandType.LEVELING
+                CommandType.LEVELING,
+                0
         );
     }
 

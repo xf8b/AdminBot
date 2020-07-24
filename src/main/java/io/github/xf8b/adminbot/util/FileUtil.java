@@ -37,7 +37,7 @@ public class FileUtil {
                     .name("activity")
                     .value("${prefix}help")
                     .name("token")
-                    .value("NotARealToken.PleaseFillIn-WithRealToken")
+                    .value("NotARealToken.PleaseFillIn.WithRealToken")
                     .endObject()
                     .close();
         }

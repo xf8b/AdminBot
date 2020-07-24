@@ -2,13 +2,14 @@ package io.github.xf8b.adminbot.handler;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.helper.AdministratorsDatabaseHelper;
+import io.github.xf8b.adminbot.util.PermissionUtil;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +22,8 @@ public class MuteCommandHandler extends CommandHandler {
                 "Mutes the specified member for the specified amount of time.",
                 ImmutableMap.of(),
                 ImmutableList.of(),
-                CommandType.ADMINISTRATION
+                CommandType.ADMINISTRATION,
+                1
         );
     }
 
@@ -31,29 +33,17 @@ public class MuteCommandHandler extends CommandHandler {
             String content = event.getMessage().getContentRaw();
             MessageChannel channel = event.getChannel();
             Guild guild = event.getGuild();
-            String guildId = guild.getId();
-            boolean isAdministrator = false;
-            String command = content.split(" ")[0];
-            for (Role role : event.getMember().getRoles()) {
-                String id = role.getId();
-                if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, id)) {
-                    isAdministrator = true;
-                }
-            }
-            if (event.getMember().isOwner()) isAdministrator = true;
-            if (content.trim().equals(command)) {
-                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + AdminBot.prefix + "mute <member> <time>`.").queue();
+            Member author = event.getMember();
+            boolean isAdministrator = PermissionUtil.isAdministrator(guild, author) &&
+                    PermissionUtil.getAdministratorLevel(guild, author) >= this.getLevelRequired();
+            if (content.trim().split(" ").length < 3) {
+                channel.sendMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix() + "`.").queue();
                 return;
             }
             if (isAdministrator) {
-                String args = content.replace(command, "").trim();
-                String userId = args.split(" ")[0].trim().replaceAll("[<@!>]", "");
-                if (args.split(" ").length == 1) {
-                    channel.sendMessage("You must specify a time!").queue();
-                    return;
-                }
-                String time = args.split(" ")[1].trim().replaceAll("[a-zA-Z]", "").trim();
-                String tempTimeType = args.split(" ")[1].trim().replaceAll("\\d", "").trim();
+                String userId = content.trim().split(" ")[1].trim().replaceAll("[<@!>]", "");
+                String time = content.trim().split(" ")[2].trim().replaceAll("[a-zA-Z]", "").trim();
+                String tempTimeType = content.trim().split(" ")[2].trim().replaceAll("\\d", "").trim();
                 TimeUnit timeType;
                 switch (tempTimeType.toLowerCase()) {
                     case "d":
@@ -93,7 +83,7 @@ public class MuteCommandHandler extends CommandHandler {
                     channel.sendMessage("The member does not exist!").queue();
                     return;
                 }
-                if (!guild.getMember(event.getJDA().getSelfUser()).hasPermission(Permission.MANAGE_ROLES)) {
+                if (!guild.getSelfMember().hasPermission(Permission.MANAGE_ROLES)) {
                     channel.sendMessage("Cannot mute member due to insufficient permissions!").queue();
                     return;
                 }
@@ -108,6 +98,12 @@ public class MuteCommandHandler extends CommandHandler {
                     if (member.getUser() == event.getJDA().getSelfUser()) {
                         channel.sendMessage("You cannot mute AdminBot!").queue();
                         return;
+                    }
+                }, throwable -> {
+                    if (throwable instanceof ErrorResponseException) {
+                        if (((ErrorResponseException) throwable).getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) {
+                            channel.sendMessage("The member is not in the guild!").queue();
+                        }
                     }
                 });
             } else {

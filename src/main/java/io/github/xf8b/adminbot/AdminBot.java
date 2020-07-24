@@ -15,18 +15,32 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 
 public class AdminBot {
-    public static final String DEFAULT_PREFIX = ">";
-    public static String prefix = DEFAULT_PREFIX;
-    public static final CommandRegistry commandRegistry = new CommandRegistry();
-    private static final Logger LOGGER = LoggerFactory.getLogger(AdminBot.class);
+    private static AdminBot instance;
+    public final String DEFAULT_PREFIX;
+    public String prefix;
+    public final CommandRegistry COMMAND_REGISTRY;
+    private final Logger LOGGER;
+
+    private AdminBot() {
+        instance = this;
+        DEFAULT_PREFIX = ">";
+        prefix = DEFAULT_PREFIX;
+        COMMAND_REGISTRY = new CommandRegistry();
+        LOGGER = LoggerFactory.getLogger(this.getClass());
+    }
+
+    public static AdminBot getInstance() {
+        return instance;
+    }
 
     public static void main(String[] args) throws Exception {
+        new AdminBot();
         FileUtil.createFolders();
         FileUtil.createFiles();
         final File CONFIG = new File("secrets/config.json");
         String token = ConfigUtil.readToken(CONFIG);
-        String activity = ConfigUtil.readActivity(CONFIG).replace("${prefix}", prefix);
-        commandRegistry.registerCommandHandlers(
+        String activity = ConfigUtil.readActivity(CONFIG).replace("${prefix}", instance.prefix);
+        instance.COMMAND_REGISTRY.registerCommandHandlers(
                 new AdministratorsCommandHandler(),
                 new BanCommandHandler(),
                 new ClearCommandHandler(),
@@ -45,6 +59,6 @@ public class AdminBot {
         );
         JDA jda = JDABuilder.createDefault(token).setActivity(Activity.playing(activity)).build();
         jda.addEventListener(new MessageListener(), new MessageReactionAddListener());
-        LOGGER.info("Successfully started AdminBot!");
+        instance.LOGGER.info("Successfully started AdminBot!");
     }
 }

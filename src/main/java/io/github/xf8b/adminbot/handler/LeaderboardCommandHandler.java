@@ -23,7 +23,8 @@ public class LeaderboardCommandHandler extends CommandHandler {
                 "Shows the top five people who have the most XP in the guild.",
                 ImmutableMap.of(),
                 ImmutableList.of("${prefix}top"),
-                CommandType.LEVELING
+                CommandType.LEVELING,
+                0
         );
     }
 
@@ -47,7 +48,7 @@ public class LeaderboardCommandHandler extends CommandHandler {
             top.forEach(xp -> xps.forEach((key, value) -> {
                 if (value.equals(xp)) {
                     guild.retrieveMemberById(key).queue(member -> {
-                        int numberOnLeaderboard = xpsSorted.indexOf(xp) + 1;
+                        int numberOnLeaderboard = top.indexOf(xp) + 1;
                         int level = 0;
                         try {
                             level = LevelsDatabaseHelper.getLevelForUser(guildId, key);

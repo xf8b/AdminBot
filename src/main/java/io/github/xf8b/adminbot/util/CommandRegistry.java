@@ -1,8 +1,8 @@
 package io.github.xf8b.adminbot.util;
 
 import io.github.xf8b.adminbot.handler.CommandHandler;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -32,7 +32,7 @@ public class CommandRegistry implements Iterable<CommandHandler> {
         return commandHandlers.size();
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public Iterator<CommandHandler> iterator() {
         return commandHandlers.iterator();
