@@ -1,4 +1,5 @@
 # AdminBot  
+[![Build Status](https://travis-ci.com/xf8b/AdminBot.svg?branch=master)](https://travis-ci.com/xf8b/AdminBot)  
 A simple bot used for administration.  
 ## Commands  
 ### Non Administrator Only  
