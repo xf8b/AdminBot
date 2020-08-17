@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.13'
-    compile "net.dv8tion:JDA:4.2.0_187"
+    compile "net.dv8tion:JDA:4.2.0_192"
     compile "org.slf4j:slf4j-simple:1.7.30"
     compile "club.minnced:discord-webhooks:0.3.2"
     implementation "org.xerial:sqlite-jdbc:3.32.3.2"
