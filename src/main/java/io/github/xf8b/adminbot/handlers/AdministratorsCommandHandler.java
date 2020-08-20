@@ -37,6 +37,7 @@ import io.github.xf8b.adminbot.settings.GuildSettings;
 import io.github.xf8b.adminbot.util.MapUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -44,6 +45,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @DisableChecks(disabledChecks = CommandHandlerChecks.IS_ADMINISTRATOR)
+@Slf4j
 public class AdministratorsCommandHandler extends AbstractCommandHandler {
     public AdministratorsCommandHandler() {
         super(
