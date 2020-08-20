@@ -128,17 +128,19 @@ public class AdminBot {
                         .subscribe();
             }
         });
-        Pair<Snowflake, String> webhookIdAndToken = parseWebhookUrl(botSettings.logDumpWebhook);
-        //TODO: move logging to webhooks
         User self = client.getSelf().block();
-        client.getWebhookByIdWithToken(webhookIdAndToken.getLeft(), webhookIdAndToken.getRight())
-                .flatMap(webhook -> webhook.execute(webhookExecuteSpec -> webhookExecuteSpec.setAvatarUrl(self.getAvatarUrl())
-                        .setUsername(self.getUsername())
-                        .addEmbed(embedCreateSpec -> embedCreateSpec.setTitle(":warning: Bot was restarted! :warning:")
-                                .setDescription("This is a new run!")
-                                .setColor(Color.YELLOW)
-                                .setTimestamp(Instant.now()))))
-                .subscribe();
+        if (!botSettings.logDumpWebhook.equals("")) {
+            Pair<Snowflake, String> webhookIdAndToken = parseWebhookUrl(botSettings.logDumpWebhook);
+            //TODO: move logging to webhooks
+            client.getWebhookByIdWithToken(webhookIdAndToken.getLeft(), webhookIdAndToken.getRight())
+                    .flatMap(webhook -> webhook.execute(webhookExecuteSpec -> webhookExecuteSpec.setAvatarUrl(self.getAvatarUrl())
+                            .setUsername(self.getUsername())
+                            .addEmbed(embedCreateSpec -> embedCreateSpec.setTitle(":warning: Bot was restarted! :warning:")
+                                    .setDescription("This is a new run!")
+                                    .setColor(Color.YELLOW)
+                                    .setTimestamp(Instant.now()))))
+                    .subscribe();
+        }
         LogbackUtil.setupDiscordAppender(botSettings.logDumpWebhook, self.getUsername(), self.getAvatarUrl());
         client.onDisconnect().block();
     }
