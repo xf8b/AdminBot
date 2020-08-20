@@ -15,13 +15,18 @@ repositories {
     jcenter()
     mavenCentral()
     maven {
-        url "https://jitpack.io"
+        url = "https://jitpack.io"
     }
     maven {
-        url "https://libraries.minecraft.net"
+        url = "https://libraries.minecraft.net"
     }
     maven {
-        url "https://oss.sonatype.org/content/repositories/snapshots"
+        url = "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+    //TODO: remove?
+    //for discord4j 3.2.0
+    maven {
+        url = "https://repo.spring.io/milestone"
     }
 }
 
@@ -32,9 +37,6 @@ dependencies {
     //TODO: remove?
     implementation "com.mojang:brigadier:1.0.17"
     implementation "com.discord4j:discord4j-core:${project.discord4jVersion}"
-    //TODO: remove when discord4j 3.2 comes out
-    //TODO: fix discord4j 3.2.0 not working
-    //implementation "com.discord4j:discord4j-core:3.2.0-SNAPSHOT"
     implementation "ch.qos.logback:logback-classic:${project.logbackClassicVersion}"
     implementation "org.xerial:sqlite-jdbc:${project.sqliteJdbcVersion}"
     implementation "com.google.guava:guava:29.0-jre"

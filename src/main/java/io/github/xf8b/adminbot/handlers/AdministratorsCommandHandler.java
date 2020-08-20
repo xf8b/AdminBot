@@ -184,7 +184,7 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                     break;
             }
         } catch (SQLException | ClassNotFoundException exception) {
-            exception.printStackTrace();
+            LOGGER.error("An exception happened while trying to read/write to/from the administrators database!", exception);
         }
     }
 }

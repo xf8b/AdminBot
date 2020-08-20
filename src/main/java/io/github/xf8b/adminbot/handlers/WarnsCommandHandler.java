@@ -31,11 +31,13 @@ import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
 import io.github.xf8b.adminbot.util.ParsingUtil;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Slf4j
 //TODO: show the person which warned you
 public class WarnsCommandHandler extends AbstractCommandHandler {
     public WarnsCommandHandler() {
@@ -90,7 +92,7 @@ public class WarnsCommandHandler extends AbstractCommandHandler {
                         .block();
             }
         } catch (SQLException | ClassNotFoundException exception) {
-            exception.printStackTrace();
+            LOGGER.error("An error happened while trying to read from the warns database!", exception);
         }
     }
 }

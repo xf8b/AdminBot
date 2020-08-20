@@ -32,20 +32,25 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.shard.ShardingStrategy;
+import discord4j.rest.util.Color;
 import io.github.xf8b.adminbot.handlers.SlapBrigadierCommand;
 import io.github.xf8b.adminbot.listeners.MessageListener;
+import io.github.xf8b.adminbot.listeners.ReadyListener;
 import io.github.xf8b.adminbot.settings.GuildSettings;
 import io.github.xf8b.adminbot.util.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class AdminBot {
@@ -90,24 +95,6 @@ public class AdminBot {
                 })
                 .block();
         this.botSettings = botSettings;
-        //@formatter:off
-        //if (!botSettings.logDumpWebhook.trim().equals("")) {
-            /*
-            client.getWebhookById(Snowflake.of(botSettings.logDumpWebhook)).subscribe(webhook -> {
-                webhook.edit(webhookEditSpec -> webhookEditSpec.setAvatar(client.getSelf().block().getAvatar().block())
-                        .setName("AdminBot"))
-                        .block();
-                       */
-            /*
-            * "\n" +
-            * "------------------\n" +
-            * "Bot was restarted!\n" +
-            * "------------------\n" +
-            * "\n"
-            */
-            //});
-        //}
-        //@formatter:on
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             ShutdownHandler.shutdown();
             client.logout().block();
@@ -116,17 +103,10 @@ public class AdminBot {
         FileUtil.createFiles();
         commandRegistry.slurpCommandHandlers("io.github.xf8b.adminbot.handlers");
         MessageListener messageListener = new MessageListener(this, commandRegistry);
-        client.on(ReadyEvent.class).subscribe(event -> {
-            LOGGER.info("Successfully started AdminBot version {}!", version);
-            LOGGER.info("Logged in as {}#{}.", event.getSelf().getUsername(), event.getSelf().getDiscriminator());
-            LOGGER.info("Logged into {} guilds.", event.getGuilds().size());
-            LOGGER.info("Total shards: {}", event.getShardInfo().getCount());
-            LOGGER.info("Bot arguments: ");
-            LOGGER.info("Activity: {}", botSettings.activity);
-            LOGGER.info("Bot administrators: {}", botSettings.admins.stream()
-                    .map(Snowflake::asLong)
-                    .collect(Collectors.toUnmodifiableList()));
-        });
+        ReadyListener readyListener = new ReadyListener(botSettings.activity, botSettings.admins, version);
+        //TODO: figure out why readyevent isnt being fired
+        client.on(ReadyEvent.class).subscribe(readyListener::onReadyEvent);
+        client.getEventDispatcher().on(ReadyEvent.class).subscribe(readyEvent -> System.out.println("ReadyEvent fired!"));
         client.on(MessageCreateEvent.class)
                 .filter(event -> !event.getMessage().getContent().isEmpty())
                 .filter(event -> event.getMember().isPresent())
@@ -134,7 +114,7 @@ public class AdminBot {
                 .filter(event -> !event.getMessage().getAuthor().get().isBot())
                 .subscribe(messageListener::onMessageCreateEvent);
         CommandDispatcher<MessageCreateEvent> commandDispatcher = new CommandDispatcher<>();
-        new SlapBrigadierCommand().register(commandDispatcher);
+        SlapBrigadierCommand.register(commandDispatcher);
         client.on(MessageCreateEvent.class).subscribe(messageCreateEvent -> {
             if (messageCreateEvent.getMember().isEmpty()) return;
             if (messageCreateEvent.getMember().get().isBot()) return;
@@ -148,8 +128,17 @@ public class AdminBot {
                         .subscribe();
             }
         });
-        //TODO: move logging util to webhooks
+        Pair<Snowflake, String> webhookIdAndToken = parseWebhookUrl(botSettings.logDumpWebhook);
+        //TODO: move logging to webhooks
         User self = client.getSelf().block();
+        client.getWebhookByIdWithToken(webhookIdAndToken.getLeft(), webhookIdAndToken.getRight())
+                .flatMap(webhook -> webhook.execute(webhookExecuteSpec -> webhookExecuteSpec.setAvatarUrl(self.getAvatarUrl())
+                        .setUsername(self.getUsername())
+                        .addEmbed(embedCreateSpec -> embedCreateSpec.setTitle(":warning: Bot was restarted! :warning:")
+                                .setDescription("This is a new run!")
+                                .setColor(Color.YELLOW)
+                                .setTimestamp(Instant.now()))))
+                .subscribe();
         LogbackUtil.setupDiscordAppender(botSettings.logDumpWebhook, self.getUsername(), self.getAvatarUrl());
         client.onDisconnect().block();
     }
@@ -161,6 +150,18 @@ public class AdminBot {
                 .build()
                 .parse(args);
         new AdminBot(botSettings);
+    }
+
+    private Pair<Snowflake, String> parseWebhookUrl(String webhookUrl) {
+        Pattern pattern = Pattern.compile("https://discordapp\\.com/api/webhooks/\\d+/.+");
+        Matcher matcher = pattern.matcher(webhookUrl);
+        if (!matcher.find()) {
+            throw new IllegalArgumentException("Invalid webhook URL!");
+        } else {
+            String id = webhookUrl.replaceAll("https://discordapp\\.com/api/webhooks/(\\d+)/(.+)", "$1");
+            String token = webhookUrl.replaceAll("https://discordapp\\.com/api/webhooks/(\\d+)/(.+)", "$2");
+            return Pair.of(Snowflake.of(id), token);
+        }
     }
 
     public boolean isAdmin(Snowflake snowflake) {

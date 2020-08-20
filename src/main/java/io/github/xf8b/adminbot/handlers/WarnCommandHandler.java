@@ -31,6 +31,7 @@ import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
 import io.github.xf8b.adminbot.util.MemberUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import java.sql.SQLException;
@@ -40,6 +41,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 public class WarnCommandHandler extends AbstractCommandHandler {
     public WarnCommandHandler() {
         super(
@@ -97,7 +99,7 @@ public class WarnCommandHandler extends AbstractCommandHandler {
                             WarnsDatabaseHelper.insertIntoWarns(guildId, userId, String.valueOf(0), reason);
                         }
                     } catch (ClassNotFoundException | SQLException exception) {
-                        exception.printStackTrace();
+                        LOGGER.error("An error happened while trying to read/write to/from the warns database!", exception);
                     }
                     Mono<?> privateChannelMono = member.getPrivateChannel()
                             .flatMap(privateChannel -> {

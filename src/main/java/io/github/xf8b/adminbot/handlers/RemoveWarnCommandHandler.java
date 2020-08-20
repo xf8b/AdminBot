@@ -29,11 +29,13 @@ import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import java.sql.SQLException;
 import java.util.Objects;
 
+@Slf4j
 public class RemoveWarnCommandHandler extends AbstractCommandHandler {
     public RemoveWarnCommandHandler() {
         super(
@@ -102,7 +104,7 @@ public class RemoveWarnCommandHandler extends AbstractCommandHandler {
                         .subscribe();
             }
         } catch (SQLException | ClassNotFoundException exception) {
-            exception.printStackTrace();
+            LOGGER.error("An exception happened while trying to/from read/write to the prefix database!", exception);
         }
     }
 }

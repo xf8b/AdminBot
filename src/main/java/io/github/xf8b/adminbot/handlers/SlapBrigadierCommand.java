@@ -22,10 +22,10 @@ public class SlapBrigadierCommand implements Command<MessageCreateEvent> {
             "glass bottle"
     };
 
-    public void register(CommandDispatcher<MessageCreateEvent> commandDispatcher) {
+    public static void register(CommandDispatcher<MessageCreateEvent> commandDispatcher) {
         commandDispatcher.register(LiteralArgumentBuilder.<MessageCreateEvent>literal(">slap").then(
                 RequiredArgumentBuilder.<MessageCreateEvent, String>argument("person", StringArgumentType.greedyString())
-                        .executes(this)
+                        .executes(new SlapBrigadierCommand())
         ));
     }
 

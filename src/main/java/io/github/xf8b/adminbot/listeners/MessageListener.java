@@ -27,7 +27,6 @@ import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.SpamProtectionHelper;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.handlers.AbstractCommandHandler;
 import io.github.xf8b.adminbot.handlers.InfoCommandHandler;
@@ -59,21 +58,18 @@ public class MessageListener {
     public void onMessageCreateEvent(MessageCreateEvent event) {
         //TODO: reactify all the classes
         //TODO: make exception handler
+        //TODO: add spam protection
         Message message = event.getMessage();
         String content = message.getContent();
-        Guild guild = event.getGuild().block();
         String guildId = event.getGuild().map(Guild::getId)
                 .map(Snowflake::asString)
                 .block();
-        Member member = event.getMember().get();
-        MessageChannel channel = event.getMessage().getChannel().block();
-        SpamProtectionHelper.checkForSpam(guild, member, channel, guild.getSelfMember().block());
         try {
             if (PrefixesDatabaseHelper.doesGuildNotExistInDatabase(guildId)) {
                 new GuildSettings(guildId);
             }
         } catch (ClassNotFoundException | SQLException exception) {
-            exception.printStackTrace();
+            LOGGER.error("An exception happened while reading from the prefixes database!", exception);
         }
         if (content.trim().replaceAll("<@!" + event.getClient().getSelfId().asString() + ">", "").trim().equals("help")) {
             CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, event);

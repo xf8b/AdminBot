@@ -29,6 +29,7 @@ import lombok.experimental.UtilityClass;
 import java.sql.SQLException;
 
 @UtilityClass
+@Slf4j
 public class PermissionUtil {
     public Boolean isAdministrator(Guild guild, Member member) {
         if (member.getId().equals(guild.getOwnerId())) return true;
@@ -37,7 +38,7 @@ public class PermissionUtil {
             try {
                 return AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId);
             } catch (ClassNotFoundException | SQLException exception) {
-                exception.printStackTrace();
+                LOGGER.error("An exception happened while trying to read from the administrators database!", exception);
             }
             return false;
         }).block();
@@ -53,7 +54,7 @@ public class PermissionUtil {
                 }
                 return 0;
             } catch (ClassNotFoundException | SQLException exception) {
-                exception.printStackTrace();
+                LOGGER.error("An exception happened while trying to read from the administrators database!", exception);
             }
             return 0;
         }).sort().blockLast();
