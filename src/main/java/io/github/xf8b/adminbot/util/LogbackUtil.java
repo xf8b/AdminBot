@@ -18,11 +18,11 @@ public class LogbackUtil {
         DiscordAppender discordAppender = (DiscordAppender) discordAsync.getAppender("DISCORD");
         discordAppender.setUsername(username);
         discordAppender.setAvatarUrl(avatarUrl);
-        discordAppender.setWebhookUri(webhookUrl);
+        if (!webhookUrl.trim().isBlank()) discordAppender.setWebhookUri(webhookUrl);
         discordAppender.addFilter(new Filter<>() {
             @Override
             public FilterReply decide(ILoggingEvent event) {
-                if (webhookUrl.trim().equals("")) {
+                if (webhookUrl.trim().isBlank()) {
                     return FilterReply.DENY;
                 } else {
                     return FilterReply.NEUTRAL;

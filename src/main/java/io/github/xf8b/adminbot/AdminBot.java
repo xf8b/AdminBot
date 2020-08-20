@@ -129,7 +129,7 @@ public class AdminBot {
             }
         });
         User self = client.getSelf().block();
-        if (!botSettings.logDumpWebhook.equals("")) {
+        if (!botSettings.logDumpWebhook.isBlank()) {
             Pair<Snowflake, String> webhookIdAndToken = parseWebhookUrl(botSettings.logDumpWebhook);
             //TODO: move logging to webhooks
             client.getWebhookByIdWithToken(webhookIdAndToken.getLeft(), webhookIdAndToken.getRight())

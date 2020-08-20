@@ -86,7 +86,7 @@ public class RemoveWarnCommandHandler extends AbstractCommandHandler {
                 checkIfWarnExists = false;
                 removeAllWarnsWithSameName = true;
             }
-            if (warnId.trim().equals("")) {
+            if (warnId.trim().isEmpty()) {
                 warnId = "all";
             }
             if (warnId.trim().equals("all")) {

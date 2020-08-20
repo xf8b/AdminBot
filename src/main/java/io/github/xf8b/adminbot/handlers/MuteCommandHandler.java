@@ -93,7 +93,7 @@ public class MuteCommandHandler extends AbstractCommandHandler {
             channel.createMessage("The member does not exist!").block();
             return;
         }
-        if (userId.equals("")) {
+        if (userId.isEmpty()) {
             channel.createMessage("The member does not exist!").block();
             return;
         }
