@@ -1,29 +1,77 @@
 plugins {
-    id 'application'
-    id 'java'
-    id 'idea'
-    id 'com.github.johnrengelman.shadow' version '6.0.0'
+    id "application"
+    id "java"
+    id "idea"
+    id "com.github.johnrengelman.shadow" version "6.0.0"
+    id "io.freefair.lombok" version "5.1.0"
+    id "net.minecrell.licenser" version "0.4.1"
 }
 
-group 'io.github.xf8b.adminbot'
-version '1.0.0'
-mainClassName = 'io.github.xf8b.adminbot.AdminBot'
+group = project.mavenGroup
+version = project.currentVersion
+mainClassName = project.mainClass
 
 repositories {
     jcenter()
+    mavenCentral()
+    maven {
+        url "https://jitpack.io"
+    }
+    maven {
+        url "https://libraries.minecraft.net"
+    }
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
 }
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.13'
-    compile "net.dv8tion:JDA:4.2.0_187"
-    compile "org.slf4j:slf4j-simple:1.7.30"
-    compile "club.minnced:discord-webhooks:0.3.2"
-    implementation "org.xerial:sqlite-jdbc:3.32.3.2"
+    testImplementation "junit:junit:4.13"
+    implementation "com.beust:jcommander:1.71"
+    implementation "com.github.napstr:logback-discord-appender:1.0.0"
+    //TODO: remove?
+    implementation "com.mojang:brigadier:1.0.17"
+    implementation "com.discord4j:discord4j-core:${project.discord4jVersion}"
+    //TODO: remove when discord4j 3.2 comes out
+    //TODO: fix discord4j 3.2.0 not working
+    //implementation "com.discord4j:discord4j-core:3.2.0-SNAPSHOT"
+    implementation "ch.qos.logback:logback-classic:${project.logbackClassicVersion}"
+    implementation "org.xerial:sqlite-jdbc:${project.sqliteJdbcVersion}"
     implementation "com.google.guava:guava:29.0-jre"
     implementation "org.apache.commons:commons-text:1.9"
-    implementation "com.google.code.gson:gson:2.8.6"
+    implementation "net.jodah:typetools:0.6.2"
+    implementation "com.electronwill.night-config:toml:3.6.3"
+    implementation "org.reflections:reflections:0.9.12"
+    implementation "org.codehaus.groovy:groovy-all:3.0.5"
 }
 
-sourceCompatibility = targetCompatibility = 1.8
+processResources {
+    inputs.property "version", project.currentVersion
 
-compileJava.options.encoding = 'UTF-8'
+    from(sourceSets.main.resources.srcDirs) {
+        include "version.txt"
+        expand "version": project.currentVersion
+    }
+
+    from(sourceSets.main.resources.srcDirs) {
+        exclude "version.txt"
+    }
+}
+
+license {
+    matching("**/PingCommandHandler.java") {
+        header = rootProject.file("headers/PING_COMMAND_HANDLER_LICENSE_HEADER.txt")
+    }
+    header = rootProject.file("headers/LICENSE_HEADER.txt")
+    ext {
+        name = "xf8b"
+        years = "2020"
+        projectName = project.projectName
+    }
+    include "**/*.java"
+    ignoreFailures = true
+}
+
+sourceCompatibility = targetCompatibility = 14
+
+compileJava.options.encoding = "UTF-8"

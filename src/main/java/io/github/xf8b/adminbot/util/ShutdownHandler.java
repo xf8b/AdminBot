@@ -19,24 +19,22 @@
 
 package io.github.xf8b.adminbot.util;
 
+import io.github.xf8b.adminbot.handlers.EvalCommandHandler;
+import io.github.xf8b.adminbot.listeners.MessageListener;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
+@Slf4j
 @UtilityClass
-public class MapUtil {
-    public <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
-        List<Map.Entry<K, V>> list = new ArrayList<>(map.entrySet());
-        list.sort(Map.Entry.comparingByValue());
+public class ShutdownHandler {
+    public void shutdownWithError(Throwable throwable) {
+        LOGGER.info("Shutting down due to throwable %s!", throwable);
+        System.exit(0);
+    }
 
-        Map<K, V> result = new LinkedHashMap<>();
-        for (Map.Entry<K, V> entry : list) {
-            result.put(entry.getKey(), entry.getValue());
-        }
-
-        return result;
+    public void shutdown() {
+        LOGGER.info("Shutting down!");
+        MessageListener.shutdownCommandThreadPool();
+        EvalCommandHandler.shutdownEvalPool();
     }
 }

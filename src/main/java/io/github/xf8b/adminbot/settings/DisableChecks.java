@@ -17,26 +17,12 @@
  * along with AdminBot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.adminbot.util;
+package io.github.xf8b.adminbot.settings;
 
-import lombok.experimental.UtilityClass;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-@UtilityClass
-public class MapUtil {
-    public <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
-        List<Map.Entry<K, V>> list = new ArrayList<>(map.entrySet());
-        list.sort(Map.Entry.comparingByValue());
-
-        Map<K, V> result = new LinkedHashMap<>();
-        for (Map.Entry<K, V> entry : list) {
-            result.put(entry.getKey(), entry.getValue());
-        }
-
-        return result;
-    }
+@Retention(RetentionPolicy.RUNTIME)
+public @interface DisableChecks {
+    CommandHandlerChecks[] disabledChecks() default {};
 }

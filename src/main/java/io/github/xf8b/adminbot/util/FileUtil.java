@@ -1,45 +1,68 @@
+/*
+ * Copyright (c) 2020 xf8b.
+ *
+ * This file is part of AdminBot.
+ *
+ * AdminBot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * AdminBot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with AdminBot.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.xf8b.adminbot.util;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 
+@UtilityClass
+@Slf4j
 public class FileUtil {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FileUtil.class);
-    private static final File DATABASES = new File("databases");
-    private static final File SECRETS = new File("secrets");
-    private static final File PREFIXES = new File("databases/prefixes.db");
-    private static final File ADMINISTRATORS = new File("databases/administrators.db");
-    private static final File WARNS = new File("databases/warns.db");
-    private static final File LEVELS = new File("databases/levels.db");
-    private static final File CONFIG = new File("secrets/config.json");
+    private final File DATABASES = new File("databases");
+    private final File SECRETS = new File("secrets");
+    private final File PREFIXES = new File("databases/prefixes.db");
+    private final File ADMINISTRATORS = new File("databases/administrators.db");
+    private final File WARNS = new File("databases/warns.db");
+    private final File CONFIG = new File("secrets/config.toml");
 
-    public static void createFolders() {
-        if (DATABASES.mkdirs()) LOGGER.info("Databases folder did not exist, creating folder.");
-        if (SECRETS.mkdirs()) LOGGER.info("Secrets folder did not exist, creating folder.");
+    public void createFolders() throws IOException {
+        if (!DATABASES.exists()) {
+            Files.createDirectory(DATABASES.toPath());
+            LOGGER.info("Databases folder did not exist, creating folder.");
+        }
+        if (!SECRETS.exists()) {
+            Files.createDirectory(SECRETS.toPath());
+            LOGGER.info("Secrets folder did not exist, creating folder.");
+        }
     }
 
-    public static void createFiles() throws IOException {
-        if (PREFIXES.createNewFile()) LOGGER.info("Prefixes file did not exist, creating file.");
-        if (ADMINISTRATORS.createNewFile()) LOGGER.info("Administrators file did not exist, creating file.");
-        if (WARNS.createNewFile()) LOGGER.info("Warns file did not exist, creating file.");
-        if (LEVELS.createNewFile()) LOGGER.info("Levels file did not exist, creating file.");
-        if (CONFIG.createNewFile()) {
+    public void createFiles() throws IOException {
+        if (!PREFIXES.exists()) {
+            Files.createFile(PREFIXES.toPath());
+            LOGGER.info("Prefixes file did not exist, creating file.");
+        }
+        if (!ADMINISTRATORS.exists()) {
+            Files.createFile(ADMINISTRATORS.toPath());
+            LOGGER.info("Administrators file did not exist, creating file.");
+        }
+        if (!WARNS.exists()) {
+            Files.createFile(WARNS.toPath());
+            LOGGER.info("Warns file did not exist, creating file.");
+        }
+        if (!CONFIG.exists()) {
+            Files.createFile(CONFIG.toPath());
             LOGGER.info("Config file did not exist, creating file.");
-            Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
-            gson.newJsonWriter(new FileWriter(CONFIG))
-                    .beginObject()
-                    .name("activity")
-                    .value("${prefix}help")
-                    .name("token")
-                    .value("NotARealToken.PleaseFillIn.WithRealToken")
-                    .endObject()
-                    .close();
         }
     }
 }

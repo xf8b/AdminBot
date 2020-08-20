@@ -19,24 +19,24 @@
 
 package io.github.xf8b.adminbot.util;
 
+import discord4j.rest.http.client.ClientException;
 import lombok.experimental.UtilityClass;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.function.Predicate;
 
 @UtilityClass
-public class MapUtil {
-    public <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
-        List<Map.Entry<K, V>> list = new ArrayList<>(map.entrySet());
-        list.sort(Map.Entry.comparingByValue());
-
-        Map<K, V> result = new LinkedHashMap<>();
-        for (Map.Entry<K, V> entry : list) {
-            result.put(entry.getKey(), entry.getValue());
-        }
-
-        return result;
+public class ClientExceptionUtil {
+    public Predicate<Throwable> isClientExceptionWithCode(int code) {
+        //todo fix error handling
+        return throwable -> {
+            if (throwable instanceof ClientException) {
+                ClientException exception = (ClientException) throwable;
+                if (exception.getErrorResponse().isEmpty()) return false;
+                if (exception.getErrorResponse().get().getFields().get("code") == null) return false;
+                return (int) exception.getErrorResponse().get().getFields().get("code") == code;
+            } else {
+                return false;
+            }
+        };
     }
 }

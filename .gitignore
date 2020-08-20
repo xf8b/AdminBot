@@ -16,3 +16,6 @@ build
 # Secret/confidential
 databases
 secrets
+
+# misc
+logs

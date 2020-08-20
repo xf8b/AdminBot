@@ -20,4 +20,6 @@ A simple bot used for administration.
 `unban`: Unbans the specified member.  
 `administrators`: Adds to, removes from, or gets all the roles that can do administrator only commands.  
 ## License  
-AdminBot is licensed under Unlicense. You can see details at [UNLICENSE.txt](https://github.com/xf8b/AdminBot/blob/master/UNLICENSE.txt).  
+AdminBot is licensed under GPL v3. You can see details at [COPYING.md](COPYING.md).  
+## Notices
+The command handler for `>ping` is licensed under Apache 2.0. The file contains a notice.

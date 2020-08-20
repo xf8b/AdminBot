@@ -1,39 +1,61 @@
+/*
+ * Copyright (c) 2020 xf8b.
+ *
+ * This file is part of AdminBot.
+ *
+ * AdminBot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * AdminBot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with AdminBot.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.github.xf8b.adminbot.util;
 
-import io.github.xf8b.adminbot.helper.AdministratorsDatabaseHelper;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
+import discord4j.common.util.Snowflake;
+import discord4j.core.object.entity.Guild;
+import discord4j.core.object.entity.Member;
+import discord4j.core.object.entity.Role;
+import io.github.xf8b.adminbot.helpers.AdministratorsDatabaseHelper;
+import lombok.experimental.UtilityClass;
 
 import java.sql.SQLException;
 
+@UtilityClass
 public class PermissionUtil {
-    public static boolean isAdministrator(Guild guild, Member member) throws SQLException, ClassNotFoundException {
-        boolean isAdministrator = false;
-        String guildId = guild.getId();
-        for (Role role : member.getRoles()) {
-            String roleId = role.getId();
-            if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId)) {
-                isAdministrator = true;
+    public Boolean isAdministrator(Guild guild, Member member) {
+        if (member.getId().equals(guild.getOwnerId())) return true;
+        String guildId = guild.getId().asString();
+        return member.getRoles().map(Role::getId).map(Snowflake::asString).any(roleId -> {
+            try {
+                return AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId);
+            } catch (ClassNotFoundException | SQLException exception) {
+                exception.printStackTrace();
             }
-        }
-        if (member.isOwner()) isAdministrator = true;
-        return isAdministrator;
+            return false;
+        }).block();
     }
 
-    public static int getAdministratorLevel(Guild guild, Member member) throws SQLException, ClassNotFoundException {
-        int level = 0;
-        String guildId = guild.getId();
-        for (Role role : member.getRoles()) {
-            String roleId = role.getId();
-            if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId)) {
-                int tempLevel = AdministratorsDatabaseHelper.getLevelOfAdministratorRole(guildId, roleId);
-                if (tempLevel > level) {
-                    level = tempLevel;
+    public Integer getAdministratorLevel(Guild guild, Member member) {
+        if (member.getId().equals(guild.getOwnerId())) return 3;
+        String guildId = guild.getId().asString();
+        return member.getRoles().map(Role::getId).map(Snowflake::asString).map(roleId -> {
+            try {
+                if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId)) {
+                    return AdministratorsDatabaseHelper.getLevelOfAdministratorRole(guildId, roleId);
                 }
+                return 0;
+            } catch (ClassNotFoundException | SQLException exception) {
+                exception.printStackTrace();
             }
-        }
-        if (member.isOwner()) level = 3;
-        return level;
+            return 0;
+        }).sort().blockLast();
     }
 }
