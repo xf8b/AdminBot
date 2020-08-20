@@ -25,6 +25,7 @@ import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Role;
 import io.github.xf8b.adminbot.helpers.AdministratorsDatabaseHelper;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
 
