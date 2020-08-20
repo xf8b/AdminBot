@@ -39,7 +39,7 @@ public class ParsingUtil {
                 return Long.parseLong(stringToParse.replaceAll("[<@!>]", ""));
             } catch (NumberFormatException exception1) {
                 Flux<Long> memberUsernameMatchesMono = guild.getMembers().flatMap(member -> {
-                    if (member.getUsername().equalsIgnoreCase(stringToParse)) {
+                    if (member.getUsername().trim().equalsIgnoreCase(stringToParse)) {
                         return Mono.just(member.getId().asLong());
                     } else {
                         return Mono.empty();
@@ -47,7 +47,7 @@ public class ParsingUtil {
                 });
                 Flux<Long> memberNicknameMatchesMono = guild.getMembers().flatMap(member -> {
                     if (member.getNickname().isPresent()) {
-                        if (member.getNickname().get().equalsIgnoreCase(stringToParse)) {
+                        if (member.getNickname().get().trim().equalsIgnoreCase(stringToParse)) {
                             return Mono.just(member.getId().asLong());
                         }
                     }
@@ -71,7 +71,7 @@ public class ParsingUtil {
                 return Long.parseLong(stringToParse.replaceAll("[<@&>]", ""));
             } catch (NumberFormatException exception1) {
                 return guild.getRoles().flatMap(role -> {
-                    if (role.getName().equalsIgnoreCase(stringToParse)) {
+                    if (role.getName().trim().equalsIgnoreCase(stringToParse)) {
                         return Mono.just(role.getId().asLong());
                     } else {
                         return Mono.empty();

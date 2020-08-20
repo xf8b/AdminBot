@@ -29,6 +29,7 @@ import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
+import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
@@ -63,7 +64,7 @@ public class NicknameCommandHandler extends AbstractCommandHandler {
         if (content.trim().split(" ").length < 3) {
             resetNickname = true;
         } else {
-            nickname = content.trim().substring(content.trim().indexOf(" ", content.trim().indexOf(" ") + 1) + 1).trim();
+            nickname = content.trim().substring(StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1).trim();
         }
         boolean finalResetNickname = resetNickname;
         String finalNickname = nickname;

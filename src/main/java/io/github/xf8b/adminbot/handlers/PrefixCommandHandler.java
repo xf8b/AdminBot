@@ -42,7 +42,7 @@ public class PrefixCommandHandler extends AbstractCommandHandler {
                 CommandType.OTHER,
                 1,
                 PermissionSet.none(),
-                3
+                4
         );
     }
 

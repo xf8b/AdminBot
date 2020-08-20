@@ -40,24 +40,25 @@ public class PermissionUtil {
                 return AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId);
             } catch (ClassNotFoundException | SQLException exception) {
                 LOGGER.error("An exception happened while trying to read from the administrators database!", exception);
+                return false;
             }
-            return false;
         }).block();
     }
 
     public Integer getAdministratorLevel(Guild guild, Member member) {
-        if (member.getId().equals(guild.getOwnerId())) return 3;
+        if (member.getId().equals(guild.getOwnerId())) return 4;
         String guildId = guild.getId().asString();
         return member.getRoles().map(Role::getId).map(Snowflake::asString).map(roleId -> {
             try {
                 if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId)) {
                     return AdministratorsDatabaseHelper.getLevelOfAdministratorRole(guildId, roleId);
+                } else {
+                    return 0;
                 }
-                return 0;
             } catch (ClassNotFoundException | SQLException exception) {
                 LOGGER.error("An exception happened while trying to read from the administrators database!", exception);
+                return 0;
             }
-            return 0;
         }).sort().blockLast();
     }
 }

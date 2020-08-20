@@ -30,6 +30,7 @@ import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.sql.SQLException;
@@ -66,7 +67,7 @@ public class RemoveWarnCommandHandler extends AbstractCommandHandler {
                 channel.createMessage("The member does not exist!").block();
                 return;
             }
-            String reasonAndWarnId = content.trim().substring(content.trim().indexOf(" ", content.trim().indexOf(" ") + 1) + 1);
+            String reasonAndWarnId = content.trim().substring(StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1);
             String reason;
             String warnId;
             if (reasonAndWarnId.lastIndexOf(" ") == -1) {

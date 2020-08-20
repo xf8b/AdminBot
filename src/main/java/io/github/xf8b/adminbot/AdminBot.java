@@ -80,7 +80,6 @@ public class AdminBot {
         version = Files.readAllLines(Paths.get(url.toURI())).get(0);
         //TODO: make command flags
         //TODO: make command arguments parser
-        //TODO: make ban, kick, and warn commands not allow you to do it if you are lower than the person you are trying to ban/kick/warn
         client = DiscordClient.create(botSettings.token)
                 .gateway()
                 .setSharding(ShardingStrategy.recommended())

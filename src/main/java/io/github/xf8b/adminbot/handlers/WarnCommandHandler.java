@@ -31,7 +31,9 @@ import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
 import io.github.xf8b.adminbot.util.MemberUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
+import io.github.xf8b.adminbot.util.PermissionUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.sql.SQLException;
@@ -72,7 +74,7 @@ public class WarnCommandHandler extends AbstractCommandHandler {
         if (content.trim().split(" ").length < 3) {
             reason = "No warn reason was provided.";
         } else {
-            reason = content.trim().substring(content.trim().indexOf(" ", content.trim().indexOf(" ") + 1) + 1).trim();
+            reason = content.trim().substring(StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1).trim();
         }
         if (reason.equals("all")) {
             channel.createMessage("Sorry, but this warn reason is reserved.").block();
@@ -82,6 +84,14 @@ public class WarnCommandHandler extends AbstractCommandHandler {
         guild.getMemberById(Snowflake.of(userId))
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                 .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
+                .flatMap(member -> {
+                    if (PermissionUtil.getAdministratorLevel(guild, member) <= PermissionUtil.getAdministratorLevel(guild, event.getMember().get())) {
+                        return Mono.just(member);
+                    } else {
+                        channel.createMessage("Cannot warn member because the member is higher!").block();
+                        return Mono.empty();
+                    }
+                })
                 .flatMap(member -> {
                     try {
                         if (WarnsDatabaseHelper.doesUserHaveWarn(guildId, userId, reason)) {

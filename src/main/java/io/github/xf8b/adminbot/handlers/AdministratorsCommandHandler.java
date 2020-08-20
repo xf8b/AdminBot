@@ -33,11 +33,11 @@ import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.helpers.AdministratorsDatabaseHelper;
 import io.github.xf8b.adminbot.settings.CommandHandlerChecks;
 import io.github.xf8b.adminbot.settings.DisableChecks;
-import io.github.xf8b.adminbot.settings.GuildSettings;
 import io.github.xf8b.adminbot.util.MapUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -52,10 +52,11 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                 "${prefix}administrators",
                 "${prefix}administrators <action> [role] [level]",
                 "Adds to, removes from, or gets the list of administrator roles.\n" +
-                        "The level can be from 1 to 3. \n" +
+                        "The level can be from 1 to 4. \n" +
                         "Level 1 can use `warn`, `removewarn`, `warns`, `mute`, and `nickname`.\n" +
                         "Level 2 can use all the commands for level 1 and `kick` and `clear`.\n" +
-                        "Level 3 can use all the commands for level 2 and `administrators`, `ban`, `unban`, `automod`, and `prefix`.",
+                        "Level 3 can use all the commands for level 2 and `ban`, `unban`, and `automod`.\n" +
+                        "Level 4 can use all the commands for level 3 and `administrators`, and `prefix`. This is intended for administrator/owner roles!",
                 ImmutableMap.of(
                         "addrole", "Adds to the list of administrator roles.",
                         "removerole", "Removes from the list of administrator roles.",
@@ -66,7 +67,7 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                 CommandType.ADMINISTRATION,
                 1,
                 PermissionSet.of(Permission.EMBED_LINKS),
-                3
+                4
         );
     }
 
@@ -78,10 +79,11 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
             Guild guild = event.getGuild().block();
             String guildId = guild.getId().asString();
             Member member = event.getMember().get();
-            String commandType = content.trim().split(" ")[1].replace(GuildSettings.getGuildSettings(guildId).getPrefix(), "").toLowerCase();
+            String commandType = content.trim().split(" ")[1].toLowerCase();
             boolean isAdministrator = PermissionUtil.isAdministrator(guild, member) &&
                     PermissionUtil.getAdministratorLevel(guild, member) >= this.getLevelRequired();
-            switch (commandType.toLowerCase()) {
+            final int indexOfCharacterAfterSecondSpace = StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1;
+            switch (commandType) {
                 case "add":
                 case "addrole":
                     if (isAdministrator) {
@@ -89,8 +91,8 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                             channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
                             return;
                         }
-                        String roleId = String.valueOf(ParsingUtil.parseRoleId(guild, content.trim().substring(content.trim().indexOf(" ", content.trim().indexOf(" ")) + 1, content.trim().lastIndexOf(" ")).trim()));
-                        if (roleId == null) {
+                        String roleId = String.valueOf(ParsingUtil.parseRoleId(guild, content.trim().substring(indexOfCharacterAfterSecondSpace, content.trim().lastIndexOf(" ")).trim()));
+                        if (roleId.equals("null")) {
                             channel.createMessage("The role does not exist!").block();
                             return;
                         }
@@ -103,8 +105,8 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                             channel.createMessage("The level is not a number!").block();
                             return;
                         }
-                        if (level > 3 || level < 1) {
-                            channel.createMessage("The level is not in bounds!").block();
+                        if (level > 4 || level < 1) {
+                            channel.createMessage("The level is invalid (not within 1-4)!").block();
                             return;
                         }
                         if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId)) {
@@ -125,8 +127,8 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                             channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
                             return;
                         }
-                        String roleId = String.valueOf(ParsingUtil.parseRoleId(guild, content.trim().substring(content.trim().indexOf(" ", content.trim().indexOf(" ")) + 1).trim()));
-                        if (roleId == null) {
+                        String roleId = String.valueOf(ParsingUtil.parseRoleId(guild, content.trim().substring(indexOfCharacterAfterSecondSpace).trim()));
+                        if (roleId.equals("null")) {
                             channel.createMessage("The role does not exist!").block();
                             return;
                         }

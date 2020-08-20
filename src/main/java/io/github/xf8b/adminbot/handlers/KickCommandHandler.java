@@ -31,6 +31,8 @@ import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
 import io.github.xf8b.adminbot.util.MemberUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
+import io.github.xf8b.adminbot.util.PermissionUtil;
+import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -65,7 +67,7 @@ public class KickCommandHandler extends AbstractCommandHandler {
         if (content.trim().split(" ").length < 3) {
             reason = "No kick reason was provided.";
         } else {
-            reason = content.trim().substring(content.trim().indexOf(" ", content.trim().indexOf(" ") + 1) + 1).trim();
+            reason = content.trim().substring(StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1).trim();
         }
         String finalReason = reason;
         String finalReason1 = reason;
@@ -96,6 +98,14 @@ public class KickCommandHandler extends AbstractCommandHandler {
                         return Mono.empty();
                     }
                 })))
+                .flatMap(member -> {
+                    if (PermissionUtil.getAdministratorLevel(guild, member) <= PermissionUtil.getAdministratorLevel(guild, event.getMember().get())) {
+                        return Mono.just(member);
+                    } else {
+                        channel.createMessage("Cannot kick member because the member is higher!").block();
+                        return Mono.empty();
+                    }
+                })
                 .flatMap(member -> {
                     String username = member.getDisplayName();
                     Mono<?> mono = member.kick(finalReason1)
