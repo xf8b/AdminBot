@@ -21,6 +21,7 @@ package io.github.xf8b.adminbot.settings;
 
 public enum CommandHandlerChecks {
     IS_ADMINISTRATOR,
+    IS_BOT_ADMINISTRATOR,
     SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS,
     BOT_HAS_REQUIRED_PERMISSIONS
 }

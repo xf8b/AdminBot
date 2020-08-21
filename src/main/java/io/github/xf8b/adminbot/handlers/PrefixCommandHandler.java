@@ -19,13 +19,10 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
-import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.settings.GuildSettings;
 import lombok.extern.slf4j.Slf4j;
@@ -33,17 +30,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PrefixCommandHandler extends AbstractCommandHandler {
     public PrefixCommandHandler() {
-        super(
-                "${prefix}prefix",
-                "${prefix}prefix <prefix>",
-                "Sets the prefix to the specified prefix.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.OTHER,
-                1,
-                PermissionSet.none(),
-                4
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}prefix")
+                .setUsage("${prefix}prefix <prefix>")
+                .setDescription("Sets the prefix to the specified prefix.")
+                .setCommandType(CommandType.OTHER)
+                .setMinimumAmountOfArgs(1)
+                .setAdministratorLevelRequired(4));
     }
 
     @Override

@@ -19,8 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -33,17 +31,14 @@ import reactor.core.publisher.Mono;
 
 public class UnbanCommandHandler extends AbstractCommandHandler {
     public UnbanCommandHandler() {
-        super(
-                "${prefix}unban",
-                "${prefix}unban <member>",
-                "Unbans the specified member.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.ADMINISTRATION,
-                1,
-                PermissionSet.of(Permission.BAN_MEMBERS),
-                3
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}unban")
+                .setUsage("${prefix}unban <member>")
+                .setDescription("Unbans the specified member.")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .setMinimumAmountOfArgs(1)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.BAN_MEMBERS))
+                .setAdministratorLevelRequired(3));
     }
 
     @Override
@@ -58,6 +53,7 @@ public class UnbanCommandHandler extends AbstractCommandHandler {
         }
         guild.getBan(Snowflake.of(userId))
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
+                .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10026), throwable -> Mono.fromRunnable(() -> channel.createMessage("The member is not banned!").block())) //unknown ban
                 .flatMap(ban -> {
                     String username = ban.getUser().getUsername();
                     guild.unban(Snowflake.of(userId)).block();

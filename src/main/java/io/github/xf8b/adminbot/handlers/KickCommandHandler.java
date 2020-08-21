@@ -19,8 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -40,17 +38,14 @@ import java.util.Objects;
 
 public class KickCommandHandler extends AbstractCommandHandler {
     public KickCommandHandler() {
-        super(
-                "${prefix}kick",
-                "${prefix}kick <member> [reason]",
-                "Kicks the specified member with the reason provided, or `No kick reason was provided` if there was none.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.OTHER,
-                1,
-                PermissionSet.of(Permission.KICK_MEMBERS),
-                2
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}kick")
+                .setUsage("${prefix}kick <member> [reason]")
+                .setDescription("Kicks the specified member with the reason provided, or `No kick reason was provided` if there was none.")
+                .setCommandType(CommandType.OTHER)
+                .setMinimumAmountOfArgs(1)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.KICK_MEMBERS))
+                .setAdministratorLevelRequired(2));
     }
 
     @Override
@@ -75,7 +70,7 @@ public class KickCommandHandler extends AbstractCommandHandler {
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                 .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
                 .flatMap(member -> {
-                    if (member == event.getMember().get()) {
+                    if (member.equals(event.getMember().get())) {
                         channel.createMessage("You cannot kick yourself!").block();
                         return Mono.empty();
                     } else {
@@ -83,18 +78,18 @@ public class KickCommandHandler extends AbstractCommandHandler {
                     }
                 })
                 .flatMap(member -> event.getClient().getSelf().flatMap(selfMember -> {
-                    if (selfMember == member) {
+                    if (selfMember.equals(member)) {
                         channel.createMessage("You cannot kick AdminBot!").block();
                         return Mono.empty();
                     } else {
                         return Mono.just(member);
                     }
                 }))
-                .flatMap(member -> guild.getSelfMember().flatMap(selfMember -> selfMember.isHigher(member).flatMap(isHigher -> {
-                    if (isHigher) {
+                .flatMap(member -> guild.getSelfMember().flatMap(selfMember -> member.isHigher(selfMember).flatMap(isHigher -> {
+                    if (!isHigher) {
                         return Mono.just(member);
                     } else {
-                        channel.createMessage("Cannot kick member because the member is higher!").block();
+                        channel.createMessage("Cannot kick member because the member is higher than me!").block();
                         return Mono.empty();
                     }
                 })))
@@ -102,7 +97,7 @@ public class KickCommandHandler extends AbstractCommandHandler {
                     if (PermissionUtil.getAdministratorLevel(guild, member) <= PermissionUtil.getAdministratorLevel(guild, event.getMember().get())) {
                         return Mono.just(member);
                     } else {
-                        channel.createMessage("Cannot kick member because the member is higher!").block();
+                        channel.createMessage("Cannot kick member because the member is higher than you!").block();
                         return Mono.empty();
                     }
                 })
@@ -110,7 +105,7 @@ public class KickCommandHandler extends AbstractCommandHandler {
                     String username = member.getDisplayName();
                     Mono<?> mono = member.kick(finalReason1)
                             .onErrorResume(throwable1 -> Mono.fromRunnable(() -> channel.createMessage("Failed to kick " + username + ".").block()))
-                            .flatMap(success -> channel.createMessage("Successfully kicked " + username + "!"));
+                            .doOnSuccess(success -> channel.createMessage("Successfully kicked " + username + "!").block());
                     return member.getPrivateChannel().flatMap(privateChannel -> {
                         if (member.isBot()) return Mono.empty();
                         return privateChannel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("You were kicked!")

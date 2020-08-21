@@ -19,34 +19,24 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.core.object.entity.channel.MessageChannel;
-import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 
 import java.time.temporal.ChronoUnit;
 
 public class PingCommandHandler extends AbstractCommandHandler {
     public PingCommandHandler() {
-        super(
-                "${prefix}ping",
-                "${prefix}ping",
-                "Gets the ping. Pretty useless.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.OTHER,
-                0,
-                PermissionSet.none(),
-                0
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}ping")
+                .setDescription("Gets the ping. Pretty useless.")
+                .setCommandType(CommandType.OTHER));
     }
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
         MessageChannel channel = event.getChannel().block();
-        long gatewayPing = event.getClient().getGatewayClient(event.getShardInfo().getIndex()).orElseThrow().getResponseTime().toMillis();
         channel.createMessage("Getting ping...").flatMap(message -> {
+            long gatewayPing = event.getClient().getGatewayClient(event.getShardInfo().getIndex()).orElseThrow().getResponseTime().toMillis();
             long ping = event.getMessage().getTimestamp().until(message.getTimestamp(), ChronoUnit.MILLIS);
             return message.edit(messageEditSpec -> messageEditSpec.setContent("Ping: " + ping + "ms, Websocket: " + gatewayPing + "ms"));
         }).subscribe();

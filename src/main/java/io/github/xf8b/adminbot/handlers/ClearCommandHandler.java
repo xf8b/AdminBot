@@ -19,8 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -38,17 +36,15 @@ import java.time.Instant;
 
 public class ClearCommandHandler extends AbstractCommandHandler {
     public ClearCommandHandler() {
-        super(
-                "${prefix}clear",
-                "${prefix}clear <amount>",
-                "Clears the specified amount of messages. The amount of messages to be cleared cannot exceed 100, or be below 1.",
-                ImmutableMap.of(),
-                ImmutableList.of("${prefix}purge"),
-                CommandType.ADMINISTRATION,
-                1,
-                PermissionSet.of(Permission.MANAGE_MESSAGES),
-                2
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}clear")
+                .setUsage("${prefix}clear <amount>")
+                .setDescription("Clears the specified amount of messages. The amount of messages to be cleared cannot exceed 100, or be below 1.")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .addAlias("${prefix}purge")
+                .setMinimumAmountOfArgs(1)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.MANAGE_MESSAGES))
+                .setAdministratorLevelRequired(2));
     }
 
     @Override

@@ -1,7 +1,5 @@
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.rest.util.Color;
@@ -12,17 +10,12 @@ import io.github.xf8b.adminbot.settings.GuildSettings;
 
 public class InfoCommandHandler extends AbstractCommandHandler {
     public InfoCommandHandler() {
-        super(
-                "${prefix}information",
-                "${prefix}information",
-                "Shows some information about the bot.",
-                ImmutableMap.of(),
-                ImmutableList.of("${prefix}info"),
-                CommandType.OTHER,
-                0,
-                PermissionSet.of(Permission.EMBED_LINKS),
-                0
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}information")
+                .setDescription("Shows some information about the bot.")
+                .setCommandType(CommandType.OTHER)
+                .addAlias("${prefix}info")
+                .setBotRequiredPermissions(PermissionSet.of(Permission.EMBED_LINKS)));
     }
 
     @Override

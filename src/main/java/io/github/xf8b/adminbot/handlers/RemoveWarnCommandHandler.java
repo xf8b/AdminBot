@@ -20,11 +20,9 @@
 package io.github.xf8b.adminbot.handlers;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
-import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
@@ -39,19 +37,16 @@ import java.util.Objects;
 @Slf4j
 public class RemoveWarnCommandHandler extends AbstractCommandHandler {
     public RemoveWarnCommandHandler() {
-        super(
-                "${prefix}removewarn",
-                "${prefix}removewarn <member> <reason> [warnId]",
-                "Removes the specified member's warns with the warnId and reason provided. " +
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}removewarn")
+                .setUsage("${prefix}removewarn <member> <reason> [warnId]")
+                .setDescription("Removes the specified member's warns with the warnId and reason provided. " +
                         "\nIf the reason is all, all warns will be removed. The warnId is not needed." +
-                        "\nIf the warnId is all, all warns with the same reason will be removed. ",
-                ImmutableMap.of(),
-                ImmutableList.of("${prefix}removewarns"),
-                CommandType.ADMINISTRATION,
-                2,
-                PermissionSet.none(),
-                1
-        );
+                        "\nIf the warnId is all, all warns with the same reason will be removed. ")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .setAliases(ImmutableList.of("${prefix}removewarns", "${prefix}rmwarn", "${prefix}rmwarns"))
+                .setMinimumAmountOfArgs(2)
+                .setAdministratorLevelRequired(1));
     }
 
     @Override

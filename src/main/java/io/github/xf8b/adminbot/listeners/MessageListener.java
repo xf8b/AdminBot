@@ -25,7 +25,6 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.MessageChannel;
 import io.github.xf8b.adminbot.AdminBot;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.handlers.AbstractCommandHandler;
@@ -100,12 +99,13 @@ public class MessageListener {
                 .map(permissions -> permissions.containsAll(commandHandler.getBotRequiredPermissions()))
                 .flatMap(bool -> {
                     if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks()).contains(CommandHandlerChecks.BOT_HAS_REQUIRED_PERMISSIONS)) {
+                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks())
+                                .contains(CommandHandlerChecks.BOT_HAS_REQUIRED_PERMISSIONS)) {
                             return Mono.just(bool);
                         }
                     }
                     if (!bool) {
-                        event.getMessage().getChannel()
+                        event.getChannel()
                                 .flatMap(messageChannel -> messageChannel
                                         .createMessage(String.format("Could not execute command \"%s\" because of insufficient permissions!", commandHandler.getNameWithPrefix(guildId))))
                                 .subscribe();
@@ -116,13 +116,14 @@ public class MessageListener {
                 })
                 .flatMap(bool -> {
                     if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks()).contains(CommandHandlerChecks.IS_ADMINISTRATOR)) {
+                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks())
+                                .contains(CommandHandlerChecks.IS_ADMINISTRATOR)) {
                             return Mono.just(bool);
                         }
                     }
                     if (commandHandler.requiresAdministrator()) {
-                        if (PermissionUtil.getAdministratorLevel(event.getGuild().block(), event.getMember().get()) < commandHandler.getLevelRequired()) {
-                            event.getMessage().getChannel().flatMap(messageChannel -> messageChannel.createMessage("Sorry, you don't have high enough permissions.")).subscribe();
+                        if (PermissionUtil.getAdministratorLevel(event.getGuild().block(), event.getMember().get()) < commandHandler.getAdministratorLevelRequired()) {
+                            event.getChannel().flatMap(messageChannel -> messageChannel.createMessage("Sorry, you don't have high enough permissions.")).subscribe();
                             return Mono.empty();
                         }
                     }
@@ -130,7 +131,25 @@ public class MessageListener {
                 })
                 .flatMap(bool -> {
                     if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks()).contains(CommandHandlerChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS)) {
+                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks())
+                                .contains(CommandHandlerChecks.IS_BOT_ADMINISTRATOR)) {
+                            return Mono.just(bool);
+                        }
+                    }
+                    if (commandHandler.isBotAdministratorOnly()) {
+                        if (!event.getAdminBot().isBotAdministrator(event.getMember().get().getId())) {
+                            event.getChannel()
+                                    .flatMap(messageChannel -> messageChannel.createMessage("Sorry, you aren't a administrator of AdminBot."))
+                                    .subscribe();
+                            return Mono.empty();
+                        }
+                    }
+                    return Mono.just(bool);
+                })
+                .flatMap(bool -> {
+                    if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
+                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks())
+                                .contains(CommandHandlerChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS)) {
                             return Mono.just(bool);
                         }
                     }

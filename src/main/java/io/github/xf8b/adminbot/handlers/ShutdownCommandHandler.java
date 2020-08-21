@@ -19,36 +19,21 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 
 public class ShutdownCommandHandler extends AbstractCommandHandler {
     public ShutdownCommandHandler() {
-        super(
-                "${prefix}shutdown",
-                "${prefix}shutdown",
-                "Shuts down the bot. Bot administrators only!",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.OTHER,
-                0,
-                PermissionSet.none(),
-                0
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}shutdown")
+                .setDescription("Shuts down the bot. Bot administrators only!")
+                .setCommandType(CommandType.BOT_ADMINISTRATOR)
+                .setBotAdministratorOnly());
     }
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        if (event.getAdminBot().isAdmin(event.getMember().get().getId())) {
-            event.getChannel()
-                    .flatMap(messageChannel -> messageChannel.createMessage("Shutting down!"))
-                    .subscribe(message -> System.exit(0));
-        } else {
-            event.getChannel()
-                    .flatMap(messageChannel -> messageChannel.createMessage("Sorry, you aren't a administrator of AdminBot."))
-                    .subscribe();
-        }
+        event.getChannel()
+                .flatMap(messageChannel -> messageChannel.createMessage("Shutting down!"))
+                .subscribe(message -> System.exit(0));
     }
 }

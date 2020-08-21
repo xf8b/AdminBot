@@ -6,8 +6,6 @@ A simple bot used for administration.
 `help`: Shows the commands available and gives information on them.  
 `prefix`: Sets the prefix for AdminBot.  
 `ping`: Shows the ping. Pretty useless.  
-`level`: Shows your level.  
-`leaderboard`: Shows the top 5 people in the guild with the most XP.  
 ### Administrator Only  
 `nickname`: Sets or resets the specified member's nickname.  
 `clear`: Clears the specified amount of messages from the current text channel.  

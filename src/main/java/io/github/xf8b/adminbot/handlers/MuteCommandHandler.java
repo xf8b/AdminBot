@@ -19,8 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -36,17 +34,14 @@ import java.util.concurrent.TimeUnit;
 //TODO: fix this
 public class MuteCommandHandler extends AbstractCommandHandler {
     public MuteCommandHandler() {
-        super(
-                "${prefix}mute",
-                "${prefix}mute <member> <time>",
-                "Mutes the specified member for the specified amount of time.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.ADMINISTRATION,
-                2,
-                PermissionSet.of(Permission.MANAGE_ROLES),
-                1
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}mute")
+                .setUsage("${prefix}mute <member> <time>")
+                .setDescription("Mutes the specified member for the specified amount of time.")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .setMinimumAmountOfArgs(2)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.MANAGE_ROLES))
+                .setAdministratorLevelRequired(1));
     }
 
     @Override

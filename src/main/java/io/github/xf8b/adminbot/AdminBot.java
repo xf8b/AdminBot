@@ -69,8 +69,8 @@ public class AdminBot {
         private String activity = ConfigUtil.readActivity().replace("${defaultPrefix}", GuildSettings.DEFAULT_PREFIX);
         @Parameter(names = {"-w", "--logDumpWebhook"}, description = "The webhook used to dump logs")
         private String logDumpWebhook = ConfigUtil.readLogDumpWebhook();
-        @Parameter(names = {"-A", "--admins"}, description = "The user IDs which are admins", converter = SnowflakeConverter.class)
-        private List<Snowflake> admins = ConfigUtil.readAdmins();
+        @Parameter(names = {"-A", "--admins", "-b", "--botAdministrators"}, description = "The user IDs which are bot administrators", converter = SnowflakeConverter.class)
+        private List<Snowflake> botAdministrators = ConfigUtil.readAdmins();
     }
 
     private AdminBot(BotSettings botSettings) throws IOException, URISyntaxException {
@@ -102,7 +102,7 @@ public class AdminBot {
         FileUtil.createFiles();
         commandRegistry.slurpCommandHandlers("io.github.xf8b.adminbot.handlers");
         MessageListener messageListener = new MessageListener(this, commandRegistry);
-        ReadyListener readyListener = new ReadyListener(botSettings.activity, botSettings.admins, version);
+        ReadyListener readyListener = new ReadyListener(botSettings.activity, botSettings.botAdministrators, version);
         //TODO: figure out why readyevent isnt being fired
         client.on(ReadyEvent.class).subscribe(readyListener::onReadyEvent);
         client.getEventDispatcher().on(ReadyEvent.class).subscribe(readyEvent -> System.out.println("ReadyEvent fired!"));
@@ -165,7 +165,7 @@ public class AdminBot {
         }
     }
 
-    public boolean isAdmin(Snowflake snowflake) {
-        return botSettings.admins.contains(snowflake);
+    public boolean isBotAdministrator(Snowflake snowflake) {
+        return botSettings.botAdministrators.contains(snowflake);
     }
 }

@@ -19,8 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -36,17 +34,15 @@ import java.util.Objects;
 
 public class NicknameCommandHandler extends AbstractCommandHandler {
     public NicknameCommandHandler() {
-        super(
-                "${prefix}nickname",
-                "${prefix}nickname <member> [nickname]",
-                "Sets the nickname of the specified member, or resets it if none was provided.",
-                ImmutableMap.of(),
-                ImmutableList.of("${prefix}nick"),
-                CommandType.ADMINISTRATION,
-                1,
-                PermissionSet.of(Permission.MANAGE_NICKNAMES),
-                1
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}nickname")
+                .setUsage("${prefix}nickname <member> [nickname]")
+                .setDescription("Sets the nickname of the specified member, or resets it if none was provided.")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .addAlias("${prefix}nick")
+                .setMinimumAmountOfArgs(1)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.MANAGE_NICKNAMES))
+                .setAdministratorLevelRequired(1));
     }
 
     @Override
@@ -71,25 +67,31 @@ public class NicknameCommandHandler extends AbstractCommandHandler {
         guild.getMemberById(Snowflake.of(userId))
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                 .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
-                .flatMap(member -> guild.getSelfMember().flatMap(selfMember -> selfMember.isHigher(member).flatMap(isHigher -> {
-                    if (isHigher) {
+                .flatMap(member -> guild.getSelfMember().flatMap(selfMember -> member.isHigher(selfMember).flatMap(isHigher -> {
+                    if (!isHigher) {
                         return Mono.just(member);
                     } else {
-                        channel.createMessage("Cannot set/reset nickname of member because member is higher!").block();
+                        channel.createMessage("Cannot set/reset nickname of member because member is higher than me!").block();
                         return Mono.empty();
                     }
                 })))
                 .flatMap(member -> {
-                    if (finalResetNickname) {
-                        return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(null))
-                                .onErrorResume(throwable -> Mono.fromRunnable(() -> channel.createMessage("Failed to reset nickname of " + member.getDisplayName() + ".").block()))
-                                .flatMap(unused -> channel.createMessage("Successfully reset nickname of " + member.getDisplayName() + "!"));
+                    if (member.getId().equals(guild.getClient().getSelfId())) {
+                        if (finalResetNickname) {
+                            return guild.changeSelfNickname(null)
+                                    .doOnSuccess(unused -> channel.createMessage("Successfully reset nickname of " + member.getDisplayName() + "!").block());
+                        } else {
+                            return guild.changeSelfNickname(finalNickname)
+                                    .doOnSuccess(unused -> channel.createMessage("Successfully set nickname of " + member.getDisplayName() + "!").block());
+                        }
                     } else {
-                        //TODO: fix message being not sent
-                        return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(finalNickname))
-                                //.doOnSuccess(unused -> channel.createMessage("Successfully set nickname of " + member.getDisplayName() + "!").block())
-                                .onErrorResume(throwable -> Mono.fromRunnable(() -> channel.createMessage("Failed to set nickname of " + member.getDisplayName() + ".").block()))
-                                .flatMap(unused -> channel.createMessage("Successfully set nickname of " + member.getDisplayName() + "!"));
+                        if (finalResetNickname) {
+                            return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(null))
+                                    .doOnSuccess(unused -> channel.createMessage("Successfully reset nickname of " + member.getDisplayName() + "!").block());
+                        } else {
+                            return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(finalNickname))
+                                    .doOnSuccess(unused -> channel.createMessage("Successfully set nickname of " + member.getDisplayName() + "!").block());
+                        }
                     }
                 })
                 .subscribe();

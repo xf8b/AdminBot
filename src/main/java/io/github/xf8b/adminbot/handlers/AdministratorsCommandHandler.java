@@ -19,7 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
@@ -48,27 +47,25 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AdministratorsCommandHandler extends AbstractCommandHandler {
     public AdministratorsCommandHandler() {
-        super(
-                "${prefix}administrators",
-                "${prefix}administrators <action> [role] [level]",
-                "Adds to, removes from, or gets the list of administrator roles.\n" +
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}administrators")
+                .setUsage("${prefix}administrators <action> [role] [level]")
+                .setDescription("Adds to, removes from, or gets the list of administrator roles.\n" +
                         "The level can be from 1 to 4. \n" +
                         "Level 1 can use `warn`, `removewarn`, `warns`, `mute`, and `nickname`.\n" +
                         "Level 2 can use all the commands for level 1 and `kick` and `clear`.\n" +
                         "Level 3 can use all the commands for level 2 and `ban`, `unban`, and `automod`.\n" +
-                        "Level 4 can use all the commands for level 3 and `administrators`, and `prefix`. This is intended for administrator/owner roles!",
-                ImmutableMap.of(
+                        "Level 4 can use all the commands for level 3 and `administrators`, and `prefix`. This is intended for administrator/owner roles!")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .setActions(ImmutableMap.of(
                         "addrole", "Adds to the list of administrator roles.",
                         "removerole", "Removes from the list of administrator roles.",
                         "removedeletedroles", "Removes deleted roles from the list of administrator roles.",
-                        "getroles", "Gets the list of administrator roles."
-                ),
-                ImmutableList.of("${prefix}admins"),
-                CommandType.ADMINISTRATION,
-                1,
-                PermissionSet.of(Permission.EMBED_LINKS),
-                4
-        );
+                        "getroles", "Gets the list of administrator roles."))
+                .addAlias("${prefix}admins")
+                .setMinimumAmountOfArgs(1)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.EMBED_LINKS))
+                .setAdministratorLevelRequired(4));
     }
 
     @Override
@@ -81,7 +78,7 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
             Member member = event.getMember().get();
             String commandType = content.trim().split(" ")[1].toLowerCase();
             boolean isAdministrator = PermissionUtil.isAdministrator(guild, member) &&
-                    PermissionUtil.getAdministratorLevel(guild, member) >= this.getLevelRequired();
+                    PermissionUtil.getAdministratorLevel(guild, member) >= this.getAdministratorLevelRequired();
             final int indexOfCharacterAfterSecondSpace = StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1;
             switch (commandType) {
                 case "add":

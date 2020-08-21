@@ -19,13 +19,10 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.rest.util.Color;
-import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
@@ -46,17 +43,13 @@ import java.util.Objects;
 @Slf4j
 public class WarnCommandHandler extends AbstractCommandHandler {
     public WarnCommandHandler() {
-        super(
-                "${prefix}warn",
-                "${prefix}warn <member> [reason]",
-                "Warns the specified member with the specified reason, or `No warn reason was provided` if there was none.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.ADMINISTRATION,
-                1,
-                PermissionSet.none(),
-                1
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}warn")
+                .setUsage("${prefix}warn <member> [reason]")
+                .setDescription("Warns the specified member with the specified reason, or `No warn reason was provided` if there was none.")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .setMinimumAmountOfArgs(1)
+                .setAdministratorLevelRequired(1));
     }
 
     @Override
@@ -88,7 +81,7 @@ public class WarnCommandHandler extends AbstractCommandHandler {
                     if (PermissionUtil.getAdministratorLevel(guild, member) <= PermissionUtil.getAdministratorLevel(guild, event.getMember().get())) {
                         return Mono.just(member);
                     } else {
-                        channel.createMessage("Cannot warn member because the member is higher!").block();
+                        channel.createMessage("Cannot warn member because the member is higher than you!").block();
                         return Mono.empty();
                     }
                 })

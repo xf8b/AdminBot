@@ -19,8 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
@@ -42,19 +40,14 @@ public class HelpCommandHandler extends AbstractCommandHandler {
     //public static final List<AbstractCommandHandler> commandsShown = Collections.synchronizedList(new ArrayList<>());
 
     public HelpCommandHandler() {
-        super(
-                "${prefix}help",
-                "${prefix}help [section/command] [page]",
-                "Shows the command's description, usage, aliases, and actions. \n" +
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}help")
+                .setUsage("${prefix}help [section/command] [page]")
+                .setDescription("Shows the command's description, usage, aliases, and actions. \n" +
                         "If no command was specified, all the commands in the section will be shown. \n" +
-                        "If no section was specified, all the commands will be shown.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.OTHER,
-                0,
-                PermissionSet.of(Permission.EMBED_LINKS),
-                0
-        );
+                        "If no section was specified, all the commands will be shown.")
+                .setCommandType(CommandType.OTHER)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.EMBED_LINKS)));
     }
 
     @Override
@@ -67,11 +60,15 @@ public class HelpCommandHandler extends AbstractCommandHandler {
                 embedCreateSpec.setTitle("AdminBot Help Page")
                         .setColor(Color.BLUE);
                 for (CommandType commandType : CommandType.values()) {
-                    String commandTypeName = WordUtils.capitalizeFully(commandType.name().toLowerCase());
+                    String commandTypeName = WordUtils.capitalizeFully(commandType.name()
+                            .toLowerCase()
+                            .replace("_", " "));
                     embedCreateSpec.addField(
                             "`" + commandTypeName + "`",
                             commandType.getDescription() + "\n" +
-                                    "To go to this section, use `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help " + commandType.name().toLowerCase() + "`.",
+                                    "To go to this section, use `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help " + commandType.name()
+                                    .toLowerCase()
+                                    .replace(" ", "_") + "`.",
                             false
                     );
                 }

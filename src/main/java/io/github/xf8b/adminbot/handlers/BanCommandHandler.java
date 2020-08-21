@@ -19,8 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -41,17 +39,14 @@ import java.util.Objects;
 //todo: fix members with multiple words in their name not working
 public class BanCommandHandler extends AbstractCommandHandler {
     public BanCommandHandler() {
-        super(
-                "${prefix}ban",
-                "${prefix}ban <member> [reason]",
-                "Bans the specified member with the specified reason, or `No ban reason was provided` if there was none.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.ADMINISTRATION,
-                1,
-                PermissionSet.of(Permission.BAN_MEMBERS),
-                3
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}ban")
+                .setUsage("${prefix}ban <member> [reason]")
+                .setDescription("Bans the specified member with the specified reason, or `No ban reason was provided` if there was none.")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .setMinimumAmountOfArgs(1)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.BAN_MEMBERS))
+                .setAdministratorLevelRequired(3));
     }
 
     @Override
@@ -71,13 +66,15 @@ public class BanCommandHandler extends AbstractCommandHandler {
             reason = content.trim().substring(StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1).trim();
         }
         String finalReason = reason;
-        guild.getBan(Snowflake.of(userId))
-                .flatMap(ban -> channel.createMessage("The user is already banned!"))
-                .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10026), throwable -> Mono.fromRunnable(() -> guild.getMemberById(Snowflake.of(userId)) //unknown ban
+        guild.getBans().any(ban -> ban.getUser().getId().equals(Snowflake.of(userId))).flatMap(isBanned -> {
+            if (isBanned) {
+                return channel.createMessage("The user is already banned!");
+            } else {
+                return guild.getMemberById(Snowflake.of(userId))
                         .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                         .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
                         .flatMap(member -> {
-                            if (member == event.getMember().get()) {
+                            if (member.equals(event.getMember().get())) {
                                 channel.createMessage("You cannot ban yourself!").block();
                                 return Mono.empty();
                             } else {
@@ -85,18 +82,18 @@ public class BanCommandHandler extends AbstractCommandHandler {
                             }
                         })
                         .flatMap(member -> event.getClient().getSelf().flatMap(selfMember -> {
-                            if (selfMember == member) {
+                            if (selfMember.equals(member)) {
                                 channel.createMessage("You cannot ban AdminBot!").block();
                                 return Mono.empty();
                             } else {
                                 return Mono.just(member);
                             }
                         }))
-                        .flatMap(member -> guild.getSelfMember().flatMap(selfMember -> selfMember.isHigher(member).flatMap(isHigher -> {
-                            if (isHigher) {
+                        .flatMap(member -> guild.getSelfMember().flatMap(selfMember -> member.isHigher(selfMember).flatMap(isHigher -> {
+                            if (!isHigher) {
                                 return Mono.just(member);
                             } else {
-                                channel.createMessage("Cannot ban member because the member is higher!").block();
+                                channel.createMessage("Cannot ban member because the member is higher than me!").block();
                                 return Mono.empty();
                             }
                         })))
@@ -104,7 +101,7 @@ public class BanCommandHandler extends AbstractCommandHandler {
                             if (PermissionUtil.getAdministratorLevel(guild, member) <= PermissionUtil.getAdministratorLevel(guild, event.getMember().get())) {
                                 return Mono.just(member);
                             } else {
-                                channel.createMessage("Cannot ban member because the member is higher!").block();
+                                channel.createMessage("Cannot ban member because the member is higher than you!").block();
                                 return Mono.empty();
                             }
                         })
@@ -122,6 +119,8 @@ public class BanCommandHandler extends AbstractCommandHandler {
                                         .setTimestamp(Instant.now())
                                         .setColor(Color.RED));
                             }).and(mono);
-                        }))).subscribe();
+                        });
+            }
+        }).subscribe();
     }
 }

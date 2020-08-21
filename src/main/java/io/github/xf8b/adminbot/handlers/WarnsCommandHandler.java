@@ -19,8 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
@@ -41,17 +39,14 @@ import java.util.concurrent.atomic.AtomicReference;
 //TODO: show the person which warned you
 public class WarnsCommandHandler extends AbstractCommandHandler {
     public WarnsCommandHandler() {
-        super(
-                "${prefix}warns",
-                "${prefix}warns <member>",
-                "Gets the warns for the specified member.",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.ADMINISTRATION,
-                1,
-                PermissionSet.of(Permission.EMBED_LINKS),
-                1
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}warns")
+                .setUsage("${prefix}warns <member>")
+                .setDescription("Gets the warns for the specified member.")
+                .setCommandType(CommandType.ADMINISTRATION)
+                .setMinimumAmountOfArgs(1)
+                .setBotRequiredPermissions(PermissionSet.of(Permission.EMBED_LINKS))
+                .setAdministratorLevelRequired(1));
     }
 
     @Override

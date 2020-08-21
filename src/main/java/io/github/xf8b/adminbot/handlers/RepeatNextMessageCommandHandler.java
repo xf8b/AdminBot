@@ -1,23 +1,13 @@
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.events.CommandFiredEvent;
 
 public class RepeatNextMessageCommandHandler extends AbstractCommandHandler {
     public RepeatNextMessageCommandHandler() {
-        super(
-                "${prefix}repeat",
-                "${prefix}repeat",
-                "Repeats the next message. TODO: delete",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                CommandType.OTHER,
-                0,
-                PermissionSet.none(),
-                0
-        );
+        super(AbstractCommandHandler.builder()
+                .setName("${prefix}repeat")
+                .setDescription("Repeats the next message. TODO: delete")
+                .setCommandType(CommandType.OTHER));
     }
 
     @Override
