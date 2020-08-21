@@ -154,13 +154,13 @@ public class AdminBot {
     }
 
     private Pair<Snowflake, String> parseWebhookUrl(String webhookUrl) {
-        Pattern pattern = Pattern.compile("https://discordapp\\.com/api/webhooks/\\d+/.+");
+        Pattern pattern = Pattern.compile("https://discordapp\\.com/api/webhooks/(\\d+)/(.+)");
         Matcher matcher = pattern.matcher(webhookUrl);
         if (!matcher.find()) {
             throw new IllegalArgumentException("Invalid webhook URL!");
         } else {
-            String id = webhookUrl.replaceAll("https://discordapp\\.com/api/webhooks/(\\d+)/(.+)", "$1");
-            String token = webhookUrl.replaceAll("https://discordapp\\.com/api/webhooks/(\\d+)/(.+)", "$2");
+            String id = matcher.group(1);
+            String token = matcher.group(2);
             return Pair.of(Snowflake.of(id), token);
         }
     }

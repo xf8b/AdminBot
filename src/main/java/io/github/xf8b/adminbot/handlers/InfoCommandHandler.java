@@ -12,7 +12,7 @@ public class InfoCommandHandler extends AbstractCommandHandler {
     public InfoCommandHandler() {
         super(AbstractCommandHandler.builder()
                 .setName("${prefix}information")
-                .setDescription("Shows some information about the bot.")
+                .setDescription("Shows some information about me.")
                 .setCommandType(CommandType.OTHER)
                 .addAlias("${prefix}info")
                 .setBotRequiredPermissions(PermissionSet.of(Permission.EMBED_LINKS)));
