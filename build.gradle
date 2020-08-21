@@ -32,7 +32,7 @@ repositories {
 
 dependencies {
     testImplementation "junit:junit:4.13"
-    implementation "com.beust:jcommander:1.71"
+    implementation "com.beust:jcommander:1.80"
     implementation "com.github.napstr:logback-discord-appender:1.0.0"
     //TODO: remove?
     implementation "com.mojang:brigadier:1.0.17"
