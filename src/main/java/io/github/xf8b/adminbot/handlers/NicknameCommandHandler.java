@@ -19,52 +19,56 @@
 
 package io.github.xf8b.adminbot.handlers;
 
+import com.google.common.collect.ImmutableList;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.rest.util.Permission;
 import discord4j.rest.util.PermissionSet;
-import io.github.xf8b.adminbot.events.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.flags.StringFlag;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
-import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 
 public class NicknameCommandHandler extends AbstractCommandHandler {
+    private static final StringFlag MEMBER = StringFlag.builder()
+            .setShortName("m")
+            .setLongName("member")
+            .build();
+    private static final StringFlag NICKNAME = StringFlag.builder()
+            .setShortName("n")
+            .setLongName("nickname")
+            .setRequired(false)
+            .build();
+
     public NicknameCommandHandler() {
         super(AbstractCommandHandler.builder()
                 .setName("${prefix}nickname")
-                .setUsage("${prefix}nickname <member> [nickname]")
                 .setDescription("Sets the nickname of the specified member, or resets it if none was provided.")
                 .setCommandType(CommandType.ADMINISTRATION)
                 .addAlias("${prefix}nick")
                 .setMinimumAmountOfArgs(1)
+                .setFlags(ImmutableList.of(MEMBER, NICKNAME))
                 .setBotRequiredPermissions(PermissionSet.of(Permission.MANAGE_NICKNAMES))
                 .setAdministratorLevelRequired(1));
     }
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        String content = event.getMessage().getContent();
         MessageChannel channel = event.getChannel().block();
         Guild guild = event.getGuild().block();
-        String userId = String.valueOf(ParsingUtil.parseUserId(guild, content.trim().split(" ")[1].trim()));
-        if (userId.equals("null")) {
+        Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfFlag(MEMBER));
+        if (userId == null) {
             channel.createMessage("The member does not exist!").block();
             return;
         }
-        boolean resetNickname = false;
-        String nickname = "";
-        if (content.trim().split(" ").length < 3) {
-            resetNickname = true;
-        } else {
-            nickname = content.trim().substring(StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1).trim();
-        }
-        boolean finalResetNickname = resetNickname;
-        String finalNickname = nickname;
-        guild.getMemberById(Snowflake.of(userId))
+        String nickname = event.getValueOfFlag(NICKNAME);
+        boolean resetNickname = nickname == null;
+        guild.getMemberById(userId)
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                 .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
                 .flatMap(member -> guild.getSelfMember().flatMap(selfMember -> member.isHigher(selfMember).flatMap(isHigher -> {
@@ -77,19 +81,19 @@ public class NicknameCommandHandler extends AbstractCommandHandler {
                 })))
                 .flatMap(member -> {
                     if (member.getId().equals(guild.getClient().getSelfId())) {
-                        if (finalResetNickname) {
-                            return guild.changeSelfNickname(null)
+                        if (resetNickname) {
+                            return guild.changeSelfNickname("")
                                     .doOnSuccess(unused -> channel.createMessage("Successfully reset nickname of " + member.getDisplayName() + "!").block());
                         } else {
-                            return guild.changeSelfNickname(finalNickname)
+                            return guild.changeSelfNickname(nickname)
                                     .doOnSuccess(unused -> channel.createMessage("Successfully set nickname of " + member.getDisplayName() + "!").block());
                         }
                     } else {
-                        if (finalResetNickname) {
-                            return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(null))
+                        if (resetNickname) {
+                            return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(""))
                                     .doOnSuccess(unused -> channel.createMessage("Successfully reset nickname of " + member.getDisplayName() + "!").block());
                         } else {
-                            return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(finalNickname))
+                            return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(nickname))
                                     .doOnSuccess(unused -> channel.createMessage("Successfully set nickname of " + member.getDisplayName() + "!").block());
                         }
                     }

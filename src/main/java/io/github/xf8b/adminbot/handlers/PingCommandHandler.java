@@ -20,7 +20,8 @@
 package io.github.xf8b.adminbot.handlers;
 
 import discord4j.core.object.entity.channel.MessageChannel;
-import io.github.xf8b.adminbot.events.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 
 import java.time.temporal.ChronoUnit;
 

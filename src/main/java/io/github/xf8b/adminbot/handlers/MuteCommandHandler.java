@@ -19,13 +19,18 @@
 
 package io.github.xf8b.adminbot.handlers;
 
+import com.google.common.collect.ImmutableList;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.rest.util.Permission;
 import discord4j.rest.util.PermissionSet;
-import io.github.xf8b.adminbot.events.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.flags.StringFlag;
+import io.github.xf8b.adminbot.api.commands.flags.TimeFlag;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
+import io.github.xf8b.adminbot.util.ParsingUtil;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
@@ -33,66 +38,39 @@ import java.util.concurrent.TimeUnit;
 
 //TODO: fix this
 public class MuteCommandHandler extends AbstractCommandHandler {
+    private static final StringFlag MEMBER = StringFlag.builder()
+            .setShortName("m")
+            .setLongName("member")
+            .build();
+
+    private static final TimeFlag TIME = TimeFlag.builder()
+            .setShortName("t")
+            .setLongName("time")
+            .build();
+
     public MuteCommandHandler() {
         super(AbstractCommandHandler.builder()
                 .setName("${prefix}mute")
-                .setUsage("${prefix}mute <member> <time>")
                 .setDescription("Mutes the specified member for the specified amount of time.")
                 .setCommandType(CommandType.ADMINISTRATION)
                 .setMinimumAmountOfArgs(2)
+                .setFlags(ImmutableList.of(MEMBER, TIME))
                 .setBotRequiredPermissions(PermissionSet.of(Permission.MANAGE_ROLES))
                 .setAdministratorLevelRequired(1));
     }
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        String content = event.getMessage().getContent();
         MessageChannel channel = event.getChannel().block();
         Guild guild = event.getGuild().block();
-        String guildId = guild.getId().asString();
-        String userId = content.trim().split(" ")[1].trim().replaceAll("[<@!>]", "");
-        String time = content.trim().split(" ")[2].trim().replaceAll("[a-zA-Z]", "").trim();
-        String tempTimeType = content.trim().split(" ")[2].trim().replaceAll("\\d", "").trim();
-        TimeUnit timeType;
-        switch (tempTimeType.toLowerCase()) {
-            case "d":
-            case "day":
-            case "days":
-                timeType = TimeUnit.DAYS;
-                break;
-            case "h":
-            case "hr":
-            case "hrs":
-            case "hours":
-                timeType = TimeUnit.HOURS;
-                break;
-            case "m":
-            case "mins":
-            case "minutes":
-                timeType = TimeUnit.MINUTES;
-                break;
-            case "s":
-            case "sec":
-            case "secs":
-            case "second":
-            case "seconds":
-                timeType = TimeUnit.SECONDS;
-                break;
-            default:
-                channel.createMessage("The time specified is invalid!").block();
-                return;
-        }
-        try {
-            Long.parseLong(userId);
-        } catch (NumberFormatException exception) {
+        Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfFlag(MEMBER));
+        Long time = event.getValueOfFlag(TIME).getLeft();
+        TimeUnit timeType = event.getValueOfFlag(TIME).getRight();
+        if (userId == null) {
             channel.createMessage("The member does not exist!").block();
             return;
         }
-        if (userId.isEmpty()) {
-            channel.createMessage("The member does not exist!").block();
-            return;
-        }
-        guild.getMemberById(Snowflake.of(userId))
+        guild.getMemberById(userId)
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                 .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
                 .flatMap(member -> {

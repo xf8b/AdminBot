@@ -19,54 +19,61 @@
 
 package io.github.xf8b.adminbot.handlers;
 
+import com.google.common.collect.ImmutableList;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.rest.util.Color;
 import discord4j.rest.util.Permission;
 import discord4j.rest.util.PermissionSet;
-import io.github.xf8b.adminbot.events.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.flags.StringFlag;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
 import io.github.xf8b.adminbot.util.MemberUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
-import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.Objects;
 
 public class KickCommandHandler extends AbstractCommandHandler {
+    private static final StringFlag MEMBER = StringFlag.builder()
+            .setShortName("m")
+            .setLongName("member")
+            .build();
+    private static final StringFlag REASON = StringFlag.builder()
+            .setShortName("r")
+            .setLongName("reason")
+            .setRequired(false)
+            .build();
+
     public KickCommandHandler() {
         super(AbstractCommandHandler.builder()
                 .setName("${prefix}kick")
-                .setUsage("${prefix}kick <member> [reason]")
                 .setDescription("Kicks the specified member with the reason provided, or `No kick reason was provided` if there was none.")
                 .setCommandType(CommandType.OTHER)
                 .setMinimumAmountOfArgs(1)
+                .setFlags(ImmutableList.of(MEMBER, REASON))
                 .setBotRequiredPermissions(PermissionSet.of(Permission.KICK_MEMBERS))
                 .setAdministratorLevelRequired(2));
     }
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        String content = event.getMessage().getContent();
         MessageChannel channel = event.getChannel().block();
         Guild guild = event.getGuild().block();
-        String userId = String.valueOf(ParsingUtil.parseUserId(guild, content.trim().split(" ")[1].trim()));
-        if (userId.equals("null")) {
+        Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfFlag(MEMBER));
+        if (userId == null) {
             channel.createMessage("The member does not exist!").block();
             return;
         }
-        String reason;
-        if (content.trim().split(" ").length < 3) {
-            reason = "No kick reason was provided.";
-        } else {
-            reason = content.trim().substring(StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1).trim();
-        }
+        String reason = event.getValueOfFlag(REASON);
+        if (reason == null) reason = "No kick reason was provided.";
         String finalReason = reason;
         String finalReason1 = reason;
-        guild.getMemberById(Snowflake.of(userId))
+        guild.getMemberById(userId)
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                 .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
                 .flatMap(member -> {

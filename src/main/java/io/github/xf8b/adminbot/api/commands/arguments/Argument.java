@@ -17,14 +17,22 @@
  * along with AdminBot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.adminbot.util;
+package io.github.xf8b.adminbot.api.commands.arguments;
 
-import discord4j.core.object.entity.Member;
-import lombok.experimental.UtilityClass;
+import com.google.common.collect.Range;
 
-@UtilityClass
-public class MemberUtil {
-    public String getTagWithDisplayName(Member member) {
-        return member.getDisplayName() + "#" + member.getDiscriminator();
-    }
+public interface Argument<T> {
+    String DEFAULT_INVALID_VALUE_ERROR_MESSAGE = "Invalid value `%s` for argument at index %s! Required value: %s.";
+
+    boolean isValidValue(String value);
+
+    boolean isRequired();
+
+    Range<Integer> index();
+
+    String getName();
+
+    T parse(String stringToParse);
+
+    String getInvalidValueErrorMessage(String invalidValue);
 }

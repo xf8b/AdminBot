@@ -25,15 +25,19 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.MessageChannel;
 import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.events.CommandFiredEvent;
-import io.github.xf8b.adminbot.handlers.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.arguments.Argument;
+import io.github.xf8b.adminbot.api.commands.flags.Flag;
 import io.github.xf8b.adminbot.handlers.InfoCommandHandler;
 import io.github.xf8b.adminbot.helpers.PrefixesDatabaseHelper;
 import io.github.xf8b.adminbot.settings.CommandHandlerChecks;
 import io.github.xf8b.adminbot.settings.DisableChecks;
 import io.github.xf8b.adminbot.settings.GuildSettings;
 import io.github.xf8b.adminbot.util.CommandRegistry;
+import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +46,7 @@ import reactor.core.publisher.Mono;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -60,6 +65,7 @@ public class MessageListener {
         //TODO: add spam protection
         Message message = event.getMessage();
         String content = message.getContent();
+        MessageChannel channel = event.getMessage().getChannel().block();
         String guildId = event.getGuild().map(Guild::getId)
                 .map(Snowflake::asString)
                 .block();
@@ -71,21 +77,34 @@ public class MessageListener {
             LOGGER.error("An exception happened while reading from the prefixes database!", exception);
         }
         if (content.trim().replaceAll("<@!" + event.getClient().getSelfId().asString() + ">", "").trim().equals("help")) {
-            CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, event);
-            commandRegistry.getCommandHandler(InfoCommandHandler.class).onCommandFired(commandFiredEvent);
+            InfoCommandHandler commandHandler = (InfoCommandHandler) commandRegistry.getCommandHandler(InfoCommandHandler.class);
+            Map<Flag<Object>, Object> flagMap = ParsingUtil.parseFlags(channel, commandHandler, content);
+            Map<Argument<Object>, Object> argumentMap = ParsingUtil.parseArguments(channel, commandHandler, content);
+            if (flagMap != null && argumentMap != null) {
+                CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
+                commandHandler.onCommandFired(commandFiredEvent);
+            }
         }
         String commandType = content.trim().split(" ")[0];
         for (AbstractCommandHandler commandHandler : commandRegistry) {
             String name = commandHandler.getNameWithPrefix(guildId);
             List<String> aliases = commandHandler.getAliasesWithPrefixes(guildId);
             if (commandType.equalsIgnoreCase(name)) {
-                CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, event);
-                onCommandFired(commandFiredEvent, commandHandler, guildId, content);
+                Map<Flag<Object>, Object> flagMap = ParsingUtil.parseFlags(channel, commandHandler, content);
+                Map<Argument<Object>, Object> argumentMap = ParsingUtil.parseArguments(channel, commandHandler, content);
+                if (flagMap != null && argumentMap != null) {
+                    CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
+                    onCommandFired(commandFiredEvent, commandHandler, guildId, content);
+                }
             } else if (!aliases.isEmpty()) {
                 for (String alias : aliases) {
                     if (commandType.equalsIgnoreCase(alias)) {
-                        CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, event);
-                        onCommandFired(commandFiredEvent, commandHandler, guildId, content);
+                        Map<Flag<Object>, Object> flagMap = ParsingUtil.parseFlags(channel, commandHandler, content);
+                        Map<Argument<Object>, Object> argumentMap = ParsingUtil.parseArguments(channel, commandHandler, content);
+                        if (flagMap != null && argumentMap != null) {
+                            CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
+                            onCommandFired(commandFiredEvent, commandHandler, guildId, content);
+                        }
                     }
                 }
             }
@@ -99,7 +118,7 @@ public class MessageListener {
                 .map(permissions -> permissions.containsAll(commandHandler.getBotRequiredPermissions()))
                 .flatMap(bool -> {
                     if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks())
+                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
                                 .contains(CommandHandlerChecks.BOT_HAS_REQUIRED_PERMISSIONS)) {
                             return Mono.just(bool);
                         }
@@ -116,7 +135,7 @@ public class MessageListener {
                 })
                 .flatMap(bool -> {
                     if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks())
+                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
                                 .contains(CommandHandlerChecks.IS_ADMINISTRATOR)) {
                             return Mono.just(bool);
                         }
@@ -131,7 +150,7 @@ public class MessageListener {
                 })
                 .flatMap(bool -> {
                     if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks())
+                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
                                 .contains(CommandHandlerChecks.IS_BOT_ADMINISTRATOR)) {
                             return Mono.just(bool);
                         }
@@ -148,7 +167,7 @@ public class MessageListener {
                 })
                 .flatMap(bool -> {
                     if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).disabledChecks())
+                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
                                 .contains(CommandHandlerChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS)) {
                             return Mono.just(bool);
                         }

@@ -19,7 +19,9 @@
 
 package io.github.xf8b.adminbot.handlers;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Range;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
@@ -28,7 +30,12 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.rest.util.Color;
 import discord4j.rest.util.Permission;
 import discord4j.rest.util.PermissionSet;
-import io.github.xf8b.adminbot.events.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.arguments.StringArgument;
+import io.github.xf8b.adminbot.api.commands.flags.Flag;
+import io.github.xf8b.adminbot.api.commands.flags.IntegerFlag;
+import io.github.xf8b.adminbot.api.commands.flags.StringFlag;
 import io.github.xf8b.adminbot.helpers.AdministratorsDatabaseHelper;
 import io.github.xf8b.adminbot.settings.CommandHandlerChecks;
 import io.github.xf8b.adminbot.settings.DisableChecks;
@@ -36,20 +43,55 @@ import io.github.xf8b.adminbot.util.MapUtil;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@DisableChecks(disabledChecks = CommandHandlerChecks.IS_ADMINISTRATOR)
+@DisableChecks(CommandHandlerChecks.IS_ADMINISTRATOR)
 @Slf4j
 public class AdministratorsCommandHandler extends AbstractCommandHandler {
+    private static final StringArgument ACTION = StringArgument.builder()
+            .setIndex(Range.singleton(1))
+            .setName("action")
+            .build();
+    private static final StringFlag ROLE = StringFlag.builder()
+            .setShortName("r")
+            .setLongName("role")
+            .setRequired(false)
+            .build();
+    private static final IntegerFlag ADMINISTRATOR_LEVEL = IntegerFlag.builder()
+            .setShortName("l")
+            .setLongName("level")
+            .setRequired(false)
+            .setValidityPredicate(value -> {
+                try {
+                    int level = Integer.parseInt(value);
+                    return level <= 4 && level >= 1;
+                } catch (NumberFormatException exception) {
+                    return false;
+                }
+            })
+            .setInvalidValueErrorMessageFunction(invalidValue -> {
+                try {
+                    int level = Integer.parseInt(invalidValue);
+                    if (level > 4) {
+                        return "The maximum administrator level you can assign is 4!";
+                    } else if (level < 1) {
+                        return "The minimum administrator level you can assign is 1!";
+                    } else {
+                        throw new IllegalStateException("tf");
+                    }
+                } catch (NumberFormatException exception) {
+                    return Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE;
+                }
+            })
+            .build();
+
     public AdministratorsCommandHandler() {
         super(AbstractCommandHandler.builder()
                 .setName("${prefix}administrators")
-                .setUsage("${prefix}administrators <action> [role] [level]")
                 .setDescription("Adds to, removes from, or gets the list of administrator roles.\n" +
                         "The level can be from 1 to 4. \n" +
                         "Level 1 can use `warn`, `removewarn`, `warns`, `mute`, and `nickname`.\n" +
@@ -64,6 +106,8 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                         "getroles", "Gets the list of administrator roles."))
                 .addAlias("${prefix}admins")
                 .setMinimumAmountOfArgs(1)
+                .addArgument(ACTION)
+                .setFlags(ImmutableList.of(ROLE, ADMINISTRATOR_LEVEL))
                 .setBotRequiredPermissions(PermissionSet.of(Permission.EMBED_LINKS))
                 .setAdministratorLevelRequired(4));
     }
@@ -71,45 +115,32 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
     @Override
     public void onCommandFired(CommandFiredEvent event) {
         try {
-            String content = event.getMessage().getContent();
             MessageChannel channel = event.getChannel().block();
             Guild guild = event.getGuild().block();
             String guildId = guild.getId().asString();
             Member member = event.getMember().get();
-            String commandType = content.trim().split(" ")[1].toLowerCase();
+            String action = event.getValueOfArgument(ACTION);
             boolean isAdministrator = PermissionUtil.isAdministrator(guild, member) &&
                     PermissionUtil.getAdministratorLevel(guild, member) >= this.getAdministratorLevelRequired();
-            final int indexOfCharacterAfterSecondSpace = StringUtils.ordinalIndexOf(content.trim(), " ", 2) + 1;
-            switch (commandType) {
+            switch (action) {
                 case "add":
                 case "addrole":
                     if (isAdministrator) {
-                        if (content.trim().split(" ").length < 4) {
+                        if (event.getValueOfFlag(ROLE) == null || event.getValueOfFlag(ADMINISTRATOR_LEVEL) == null) {
                             channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
                             return;
                         }
-                        String roleId = String.valueOf(ParsingUtil.parseRoleId(guild, content.trim().substring(indexOfCharacterAfterSecondSpace, content.trim().lastIndexOf(" ")).trim()));
-                        if (roleId.equals("null")) {
+                        Snowflake roleId = ParsingUtil.parseRoleIdAndReturnSnowflake(guild, event.getValueOfFlag(ROLE));
+                        if (roleId == null) {
                             channel.createMessage("The role does not exist!").block();
                             return;
                         }
-                        String roleName = guild.getRoleById(Snowflake.of(roleId)).map(Role::getName).block();
-                        String tempLevel = content.trim().substring(content.trim().lastIndexOf(" ")).trim();
-                        int level;
-                        try {
-                            level = Integer.parseInt(tempLevel);
-                        } catch (NumberFormatException exception) {
-                            channel.createMessage("The level is not a number!").block();
-                            return;
-                        }
-                        if (level > 4 || level < 1) {
-                            channel.createMessage("The level is invalid (not within 1-4)!").block();
-                            return;
-                        }
-                        if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId)) {
+                        String roleName = guild.getRoleById(roleId).map(Role::getName).block();
+                        int level = event.getValueOfFlag(ADMINISTRATOR_LEVEL);
+                        if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId.asString())) {
                             channel.createMessage("The role already has been added as an administrator role.").block();
                         } else {
-                            AdministratorsDatabaseHelper.addToAdministrators(guildId, roleId, level);
+                            AdministratorsDatabaseHelper.addToAdministrators(guildId, roleId.asString(), level);
                             channel.createMessage("Successfully added " + roleName + " to the list of administrator roles.").block();
                         }
                     } else {
@@ -120,20 +151,20 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                 case "remove":
                 case "removerole":
                     if (isAdministrator) {
-                        if (content.trim().split(" ").length < 3) {
+                        if (event.getValueOfFlag(ROLE) == null) {
                             channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
                             return;
                         }
-                        String roleId = String.valueOf(ParsingUtil.parseRoleId(guild, content.trim().substring(indexOfCharacterAfterSecondSpace).trim()));
-                        if (roleId.equals("null")) {
+                        Snowflake roleId = ParsingUtil.parseRoleIdAndReturnSnowflake(guild, event.getValueOfFlag(ROLE));
+                        if (roleId == null) {
                             channel.createMessage("The role does not exist!").block();
                             return;
                         }
-                        String roleName = guild.getRoleById(Snowflake.of(roleId)).map(Role::getName).block();
-                        if (!AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId)) {
+                        String roleName = guild.getRoleById(roleId).map(Role::getName).block();
+                        if (!AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId.asString())) {
                             channel.createMessage("The role has not been added as an administrator role!").block();
                         } else {
-                            AdministratorsDatabaseHelper.removeFromAdministrators(guildId, roleId);
+                            AdministratorsDatabaseHelper.removeFromAdministrators(guildId, roleId.asString());
                             channel.createMessage("Successfully removed " + roleName + " from the list of administrator roles.").block();
                         }
                     } else {

@@ -33,6 +33,8 @@ import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.shard.ShardingStrategy;
 import discord4j.rest.util.Color;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.handlers.SlapBrigadierCommand;
 import io.github.xf8b.adminbot.listeners.MessageListener;
 import io.github.xf8b.adminbot.listeners.ReadyListener;
@@ -74,12 +76,11 @@ public class AdminBot {
     }
 
     private AdminBot(BotSettings botSettings) throws IOException, URISyntaxException {
+        //TODO: member verifying system
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         URL url = classloader.getResource("version.txt");
         if (url == null) throw new NullPointerException("The version file does not exist!");
         version = Files.readAllLines(Paths.get(url.toURI())).get(0);
-        //TODO: make command flags
-        //TODO: make command arguments parser
         client = DiscordClient.create(botSettings.token)
                 .gateway()
                 .setSharding(ShardingStrategy.recommended())
@@ -100,6 +101,17 @@ public class AdminBot {
         }));
         FileUtil.createFolders();
         FileUtil.createFiles();
+        //here just because i want it to be in help command
+        commandRegistry.registerCommandHandlers(new AbstractCommandHandler(AbstractCommandHandler.builder()
+                .setName("${prefix}slap")
+                .setDescription("Slaps the person.")
+                .setCommandType(AbstractCommandHandler.CommandType.OTHER)
+                .setMinimumAmountOfArgs(1)) {
+            @Override
+            public void onCommandFired(CommandFiredEvent event) {
+
+            }
+        });
         commandRegistry.slurpCommandHandlers("io.github.xf8b.adminbot.handlers");
         MessageListener messageListener = new MessageListener(this, commandRegistry);
         ReadyListener readyListener = new ReadyListener(botSettings.activity, botSettings.botAdministrators, version);

@@ -5,8 +5,8 @@
  *
  * AdminBot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either veresultSetion 3 of the License, or
- * (at your option) any later veresultSetion.
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * AdminBot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,7 +25,7 @@ import java.sql.*;
 
 @UtilityClass
 public class PrefixesDatabaseHelper {
-    public void insertIntoPrefixes(String guildId, String prefix) throws ClassNotFoundException, SQLException {
+    public static void insertIntoPrefixes(String guildId, String prefix) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
         Statement statement = connection.createStatement();
@@ -44,7 +44,7 @@ public class PrefixesDatabaseHelper {
         prep.close();
     }
 
-    public String readFromPrefixes(String guildId) throws ClassNotFoundException, SQLException {
+    public static String readFromPrefixes(String guildId) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
         Statement statement = connection.createStatement();
@@ -66,7 +66,7 @@ public class PrefixesDatabaseHelper {
         return prefix;
     }
 
-    public void overwritePrefixForGuild(String guildId, String prefix) throws ClassNotFoundException, SQLException {
+    public static void overwritePrefixForGuild(String guildId, String prefix) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
         Statement statement = connection.createStatement();
@@ -84,7 +84,7 @@ public class PrefixesDatabaseHelper {
         prep.close();
     }
 
-    public boolean doesGuildNotExistInDatabase(String guildId) throws ClassNotFoundException, SQLException {
+    public static boolean doesGuildNotExistInDatabase(String guildId) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
         Statement statement = connection.createStatement();

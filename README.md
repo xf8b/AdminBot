@@ -19,9 +19,19 @@ A simple bot used for administration.
 `ban`: Bans the specified member for the specified reason.  
 `unban`: Unbans the specified member.  
 `administrators`: Adds to, removes from, or gets all the roles that can do administrator only commands.  
-## Bot Administrator Only  
+### Bot Administrator Only  
 `eval`: Evaluates code. Bot administrators only!  
 `shutdown`: Shuts down the bot. Bot administrators only!  
+## Startup Guide
+You need:  
+* A bot token  
+1. Download the code, and run `gradlew shadowJar`.    
+2. The jar file will be in `build/libs`.  
+3. Run that using `java -jar theJar.jar`.  
+4. It will fail because of the invalid token.   
+You must go to `secrets/config.toml` and fill out the token.  
+5. Invite the bot to your server.  
+6. You're done.  
 ## License  
 AdminBot is licensed under GPL v3. You can see details at [COPYING.md](COPYING.md).  
 ## Notices

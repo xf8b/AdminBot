@@ -19,7 +19,7 @@
 
 package io.github.xf8b.adminbot.util;
 
-import io.github.xf8b.adminbot.handlers.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.reflections.Reflections;

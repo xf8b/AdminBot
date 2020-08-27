@@ -24,5 +24,5 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DisableChecks {
-    CommandHandlerChecks[] disabledChecks() default {};
+    CommandHandlerChecks[] value() default {};
 }

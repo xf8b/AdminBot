@@ -26,7 +26,7 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.rest.util.Color;
 import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.handlers.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.handlers.HelpCommandHandler;
 import io.github.xf8b.adminbot.settings.GuildSettings;
 import lombok.RequiredArgsConstructor;

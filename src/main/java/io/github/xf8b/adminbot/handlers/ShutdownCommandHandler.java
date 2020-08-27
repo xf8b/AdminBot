@@ -19,7 +19,8 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import io.github.xf8b.adminbot.events.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 
 public class ShutdownCommandHandler extends AbstractCommandHandler {
     public ShutdownCommandHandler() {
