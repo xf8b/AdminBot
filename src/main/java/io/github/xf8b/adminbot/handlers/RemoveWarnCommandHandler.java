@@ -82,10 +82,10 @@ public class RemoveWarnCommandHandler extends AbstractCommandHandler {
             guild.getMemberById(userId)
                     .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
                     .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())); //unknown member
-            if (!WarnsDatabaseHelper.doesUserHaveWarn(guildId, userId.asString(), reason) && checkIfWarnExists) {
+            if (!WarnsDatabaseHelper.hasWarn(guildId, userId.asString(), reason) && checkIfWarnExists) {
                 channel.createMessage("The user does not have a warn with that reason!").block();
             } else {
-                WarnsDatabaseHelper.removeWarnsFromUserForGuild(
+                WarnsDatabaseHelper.remove(
                         guildId,
                         userId.asString(),
                         removeAllWarnsWithSameName ? null : warnId,

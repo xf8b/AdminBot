@@ -73,7 +73,7 @@ public class MessageListener {
                 .map(Snowflake::asString)
                 .block();
         try {
-            if (PrefixesDatabaseHelper.doesGuildNotExistInDatabase(guildId)) {
+            if (PrefixesDatabaseHelper.isNotInDatabase(guildId)) {
                 new GuildSettings(guildId);
             }
         } catch (ClassNotFoundException | SQLException exception) {

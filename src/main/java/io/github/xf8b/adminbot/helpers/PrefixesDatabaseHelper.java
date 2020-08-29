@@ -19,18 +19,22 @@
 
 package io.github.xf8b.adminbot.helpers;
 
+import lombok.Cleanup;
 import lombok.experimental.UtilityClass;
 
 import java.sql.*;
 
 @UtilityClass
 public class PrefixesDatabaseHelper {
-    public static void insertIntoPrefixes(String guildId, String prefix) throws ClassNotFoundException, SQLException {
+    public static void add(String guildId, String prefix) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
+        @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
+        @Cleanup
         Statement statement = connection.createStatement();
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS prefixes (guildId, prefix);");
-        PreparedStatement prep = connection.prepareStatement("insert into prefixes values (?, ?);");
+        @Cleanup
+        PreparedStatement prep = connection.prepareStatement("INSERT INTO prefixes VALUES (?, ?);");
 
         prep.setString(1, guildId);
         prep.setString(2, prefix);
@@ -39,39 +43,35 @@ public class PrefixesDatabaseHelper {
         connection.setAutoCommit(false);
         prep.executeBatch();
         connection.setAutoCommit(true);
-        connection.close();
-        statement.close();
         prep.close();
     }
 
-    public static String readFromPrefixes(String guildId) throws ClassNotFoundException, SQLException {
+    public static String get(String guildId) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
+        @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
+        @Cleanup
         Statement statement = connection.createStatement();
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS prefixes (guildId, prefix);");
-        PreparedStatement prep = connection.prepareStatement("select prefix from prefixes where guildId = ?;");
+        @Cleanup
+        PreparedStatement prep = connection.prepareStatement("SELECT prefix FROM prefixes WHERE guildId = ?;");
         prep.setString(1, guildId);
         prep.addBatch();
+        @Cleanup
         ResultSet resultSet = prep.executeQuery();
 
-        String prefix = resultSet.getString("prefix");
-
-        connection.setAutoCommit(false);
-        connection.setAutoCommit(true);
-
-        resultSet.close();
-        connection.close();
-        statement.close();
-        prep.close();
-        return prefix;
+        return resultSet.getString("prefix");
     }
 
-    public static void overwritePrefixForGuild(String guildId, String prefix) throws ClassNotFoundException, SQLException {
+    public static void overwrite(String guildId, String prefix) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
+        @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
+        @Cleanup
         Statement statement = connection.createStatement();
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS prefixes (guildId, prefix);");
-        PreparedStatement prep = connection.prepareStatement("update prefixes set prefix = ? where guildId = ?;");
+        @Cleanup
+        PreparedStatement prep = connection.prepareStatement("UPDATE prefixes SET prefix = ? WHERE guildId = ?;");
         prep.setString(1, prefix);
         prep.setString(2, guildId);
         prep.addBatch();
@@ -79,29 +79,25 @@ public class PrefixesDatabaseHelper {
         connection.setAutoCommit(false);
         prep.executeUpdate();
         connection.setAutoCommit(true);
-        connection.close();
-        statement.close();
         prep.close();
     }
 
-    public static boolean doesGuildNotExistInDatabase(String guildId) throws ClassNotFoundException, SQLException {
+    public static boolean isNotInDatabase(String guildId) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
+        @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
+        @Cleanup
         Statement statement = connection.createStatement();
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS prefixes (guildId, prefix);");
-        PreparedStatement prep = connection.prepareStatement("select prefix from prefixes where guildId = ?;");
+        @Cleanup
+        PreparedStatement prep = connection.prepareStatement("SELECT prefix FROM prefixes WHERE guildId = ?;");
         prep.setString(1, guildId);
         prep.addBatch();
+        @Cleanup
         ResultSet resultSet = prep.executeQuery();
 
         boolean doesExist = resultSet.next();
 
-        connection.setAutoCommit(false);
-        connection.setAutoCommit(true);
-        connection.close();
-        statement.close();
-        prep.close();
-        resultSet.close();
         return !doesExist;
     }
 }

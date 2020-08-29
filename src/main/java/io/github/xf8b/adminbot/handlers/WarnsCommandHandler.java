@@ -76,7 +76,7 @@ public class WarnsCommandHandler extends AbstractCommandHandler {
                         return member;
                     })
                     .subscribe();
-            Multimap<String, String> warns = WarnsDatabaseHelper.getAllWarnsForUser(guildId, userId.asString());
+            Multimap<String, String> warns = WarnsDatabaseHelper.getWarnsForUser(guildId, userId.asString());
             if (warns.isEmpty()) {
                 channel.createMessage("The user has no warnings.").block();
             } else {

@@ -33,7 +33,7 @@ data class GuildSettings(val guildId: String) {
 
     private fun read() {
         try {
-            prefix = PrefixesDatabaseHelper.readFromPrefixes(guildId)
+            prefix = PrefixesDatabaseHelper.get(guildId)
         } catch (exception: ClassNotFoundException) {
             logger.error("An exception happened while trying to read to the prefix database!", exception)
         } catch (exception: SQLException) {
@@ -43,7 +43,7 @@ data class GuildSettings(val guildId: String) {
 
     private fun write() {
         try {
-            PrefixesDatabaseHelper.overwritePrefixForGuild(guildId, prefix)
+            PrefixesDatabaseHelper.overwrite(guildId, prefix)
         } catch (exception: ClassNotFoundException) {
             logger.error("An exception happened while trying to write to the prefix database!", exception)
         } catch (exception: SQLException) {
@@ -74,11 +74,11 @@ data class GuildSettings(val guildId: String) {
     init {
         //TODO: redo system?
         try {
-            prefix = if (PrefixesDatabaseHelper.doesGuildNotExistInDatabase(guildId)) {
-                PrefixesDatabaseHelper.insertIntoPrefixes(guildId, DEFAULT_PREFIX)
+            prefix = if (PrefixesDatabaseHelper.isNotInDatabase(guildId)) {
+                PrefixesDatabaseHelper.add(guildId, DEFAULT_PREFIX)
                 DEFAULT_PREFIX
             } else {
-                PrefixesDatabaseHelper.readFromPrefixes(guildId)
+                PrefixesDatabaseHelper.get(guildId)
             }
         } catch (exception: ClassNotFoundException) {
             logger.error(String.format(

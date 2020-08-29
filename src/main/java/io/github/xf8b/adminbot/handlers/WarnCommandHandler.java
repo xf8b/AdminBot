@@ -103,9 +103,9 @@ public class WarnCommandHandler extends AbstractCommandHandler {
                 })
                 .flatMap(member -> {
                     try {
-                        if (WarnsDatabaseHelper.doesUserHaveWarn(guildId, userId.asString(), finalReason)) {
+                        if (WarnsDatabaseHelper.hasWarn(guildId, userId.asString(), finalReason)) {
                             List<String> warnIds = new ArrayList<>();
-                            WarnsDatabaseHelper.getAllWarnsForUser(guildId, userId.asString()).forEach((reasonInDatabase, warnId) -> {
+                            WarnsDatabaseHelper.getWarnsForUser(guildId, userId.asString()).forEach((reasonInDatabase, warnId) -> {
                                 if (reasonInDatabase.equals(finalReason)) {
                                     warnIds.add(warnId);
                                 }
@@ -113,9 +113,9 @@ public class WarnCommandHandler extends AbstractCommandHandler {
                             Collections.reverse(warnIds);
                             String top = warnIds.get(0);
                             String warnId = String.valueOf(Integer.parseInt(top) + 1);
-                            WarnsDatabaseHelper.insertIntoWarns(guildId, userId.asString(), warnId, finalReason);
+                            WarnsDatabaseHelper.add(guildId, userId.asString(), warnId, finalReason);
                         } else {
-                            WarnsDatabaseHelper.insertIntoWarns(guildId, userId.asString(), String.valueOf(0), finalReason);
+                            WarnsDatabaseHelper.add(guildId, userId.asString(), String.valueOf(0), finalReason);
                         }
                     } catch (ClassNotFoundException | SQLException exception) {
                         LOGGER.error("An error happened while trying to read/write to/from the warns database!", exception);
