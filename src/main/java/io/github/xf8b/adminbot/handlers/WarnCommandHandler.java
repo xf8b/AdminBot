@@ -30,7 +30,7 @@ import io.github.xf8b.adminbot.api.commands.flags.Flag;
 import io.github.xf8b.adminbot.api.commands.flags.StringFlag;
 import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
-import io.github.xf8b.adminbot.util.MemberUtil;
+import io.github.xf8b.adminbot.util.ExtensionsKt;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -132,7 +132,7 @@ public class WarnCommandHandler extends AbstractCommandHandler {
                             })
                             .flatMap(privateChannel -> privateChannel
                                     .createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("You were warned!")
-                                            .setFooter("Warned by: " + MemberUtil.getTagWithDisplayName(event.getMember().get()), event.getMember().get().getAvatarUrl())
+                                            .setFooter("Warned by: " + ExtensionsKt.getTagWithDisplayName(event.getMember().get()), event.getMember().get().getAvatarUrl())
                                             .addField("Server", guild.getName(), false)
                                             .addField("Reason", finalReason, false)
                                             .setTimestamp(Instant.now())

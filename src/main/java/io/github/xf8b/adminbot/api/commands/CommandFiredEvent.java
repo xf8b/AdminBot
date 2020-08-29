@@ -26,7 +26,6 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import io.github.xf8b.adminbot.AdminBot;
 import io.github.xf8b.adminbot.api.commands.arguments.Argument;
 import io.github.xf8b.adminbot.api.commands.flags.Flag;
-import lombok.Getter;
 import lombok.ToString;
 import reactor.core.publisher.Mono;
 
@@ -36,12 +35,12 @@ import java.util.Optional;
 
 @ToString
 public class CommandFiredEvent extends MessageCreateEvent {
-    @Getter
+    //@Getter
     private final AdminBot adminBot;
-    private final Map<Flag<Object>, Object> flagMap;
-    private final Map<Argument<Object>, Object> argumentsMap;
+    private final Map<Flag<?>, Object> flagMap;
+    private final Map<Argument<?>, Object> argumentsMap;
 
-    public CommandFiredEvent(AdminBot adminBot, Map<Flag<Object>, Object> flagMap, Map<Argument<Object>, Object> argumentsMap, MessageCreateEvent event) {
+    public CommandFiredEvent(AdminBot adminBot, Map<Flag<?>, Object> flagMap, Map<Argument<?>, Object> argumentsMap, MessageCreateEvent event) {
         super(event.getClient(),
                 event.getShardInfo(),
                 event.getMessage(),
@@ -70,5 +69,10 @@ public class CommandFiredEvent extends MessageCreateEvent {
 
     public Optional<User> getAuthor() {
         return getMessage().getAuthor();
+    }
+
+    //have to use this again, because kotlin
+    public AdminBot getAdminBot() {
+        return adminBot;
     }
 }

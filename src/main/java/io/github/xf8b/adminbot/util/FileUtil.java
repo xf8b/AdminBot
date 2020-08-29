@@ -34,7 +34,6 @@ public class FileUtil {
     private final File PREFIXES = new File("databases/prefixes.db");
     private final File ADMINISTRATORS = new File("databases/administrators.db");
     private final File WARNS = new File("databases/warns.db");
-    private final File CONFIG = new File("secrets/config.toml");
 
     public void createFolders() throws IOException {
         if (!DATABASES.exists()) {
@@ -59,10 +58,6 @@ public class FileUtil {
         if (!WARNS.exists()) {
             Files.createFile(WARNS.toPath());
             LOGGER.info("Warns file did not exist, creating file.");
-        }
-        if (!CONFIG.exists()) {
-            Files.createFile(CONFIG.toPath());
-            LOGGER.info("Config file did not exist, creating file.");
         }
     }
 }

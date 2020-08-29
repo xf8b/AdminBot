@@ -137,10 +137,10 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                         }
                         String roleName = guild.getRoleById(roleId).map(Role::getName).block();
                         int level = event.getValueOfFlag(ADMINISTRATOR_LEVEL);
-                        if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId.asString())) {
+                        if (AdministratorsDatabaseHelper.isRoleInDatabase(guildId, roleId.asString())) {
                             channel.createMessage("The role already has been added as an administrator role.").block();
                         } else {
-                            AdministratorsDatabaseHelper.addToAdministrators(guildId, roleId.asString(), level);
+                            AdministratorsDatabaseHelper.add(guildId, roleId.asString(), level);
                             channel.createMessage("Successfully added " + roleName + " to the list of administrator roles.").block();
                         }
                     } else {
@@ -161,10 +161,10 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                             return;
                         }
                         String roleName = guild.getRoleById(roleId).map(Role::getName).block();
-                        if (!AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId.asString())) {
+                        if (!AdministratorsDatabaseHelper.isRoleInDatabase(guildId, roleId.asString())) {
                             channel.createMessage("The role has not been added as an administrator role!").block();
                         } else {
-                            AdministratorsDatabaseHelper.removeFromAdministrators(guildId, roleId.asString());
+                            AdministratorsDatabaseHelper.remove(guildId, roleId.asString());
                             channel.createMessage("Successfully removed " + roleName + " from the list of administrator roles.").block();
                         }
                     } else {
@@ -175,9 +175,9 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                 case "rmdel":
                 case "removedeletedroles":
                     if (isAdministrator) {
-                        for (String string : AdministratorsDatabaseHelper.getAllAdministratorsForGuild(guildId).keySet()) {
+                        for (String string : AdministratorsDatabaseHelper.getAllRoles(guildId).keySet()) {
                             if (guild.getRoleById(Snowflake.of(string.replaceAll("[<@&>]", ""))).block() == null) {
-                                AdministratorsDatabaseHelper.removeFromAdministrators(guildId, string.replaceAll("[<@&>]", ""));
+                                AdministratorsDatabaseHelper.remove(guildId, string.replaceAll("[<@&>]", ""));
                             }
                         }
                         channel.createMessage("Successfully removed deleted roles from the list of administrator roles.").block();
@@ -190,7 +190,7 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                 case "listroles":
                 case "get":
                 case "getroles":
-                    Map<String, Integer> administratorRoles = AdministratorsDatabaseHelper.getAllAdministratorsForGuild(guildId);
+                    Map<String, Integer> administratorRoles = AdministratorsDatabaseHelper.getAllRoles(guildId);
                     if (administratorRoles.isEmpty()) {
                         channel.createMessage("The only administrator is the owner.").block();
                     } else {

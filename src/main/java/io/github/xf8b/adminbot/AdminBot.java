@@ -20,7 +20,6 @@
 package io.github.xf8b.adminbot;
 
 import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import discord4j.common.util.Snowflake;
@@ -38,8 +37,12 @@ import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.handlers.SlapBrigadierCommand;
 import io.github.xf8b.adminbot.listeners.MessageListener;
 import io.github.xf8b.adminbot.listeners.ReadyListener;
-import io.github.xf8b.adminbot.settings.GuildSettings;
-import io.github.xf8b.adminbot.util.*;
+import io.github.xf8b.adminbot.settings.BotConfiguration;
+import io.github.xf8b.adminbot.util.CommandRegistry;
+import io.github.xf8b.adminbot.util.FileUtil;
+import io.github.xf8b.adminbot.util.LogbackUtil;
+import io.github.xf8b.adminbot.util.ShutdownHandler;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -50,43 +53,30 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Getter
 @Slf4j
 public class AdminBot {
-    @Getter
     private final String version;
-    @Getter
     private final CommandRegistry commandRegistry = new CommandRegistry();
-    @Getter
     private final GatewayDiscordClient client;
-    private final BotSettings botSettings;
+    @Getter(AccessLevel.NONE)
+    private final BotConfiguration botConfiguration;
 
-    private static class BotSettings {
-        @Parameter(names = {"-t", "--token"}, description = "The token for AdminBot to login with", password = true)
-        private String token = ConfigUtil.readToken();
-        @Parameter(names = {"-a", "--activity"}, description = "The activity for AdminBot")
-        private String activity = ConfigUtil.readActivity().replace("${defaultPrefix}", GuildSettings.DEFAULT_PREFIX);
-        @Parameter(names = {"-w", "--logDumpWebhook"}, description = "The webhook used to dump logs")
-        private String logDumpWebhook = ConfigUtil.readLogDumpWebhook();
-        @Parameter(names = {"-A", "--admins", "-b", "--botAdministrators"}, description = "The user IDs which are bot administrators", converter = SnowflakeConverter.class)
-        private List<Snowflake> botAdministrators = ConfigUtil.readAdmins();
-    }
-
-    private AdminBot(BotSettings botSettings) throws IOException, URISyntaxException {
+    private AdminBot(BotConfiguration botConfiguration) throws IOException, URISyntaxException {
         //TODO: member verifying system
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         URL url = classloader.getResource("version.txt");
         if (url == null) throw new NullPointerException("The version file does not exist!");
         version = Files.readAllLines(Paths.get(url.toURI())).get(0);
-        client = DiscordClient.create(botSettings.token)
+        client = DiscordClient.create(botConfiguration.getToken())
                 .gateway()
                 .setSharding(ShardingStrategy.recommended())
                 .setInitialStatus(shardInfo -> Presence.online(Activity.playing(String.format(
                         "%s | Shard ID: %d",
-                        botSettings.activity, shardInfo.getIndex()
+                        botConfiguration.getActivity(), shardInfo.getIndex()
                 ))))
                 .login()
                 .doOnError(throwable -> {
@@ -94,7 +84,7 @@ public class AdminBot {
                     ShutdownHandler.shutdownWithError(throwable);
                 })
                 .block();
-        this.botSettings = botSettings;
+        this.botConfiguration = botConfiguration;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             ShutdownHandler.shutdown();
             client.logout().block();
@@ -114,7 +104,11 @@ public class AdminBot {
         });
         commandRegistry.slurpCommandHandlers("io.github.xf8b.adminbot.handlers");
         MessageListener messageListener = new MessageListener(this, commandRegistry);
-        ReadyListener readyListener = new ReadyListener(botSettings.activity, botSettings.botAdministrators, version);
+        ReadyListener readyListener = new ReadyListener(
+                botConfiguration.getActivity(),
+                botConfiguration.getBotAdministrators(),
+                version
+        );
         //TODO: figure out why readyevent isnt being fired
         client.on(ReadyEvent.class).subscribe(readyListener::onReadyEvent);
         client.getEventDispatcher().on(ReadyEvent.class).subscribe(readyEvent -> System.out.println("ReadyEvent fired!"));
@@ -140,8 +134,8 @@ public class AdminBot {
             }
         });
         User self = client.getSelf().block();
-        if (!botSettings.logDumpWebhook.isBlank()) {
-            Pair<Snowflake, String> webhookIdAndToken = parseWebhookUrl(botSettings.logDumpWebhook);
+        if (!botConfiguration.getLogDumpWebhook().isBlank()) {
+            Pair<Snowflake, String> webhookIdAndToken = parseWebhookUrl(botConfiguration.getLogDumpWebhook());
             //TODO: move logging to webhooks
             client.getWebhookByIdWithToken(webhookIdAndToken.getLeft(), webhookIdAndToken.getRight())
                     .flatMap(webhook -> webhook.execute(webhookExecuteSpec -> webhookExecuteSpec.setAvatarUrl(self.getAvatarUrl())
@@ -152,17 +146,20 @@ public class AdminBot {
                                     .setTimestamp(Instant.now()))))
                     .subscribe();
         }
-        LogbackUtil.setupDiscordAppender(botSettings.logDumpWebhook, self.getUsername(), self.getAvatarUrl());
+        LogbackUtil.setupDiscordAppender(botConfiguration.getLogDumpWebhook(), self.getUsername(), self.getAvatarUrl());
         client.onDisconnect().block();
     }
 
     public static void main(String[] args) throws IOException, URISyntaxException {
-        BotSettings botSettings = new BotSettings();
+        BotConfiguration botConfiguration = new BotConfiguration(
+                "baseConfig.toml",
+                "secrets/config.toml"
+        );
         JCommander.newBuilder()
-                .addObject(botSettings)
+                .addObject(botConfiguration)
                 .build()
                 .parse(args);
-        new AdminBot(botSettings);
+        new AdminBot(botConfiguration);
     }
 
     private Pair<Snowflake, String> parseWebhookUrl(String webhookUrl) {
@@ -178,6 +175,10 @@ public class AdminBot {
     }
 
     public boolean isBotAdministrator(Snowflake snowflake) {
-        return botSettings.botAdministrators.contains(snowflake);
+        return botConfiguration.getBotAdministrators().contains(snowflake);
+    }
+
+    public <T> void setBotSetting(String name, T newValue) {
+        botConfiguration.set(name, newValue);
     }
 }

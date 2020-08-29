@@ -19,12 +19,13 @@
 package io.github.xf8b.adminbot.settings
 
 import io.github.xf8b.adminbot.helpers.PrefixesDatabaseHelper
-import io.github.xf8b.adminbot.util.logger
+import io.github.xf8b.adminbot.util.LoggerDelegate
+import org.slf4j.Logger
 import java.sql.SQLException
 import java.util.*
 
 data class GuildSettings(val guildId: String) {
-    private val logger = logger()
+    private val logger: Logger by LoggerDelegate()
 
     //TODO: impl setting that allows you to switch from `>ban bruhman | bruh` to `>ban -m bruhman -r bruh`
     private var prefix: String = DEFAULT_PREFIX
@@ -65,14 +66,9 @@ data class GuildSettings(val guildId: String) {
         const val DEFAULT_PREFIX = ">"
 
         @JvmStatic
-        fun getGuildSettings(guildId: String): GuildSettings {
-            for (guildSettings in GUILD_SETTINGS) {
-                if (guildSettings.guildId == guildId) {
-                    return guildSettings
-                }
-            }
-            return GuildSettings(guildId)
-        }
+        fun getGuildSettings(guildId: String): GuildSettings = GUILD_SETTINGS.firstOrNull {
+            it.guildId == guildId
+        } ?: GuildSettings(guildId)
     }
 
     init {

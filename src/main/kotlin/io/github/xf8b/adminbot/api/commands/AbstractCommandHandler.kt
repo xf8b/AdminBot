@@ -61,39 +61,7 @@ abstract class AbstractCommandHandler {
         this.botRequiredPermissions = botRequiredPermissions
         this.administratorLevelRequired = administratorLevelRequired
         this.isBotAdministratorOnly = isBotAdministratorOnly
-        val tempUsage = StringBuilder(name).append(" ")
-        for (flag in flags) {
-            if (flag.isRequired) {
-                tempUsage.append("<")
-            } else {
-                tempUsage.append("[")
-            }
-            tempUsage.append("-").append(flag.shortName())
-                    .append(" ")
-            if (flag.requiresValue()) {
-                tempUsage.append("<").append(flag.longName()).append(">")
-            } else {
-                tempUsage.append("[").append(flag.longName()).append("]")
-            }
-            if (flag.isRequired) {
-                tempUsage.append(">")
-            } else {
-                tempUsage.append("]")
-            }
-            tempUsage.append(" ")
-        }
-        for (argument in arguments) {
-            if (argument.isRequired) {
-                tempUsage.append("<").append(argument.name).append(">")
-                        .append(" ")
-            } else {
-                tempUsage.append("[").append(argument.name).append("]")
-                        .append(" ")
-            }
-        }
-        usage = tempUsage.toString().trim {
-            it <= ' '
-        }
+        usage = generateUsage(name, flags, arguments)
     }
 
     constructor(builder: AbstractCommandHandlerBuilder) {
@@ -108,8 +76,15 @@ abstract class AbstractCommandHandler {
         this.botRequiredPermissions = builder.botRequiredPermissions
         this.administratorLevelRequired = builder.administratorLevelRequired
         this.isBotAdministratorOnly = builder.isBotAdministratorOnly
-        if (builder.usage == null) {
-            val tempUsage = StringBuilder(name).append(" ")
+        usage = builder.usage ?: generateUsage(name, flags, arguments)
+    }
+
+    companion object {
+        @JvmStatic
+        fun builder(): AbstractCommandHandlerBuilder = AbstractCommandHandlerBuilder()
+
+        private fun generateUsage(commandName: String, flags: List<Flag<*>>, arguments: List<Argument<*>>): String {
+            val tempUsage = StringBuilder(commandName).append(" ")
             for (flag in flags) {
                 if (flag.isRequired) {
                     tempUsage.append("<")
@@ -139,17 +114,10 @@ abstract class AbstractCommandHandler {
                             .append(" ")
                 }
             }
-            usage = tempUsage.toString().trim {
+            return tempUsage.toString().trim {
                 it <= ' '
             }
-        } else {
-            usage = builder.usage!!
         }
-    }
-
-    companion object {
-        @JvmStatic
-        fun builder(): AbstractCommandHandlerBuilder = AbstractCommandHandlerBuilder()
     }
 
     abstract fun onCommandFired(event: CommandFiredEvent)
@@ -158,8 +126,8 @@ abstract class AbstractCommandHandler {
 
     fun getUsageWithPrefix(guildId: String): String = usage.replace("\${prefix}", getGuildSettings(guildId).getPrefix())
 
-    fun getAliasesWithPrefixes(guildId: String?): List<String> = aliases.map {
-        it.replace("\${prefix}", getGuildSettings(guildId!!).getPrefix())
+    fun getAliasesWithPrefixes(guildId: String): List<String> = aliases.map {
+        it.replace("\${prefix}", getGuildSettings(guildId).getPrefix())
     }
 
     fun requiresAdministrator(): Boolean = administratorLevelRequired > 0

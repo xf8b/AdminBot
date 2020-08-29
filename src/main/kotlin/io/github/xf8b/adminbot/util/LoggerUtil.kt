@@ -2,6 +2,12 @@ package io.github.xf8b.adminbot.util
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 
-//credit: https://www.reddit.com/r/Kotlin/comments/8gbiul/slf4j_loggers_in_3_ways/
-inline fun <reified T> T.logger(): Logger = LoggerFactory.getLogger(T::class.java)
+//credit: https://stackoverflow.com/questions/34416869/idiomatic-way-of-logging-in-kotlin
+fun <T : Any> logger(clazz: Class<T>): Logger = LoggerFactory.getLogger(clazz)
+
+class LoggerDelegate<in R : Any> : ReadOnlyProperty<R, Logger> {
+    override fun getValue(thisRef: R, property: KProperty<*>) = logger(thisRef.javaClass)
+}

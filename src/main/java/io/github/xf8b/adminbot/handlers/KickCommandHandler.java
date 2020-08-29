@@ -30,7 +30,7 @@ import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.api.commands.flags.StringFlag;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
-import io.github.xf8b.adminbot.util.MemberUtil;
+import io.github.xf8b.adminbot.util.ExtensionsKt;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
 import reactor.core.publisher.Mono;
@@ -116,7 +116,7 @@ public class KickCommandHandler extends AbstractCommandHandler {
                     return member.getPrivateChannel().flatMap(privateChannel -> {
                         if (member.isBot()) return Mono.empty();
                         return privateChannel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("You were kicked!")
-                                .setFooter("Kicked by: " + MemberUtil.getTagWithDisplayName(event.getMember().get()), event.getMember().get().getAvatarUrl())
+                                .setFooter("Kicked by: " + ExtensionsKt.getTagWithDisplayName(event.getMember().get()), event.getMember().get().getAvatarUrl())
                                 .addField("Server", guild.getName(), false)
                                 .addField("Reason", finalReason, false)
                                 .setTimestamp(Instant.now())

@@ -37,7 +37,7 @@ public class PermissionUtil {
         String guildId = guild.getId().asString();
         return member.getRoles().map(Role::getId).map(Snowflake::asString).any(roleId -> {
             try {
-                return AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId);
+                return AdministratorsDatabaseHelper.isRoleInDatabase(guildId, roleId);
             } catch (ClassNotFoundException | SQLException exception) {
                 LOGGER.error("An exception happened while trying to read from the administrators database!", exception);
                 return false;
@@ -50,8 +50,8 @@ public class PermissionUtil {
         String guildId = guild.getId().asString();
         return member.getRoles().map(Role::getId).map(Snowflake::asString).map(roleId -> {
             try {
-                if (AdministratorsDatabaseHelper.doesAdministratorRoleExistInDatabase(guildId, roleId)) {
-                    return AdministratorsDatabaseHelper.getLevelOfAdministratorRole(guildId, roleId);
+                if (AdministratorsDatabaseHelper.isRoleInDatabase(guildId, roleId)) {
+                    return AdministratorsDatabaseHelper.getLevelOfRole(guildId, roleId);
                 } else {
                     return 0;
                 }

@@ -37,8 +37,9 @@ import io.github.xf8b.adminbot.settings.CommandHandlerChecks;
 import io.github.xf8b.adminbot.settings.DisableChecks;
 import io.github.xf8b.adminbot.settings.GuildSettings;
 import io.github.xf8b.adminbot.util.CommandRegistry;
-import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
+import io.github.xf8b.adminbot.util.parser.ArgumentParser;
+import io.github.xf8b.adminbot.util.parser.FlagParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -58,6 +59,8 @@ public class MessageListener {
     private static final ExecutorService COMMAND_THREAD_POOL = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
             .setNameFormat("Command Pool Thread-%d")
             .build());
+    private static final ArgumentParser ARGUMENT_PARSER = new ArgumentParser();
+    private static final FlagParser FLAG_PARSER = new FlagParser();
 
     public void onMessageCreateEvent(MessageCreateEvent event) {
         //TODO: reactify all the classes
@@ -78,8 +81,8 @@ public class MessageListener {
         }
         if (content.trim().replaceAll("<@!" + event.getClient().getSelfId().asString() + ">", "").trim().equals("help")) {
             InfoCommandHandler commandHandler = (InfoCommandHandler) commandRegistry.getCommandHandler(InfoCommandHandler.class);
-            Map<Flag<Object>, Object> flagMap = ParsingUtil.parseFlags(channel, commandHandler, content);
-            Map<Argument<Object>, Object> argumentMap = ParsingUtil.parseArguments(channel, commandHandler, content);
+            Map<Flag<?>, Object> flagMap = FLAG_PARSER.parse(channel, commandHandler, content);
+            Map<Argument<?>, Object> argumentMap = ARGUMENT_PARSER.parse(channel, commandHandler, content);
             if (flagMap != null && argumentMap != null) {
                 CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
                 commandHandler.onCommandFired(commandFiredEvent);
@@ -90,8 +93,8 @@ public class MessageListener {
             String name = commandHandler.getNameWithPrefix(guildId);
             List<String> aliases = commandHandler.getAliasesWithPrefixes(guildId);
             if (commandType.equalsIgnoreCase(name)) {
-                Map<Flag<Object>, Object> flagMap = ParsingUtil.parseFlags(channel, commandHandler, content);
-                Map<Argument<Object>, Object> argumentMap = ParsingUtil.parseArguments(channel, commandHandler, content);
+                Map<Flag<?>, Object> flagMap = FLAG_PARSER.parse(channel, commandHandler, content);
+                Map<Argument<?>, Object> argumentMap = ARGUMENT_PARSER.parse(channel, commandHandler, content);
                 if (flagMap != null && argumentMap != null) {
                     CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
                     onCommandFired(commandFiredEvent, commandHandler, guildId, content);
@@ -99,8 +102,8 @@ public class MessageListener {
             } else if (!aliases.isEmpty()) {
                 for (String alias : aliases) {
                     if (commandType.equalsIgnoreCase(alias)) {
-                        Map<Flag<Object>, Object> flagMap = ParsingUtil.parseFlags(channel, commandHandler, content);
-                        Map<Argument<Object>, Object> argumentMap = ParsingUtil.parseArguments(channel, commandHandler, content);
+                        Map<Flag<?>, Object> flagMap = FLAG_PARSER.parse(channel, commandHandler, content);
+                        Map<Argument<?>, Object> argumentMap = ARGUMENT_PARSER.parse(channel, commandHandler, content);
                         if (flagMap != null && argumentMap != null) {
                             CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
                             onCommandFired(commandFiredEvent, commandHandler, guildId, content);

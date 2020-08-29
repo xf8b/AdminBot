@@ -108,4 +108,46 @@ class AbstractCommandHandlerBuilder constructor(
     fun setBotAdministratorOnly(): AbstractCommandHandlerBuilder = apply {
         isBotAdministratorOnly = true
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as AbstractCommandHandlerBuilder
+
+        if (name != other.name) return false
+        if (usage != other.usage) return false
+        if (description != other.description) return false
+        if (commandType != other.commandType) return false
+        if (actions != other.actions) return false
+        if (aliases != other.aliases) return false
+        if (minimumAmountOfArgs != other.minimumAmountOfArgs) return false
+        if (flags != other.flags) return false
+        if (arguments != other.arguments) return false
+        if (botRequiredPermissions != other.botRequiredPermissions) return false
+        if (administratorLevelRequired != other.administratorLevelRequired) return false
+        if (isBotAdministratorOnly != other.isBotAdministratorOnly) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name?.hashCode() ?: 0
+        result = 31 * result + (usage?.hashCode() ?: 0)
+        result = 31 * result + (description?.hashCode() ?: 0)
+        result = 31 * result + (commandType?.hashCode() ?: 0)
+        result = 31 * result + actions.hashCode()
+        result = 31 * result + aliases.hashCode()
+        result = 31 * result + minimumAmountOfArgs
+        result = 31 * result + flags.hashCode()
+        result = 31 * result + arguments.hashCode()
+        result = 31 * result + botRequiredPermissions.hashCode()
+        result = 31 * result + administratorLevelRequired
+        result = 31 * result + isBotAdministratorOnly.hashCode()
+        return result
+    }
+
+    override fun toString(): String {
+        return "AbstractCommandHandlerBuilder(name=$name, usage=$usage, description=$description, commandType=$commandType, actions=$actions, aliases=$aliases, minimumAmountOfArgs=$minimumAmountOfArgs, flags=$flags, arguments=$arguments, botRequiredPermissions=$botRequiredPermissions, administratorLevelRequired=$administratorLevelRequired, isBotAdministratorOnly=$isBotAdministratorOnly)"
+    }
 }

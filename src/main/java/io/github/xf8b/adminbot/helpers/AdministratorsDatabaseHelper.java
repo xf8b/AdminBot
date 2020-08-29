@@ -19,6 +19,7 @@
 
 package io.github.xf8b.adminbot.helpers;
 
+import lombok.Cleanup;
 import lombok.experimental.UtilityClass;
 
 import java.sql.*;
@@ -27,109 +28,101 @@ import java.util.Map;
 
 @UtilityClass
 public class AdministratorsDatabaseHelper {
-    public void addToAdministrators(String guildId, String administratorRoleId, int level) throws ClassNotFoundException, SQLException {
+    public void add(String guildId, String administratorRoleId, int level) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
-        Connection conn = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
-        Statement stat = conn.createStatement();
-        stat.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
-        PreparedStatement prep = conn.prepareStatement("insert into administrators values (?, ?, ?);");
+        @Cleanup
+        Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
+        @Cleanup
+        Statement statement = connection.createStatement();
+        statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
+        @Cleanup
+        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO administrators VALUES (?, ?, ?);");
 
-        prep.setString(1, guildId);
-        prep.setString(2, administratorRoleId);
-        prep.setInt(3, level);
-        prep.addBatch();
+        preparedStatement.setString(1, guildId);
+        preparedStatement.setString(2, administratorRoleId);
+        preparedStatement.setInt(3, level);
+        preparedStatement.addBatch();
 
-        conn.setAutoCommit(false);
-        prep.executeBatch();
-        conn.setAutoCommit(true);
-        conn.close();
-        stat.close();
-        prep.close();
+        connection.setAutoCommit(false);
+        preparedStatement.executeBatch();
+        connection.setAutoCommit(true);
     }
 
-    public void removeFromAdministrators(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
+    public void remove(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
-        Connection conn = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
-        Statement stat = conn.createStatement();
-        stat.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
-        PreparedStatement prep = conn.prepareStatement("delete from administrators where guildId = ? and administratorRoleId = ?;");
-        prep.setString(1, guildId);
-        prep.setString(2, administratorRoleId);
-        prep.addBatch();
+        @Cleanup
+        Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
+        @Cleanup
+        Statement statement = connection.createStatement();
+        statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
+        @Cleanup
+        PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM administrators WHERE guildId = ? AND administratorRoleId = ?;");
+        preparedStatement.setString(1, guildId);
+        preparedStatement.setString(2, administratorRoleId);
+        preparedStatement.addBatch();
 
-        conn.setAutoCommit(false);
-        prep.executeUpdate();
-        conn.setAutoCommit(true);
-        conn.close();
-        stat.close();
-        prep.close();
+        connection.setAutoCommit(false);
+        preparedStatement.executeUpdate();
+        connection.setAutoCommit(true);
     }
 
-    public Map<String, Integer> getAllAdministratorsForGuild(String guildId) throws ClassNotFoundException, SQLException {
+    public Map<String, Integer> getAllRoles(String guildId) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
-        Connection conn = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
-        Statement stat = conn.createStatement();
-        stat.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
-        PreparedStatement prep = conn.prepareStatement("select administratorRoleId, level from administrators where guildId = ?;");
-        prep.setString(1, guildId);
-        prep.addBatch();
+        @Cleanup
+        Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
+        @Cleanup
+        Statement statement = connection.createStatement();
+        statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
+        @Cleanup
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT administratorRoleId, level FROM administrators WHERE guildId = ?;");
+        preparedStatement.setString(1, guildId);
+        preparedStatement.addBatch();
 
-        ResultSet rs = prep.executeQuery();
+        @Cleanup
+        ResultSet resultSet = preparedStatement.executeQuery();
         Map<String, Integer> allowedRoles = new HashMap<>();
-        while (rs.next()) {
-            allowedRoles.put("<@&" + rs.getString("administratorRoleId") + ">", rs.getInt("level"));
+        while (resultSet.next()) {
+            allowedRoles.put("<@&" + resultSet.getString("administratorRoleId") + ">", resultSet.getInt("level"));
         }
 
-        conn.setAutoCommit(false);
-        conn.setAutoCommit(true);
-        conn.close();
-        stat.close();
-        prep.close();
-        rs.close();
         return allowedRoles;
     }
 
-    public boolean doesAdministratorRoleExistInDatabase(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
+    public boolean isRoleInDatabase(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
-        Connection conn = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
-        Statement stat = conn.createStatement();
-        stat.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
-        PreparedStatement prep = conn.prepareStatement("select administratorRoleId from administrators where guildId = ? and administratorRoleId = ?;");
-        prep.setString(1, guildId);
-        prep.setString(2, administratorRoleId);
-        prep.addBatch();
+        @Cleanup
+        Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
+        @Cleanup
+        Statement statement = connection.createStatement();
+        statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
+        @Cleanup
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT administratorRoleId FROM administrators WHERE guildId = ? AND administratorRoleId = ?;");
+        preparedStatement.setString(1, guildId);
+        preparedStatement.setString(2, administratorRoleId);
+        preparedStatement.addBatch();
 
-        ResultSet rs = prep.executeQuery();
-        boolean doesExist = rs.next();
+        @Cleanup
+        ResultSet resultSet = preparedStatement.executeQuery();
 
-        conn.setAutoCommit(false);
-        conn.setAutoCommit(true);
-        conn.close();
-        stat.close();
-        prep.close();
-        rs.close();
-        return doesExist;
+        return resultSet.next();
     }
 
-    public int getLevelOfAdministratorRole(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
+    public int getLevelOfRole(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
         Class.forName("org.sqlite.JDBC");
-        Connection conn = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
-        Statement stat = conn.createStatement();
-        stat.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
-        PreparedStatement prep = conn.prepareStatement("select level from administrators where guildId = ? and administratorRoleId = ?;");
-        prep.setString(1, guildId);
-        prep.setString(2, administratorRoleId);
-        prep.addBatch();
+        @Cleanup
+        Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
+        @Cleanup
+        Statement statement = connection.createStatement();
+        statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
+        @Cleanup
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT level FROM administrators WHERE guildId = ? AND administratorRoleId = ?;");
+        preparedStatement.setString(1, guildId);
+        preparedStatement.setString(2, administratorRoleId);
+        preparedStatement.addBatch();
 
-        ResultSet rs = prep.executeQuery();
-        int doesExist = rs.getInt("level");
+        @Cleanup
+        ResultSet resultSet = preparedStatement.executeQuery();
 
-        conn.setAutoCommit(false);
-        conn.setAutoCommit(true);
-        conn.close();
-        stat.close();
-        prep.close();
-        rs.close();
-        return doesExist;
+        return resultSet.getInt("level");
     }
 }

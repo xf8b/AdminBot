@@ -34,7 +34,7 @@ import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.api.commands.arguments.StringArgument;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
-import io.github.xf8b.adminbot.util.MemberUtil;
+import io.github.xf8b.adminbot.util.ExtensionsKt;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Mono;
@@ -95,7 +95,7 @@ public class MemberInfoCommandHandler extends AbstractCommandHandler {
                     boolean isOwner = member.getId().equals(guild.getOwnerId());
                     AtomicReference<String> roleMentions = new AtomicReference<>("");
                     member.getRoles().map(Role::getMention).subscribe(mention -> roleMentions.set(roleMentions.get() + " " + mention));
-                    return channel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("Info For Member `" + MemberUtil.getTagWithDisplayName(member) + "`")
+                    return channel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("Info For Member `" + ExtensionsKt.getTagWithDisplayName(member) + "`")
                             .setAuthor(displayName, null, avatarUrl)
                             .addField("Is Owner:", String.valueOf(isOwner), true)
                             .addField("Is Bot:", String.valueOf(member.isBot()), true)
