@@ -30,18 +30,13 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
-import discord4j.core.shard.ShardingStrategy;
 import discord4j.rest.util.Color;
-import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
-import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
+import io.github.xf8b.adminbot.handler.FakeSlapCommandHandler;
 import io.github.xf8b.adminbot.handlers.SlapBrigadierCommand;
 import io.github.xf8b.adminbot.listeners.MessageListener;
 import io.github.xf8b.adminbot.listeners.ReadyListener;
 import io.github.xf8b.adminbot.settings.BotConfiguration;
-import io.github.xf8b.adminbot.util.CommandRegistry;
-import io.github.xf8b.adminbot.util.FileUtil;
-import io.github.xf8b.adminbot.util.LogbackUtil;
-import io.github.xf8b.adminbot.util.ShutdownHandler;
+import io.github.xf8b.adminbot.util.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -51,10 +46,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.time.Instant;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Getter
 @Slf4j
@@ -67,13 +60,13 @@ public class AdminBot {
 
     private AdminBot(BotConfiguration botConfiguration) throws IOException, URISyntaxException {
         //TODO: member verifying system
-        ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-        URL url = classloader.getResource("version.txt");
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        URL url = classLoader.getResource("version.txt");
         if (url == null) throw new NullPointerException("The version file does not exist!");
-        version = Files.readAllLines(Paths.get(url.toURI())).get(0);
+        version = Files.readAllLines(Path.of(url.toURI())).get(0);
         client = DiscordClient.create(botConfiguration.getToken())
                 .gateway()
-                .setSharding(ShardingStrategy.recommended())
+                .setSharding(botConfiguration.getShardingStrategy())
                 .setInitialStatus(shardInfo -> Presence.online(Activity.playing(String.format(
                         "%s | Shard ID: %d",
                         botConfiguration.getActivity(), shardInfo.getIndex()
@@ -85,6 +78,21 @@ public class AdminBot {
                 })
                 .block();
         this.botConfiguration = botConfiguration;
+    }
+
+    public static void main(String[] args) throws IOException, URISyntaxException {
+        BotConfiguration botConfiguration = new BotConfiguration(
+                "baseConfig.toml",
+                "secrets/config.toml"
+        );
+        JCommander.newBuilder()
+                .addObject(botConfiguration)
+                .build()
+                .parse(args);
+        new AdminBot(botConfiguration).start();
+    }
+
+    private void start() throws IOException {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             ShutdownHandler.shutdown();
             client.logout().block();
@@ -92,16 +100,7 @@ public class AdminBot {
         FileUtil.createFolders();
         FileUtil.createFiles();
         //here just because i want it to be in help command
-        commandRegistry.registerCommandHandlers(new AbstractCommandHandler(AbstractCommandHandler.builder()
-                .setName("${prefix}slap")
-                .setDescription("Slaps the person.")
-                .setCommandType(AbstractCommandHandler.CommandType.OTHER)
-                .setMinimumAmountOfArgs(1)) {
-            @Override
-            public void onCommandFired(CommandFiredEvent event) {
-
-            }
-        });
+        commandRegistry.registerCommandHandlers(new FakeSlapCommandHandler());
         commandRegistry.slurpCommandHandlers("io.github.xf8b.adminbot.handlers");
         MessageListener messageListener = new MessageListener(this, commandRegistry);
         ReadyListener readyListener = new ReadyListener(
@@ -110,8 +109,8 @@ public class AdminBot {
                 version
         );
         //TODO: figure out why readyevent isnt being fired
-        client.on(ReadyEvent.class).subscribe(readyListener::onReadyEvent);
-        client.getEventDispatcher().on(ReadyEvent.class).subscribe(readyEvent -> System.out.println("ReadyEvent fired!"));
+        client.on(ReadyEvent.class)
+                .subscribe(readyListener::onReadyEvent);
         client.on(MessageCreateEvent.class)
                 .filter(event -> !event.getMessage().getContent().isEmpty())
                 .filter(event -> event.getMember().isPresent())
@@ -135,7 +134,7 @@ public class AdminBot {
         });
         User self = client.getSelf().block();
         if (!botConfiguration.getLogDumpWebhook().isBlank()) {
-            Pair<Snowflake, String> webhookIdAndToken = parseWebhookUrl(botConfiguration.getLogDumpWebhook());
+            Pair<Snowflake, String> webhookIdAndToken = ParsingUtil.parseWebhookUrl(botConfiguration.getLogDumpWebhook());
             //TODO: move logging to webhooks
             client.getWebhookByIdWithToken(webhookIdAndToken.getLeft(), webhookIdAndToken.getRight())
                     .flatMap(webhook -> webhook.execute(webhookExecuteSpec -> webhookExecuteSpec.setAvatarUrl(self.getAvatarUrl())
@@ -147,38 +146,12 @@ public class AdminBot {
                     .subscribe();
         }
         LogbackUtil.setupDiscordAppender(botConfiguration.getLogDumpWebhook(), self.getUsername(), self.getAvatarUrl());
-        client.onDisconnect().block();
-    }
-
-    public static void main(String[] args) throws IOException, URISyntaxException {
-        BotConfiguration botConfiguration = new BotConfiguration(
-                "baseConfig.toml",
-                "secrets/config.toml"
-        );
-        JCommander.newBuilder()
-                .addObject(botConfiguration)
-                .build()
-                .parse(args);
-        new AdminBot(botConfiguration);
-    }
-
-    private Pair<Snowflake, String> parseWebhookUrl(String webhookUrl) {
-        Pattern pattern = Pattern.compile("https://discordapp\\.com/api/webhooks/(\\d+)/(.+)");
-        Matcher matcher = pattern.matcher(webhookUrl);
-        if (!matcher.find()) {
-            throw new IllegalArgumentException("Invalid webhook URL!");
-        } else {
-            String id = matcher.group(1);
-            String token = matcher.group(2);
-            return Pair.of(Snowflake.of(id), token);
-        }
+        client.onDisconnect()
+                .doOnSuccess(ignored -> LOGGER.info("Successfully disconnected!"))
+                .block();
     }
 
     public boolean isBotAdministrator(Snowflake snowflake) {
         return botConfiguration.getBotAdministrators().contains(snowflake);
-    }
-
-    public <T> void setBotSetting(String name, T newValue) {
-        botConfiguration.set(name, newValue);
     }
 }

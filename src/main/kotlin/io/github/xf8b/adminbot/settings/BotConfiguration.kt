@@ -4,7 +4,9 @@ import com.beust.jcommander.Parameter
 import com.electronwill.nightconfig.core.file.CommentedFileConfig
 import com.electronwill.nightconfig.core.file.FileNotFoundAction
 import discord4j.common.util.Snowflake
+import discord4j.core.shard.ShardingStrategy
 import io.github.xf8b.adminbot.util.SnowflakeConverter
+import io.github.xf8b.adminbot.util.converter.ShardingStrategyConverter
 import java.io.File
 
 class BotConfiguration(baseConfigFilePath: String, configFilePath: String) : Configuration {
@@ -20,6 +22,9 @@ class BotConfiguration(baseConfigFilePath: String, configFilePath: String) : Con
     @Parameter(names = ["-A", "--admins", "-b", "--botAdministrators"], description = "The user IDs which are bot administrators", converter = SnowflakeConverter::class)
     var botAdministrators: List<Snowflake>
 
+    @Parameter(names = ["-s", "--sharding"], description = "The sharding strategy to use", converter = ShardingStrategyConverter::class)
+    var shardingStrategy: ShardingStrategy
+
     private val config: CommentedFileConfig = CommentedFileConfig.builder(configFilePath)
             .onFileNotFound(FileNotFoundAction.copyData(File(baseConfigFilePath)))
             .autosave()
@@ -31,6 +36,7 @@ class BotConfiguration(baseConfigFilePath: String, configFilePath: String) : Con
         activity = get<String>("activity").replace("\${defaultPrefix}", GuildSettings.DEFAULT_PREFIX)
         logDumpWebhook = get("logDumpWebhook")
         botAdministrators = getAndMap<Long, Snowflake>("admins", Snowflake::of)
+        shardingStrategy = ShardingStrategyConverter().convert(get("sharding"))
     }
 
     override fun <T> get(name: String): T = checkNotNull(config.get<T?>(name)) {

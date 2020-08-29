@@ -23,10 +23,13 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @UtilityClass
 @Slf4j
@@ -100,6 +103,18 @@ public class ParsingUtil {
             return null;
         } else {
             return Snowflake.of(id);
+        }
+    }
+
+    public Pair<Snowflake, String> parseWebhookUrl(String webhookUrl) {
+        Pattern pattern = Pattern.compile("https://discordapp\\.com/api/webhooks/(\\d+)/(.+)");
+        Matcher matcher = pattern.matcher(webhookUrl);
+        if (!matcher.find()) {
+            throw new IllegalArgumentException("Invalid webhook URL!");
+        } else {
+            String id = matcher.group(1);
+            String token = matcher.group(2);
+            return Pair.of(Snowflake.of(id), token);
         }
     }
 }

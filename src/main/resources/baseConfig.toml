@@ -5,6 +5,8 @@ token = "NotARealToken.PleaseFillIn.WithRealToken"
 admins = [
     332600665412993045
 ]
+# Values: RECOMMENDED, SINGLE
+sharding = "SINGLE"
 # Not required
 # Note: If you don't have a webhook for the log dump, leave the field as "" or remove it.
 logDumpWebhook = "https://discordapp.com/api/webhooks/please/fillinwithwebhook"
