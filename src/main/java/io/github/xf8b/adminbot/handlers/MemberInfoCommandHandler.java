@@ -68,7 +68,7 @@ public class MemberInfoCommandHandler extends AbstractCommandHandler {
     public void onCommandFired(CommandFiredEvent event) {
         MessageChannel channel = event.getChannel().block();
         Guild guild = event.getGuild().block();
-        Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfArgument(MEMBER));
+        Snowflake userId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfArgument(MEMBER).get());
         if (userId == null) {
             channel.createMessage("The member does not exist!").block();
             return;

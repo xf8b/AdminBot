@@ -1,3 +1,6 @@
+import net.minecrell.gradle.licenser.LicenseProperties
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     application
     java
@@ -25,7 +28,7 @@ repositories {
 dependencies {
     //junit
     testImplementation("junit:junit:${project.findProperty("junitVersion")}")
-    //discord
+    //discord4j
     implementation("com.discord4j:discord4j-core:${project.findProperty("discord4jVersion")}")
     //command libs
     //TODO: remove?
@@ -37,6 +40,8 @@ dependencies {
     implementation("com.github.napstr:logback-discord-appender:${project.findProperty("logbackDiscordAppenderVersion")}")
     //config
     implementation("com.electronwill.night-config:toml:${project.findProperty("nightConfigVersion")}")
+    //caching
+    implementation("com.github.ben-manes.caffeine:caffeine:${project.findProperty("caffeineVersion")}")
     //util
     implementation("org.apache.commons:commons-text:${project.findProperty("commonsTextVersion")}")
     implementation("net.jodah:typetools:${project.findProperty("typeToolsVersion")}")
@@ -60,7 +65,7 @@ application {
 }
 
 license {
-    matching("**/PingCommandHandler.java", delegateClosureOf<net.minecrell.gradle.licenser.LicenseProperties> {
+    matching("**/PingCommandHandler.java", delegateClosureOf<LicenseProperties> {
         header = rootProject.file("headers/PING_COMMAND_HANDLER_LICENSE_HEADER.txt")
     })
     header = rootProject.file("headers/LICENSE_HEADER.txt")
@@ -70,6 +75,7 @@ license {
         set("projectName", project.findProperty("projectName"))
     }
     include("**/*.java")
+    include("**/*.kt")
     ignoreFailures = true
 }
 java {
@@ -81,6 +87,6 @@ tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "14"
 }

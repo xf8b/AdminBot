@@ -19,7 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -33,6 +32,7 @@ import io.github.xf8b.adminbot.util.ParsingUtil;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class NicknameCommandHandler extends AbstractCommandHandler {
     private static final StringFlag MEMBER = StringFlag.builder()
@@ -52,7 +52,7 @@ public class NicknameCommandHandler extends AbstractCommandHandler {
                 .setCommandType(CommandType.ADMINISTRATION)
                 .addAlias("${prefix}nick")
                 .setMinimumAmountOfArgs(1)
-                .setFlags(ImmutableList.of(MEMBER, NICKNAME))
+                .setFlags(MEMBER, NICKNAME)
                 .setBotRequiredPermissions(PermissionSet.of(Permission.MANAGE_NICKNAMES))
                 .setAdministratorLevelRequired(1));
     }
@@ -61,13 +61,13 @@ public class NicknameCommandHandler extends AbstractCommandHandler {
     public void onCommandFired(CommandFiredEvent event) {
         MessageChannel channel = event.getChannel().block();
         Guild guild = event.getGuild().block();
-        Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfFlag(MEMBER));
+        Snowflake userId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfFlag(MEMBER).get());
         if (userId == null) {
             channel.createMessage("The member does not exist!").block();
             return;
         }
-        String nickname = event.getValueOfFlag(NICKNAME);
-        boolean resetNickname = nickname == null;
+        Optional<String> nickname = event.getValueOfFlag(NICKNAME);
+        boolean resetNickname = nickname.isEmpty();
         guild.getMemberById(userId)
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                 .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
@@ -85,7 +85,7 @@ public class NicknameCommandHandler extends AbstractCommandHandler {
                             return guild.changeSelfNickname("")
                                     .doOnSuccess(unused -> channel.createMessage("Successfully reset nickname of " + member.getDisplayName() + "!").block());
                         } else {
-                            return guild.changeSelfNickname(nickname)
+                            return guild.changeSelfNickname(nickname.get())
                                     .doOnSuccess(unused -> channel.createMessage("Successfully set nickname of " + member.getDisplayName() + "!").block());
                         }
                     } else {
@@ -93,7 +93,7 @@ public class NicknameCommandHandler extends AbstractCommandHandler {
                             return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(""))
                                     .doOnSuccess(unused -> channel.createMessage("Successfully reset nickname of " + member.getDisplayName() + "!").block());
                         } else {
-                            return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(nickname))
+                            return member.edit(guildMemberEditSpec -> guildMemberEditSpec.setNickname(nickname.get()))
                                     .doOnSuccess(unused -> channel.createMessage("Successfully set nickname of " + member.getDisplayName() + "!").block());
                         }
                     }

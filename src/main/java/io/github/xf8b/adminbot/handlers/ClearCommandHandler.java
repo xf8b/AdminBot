@@ -31,20 +31,23 @@ import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.api.commands.arguments.Argument;
 import io.github.xf8b.adminbot.api.commands.arguments.IntegerArgument;
 import io.github.xf8b.adminbot.util.ClientExceptionUtil;
+import io.github.xf8b.adminbot.util.ThisShouldNotHaveBeenThrownException;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ClearCommandHandler extends AbstractCommandHandler {
+    private static final ExecutorService CLEAR_THREAD_POOL = Executors.newCachedThreadPool();
     private static final IntegerArgument AMOUNT = IntegerArgument.builder()
             .setIndex(Range.singleton(1))
             .setName("amount")
             .setValidityPredicate(value -> {
                 try {
                     int amount = Integer.parseInt(value);
-                    return amount <= 100 && amount >= 2;
+                    return amount >= 2;
                 } catch (NumberFormatException exception) {
                     return false;
                 }
@@ -52,12 +55,10 @@ public class ClearCommandHandler extends AbstractCommandHandler {
             .setInvalidValueErrorMessageFunction(invalidValue -> {
                 try {
                     int amount = Integer.parseInt(invalidValue);
-                    if (amount > 100) {
-                        return "Sorry, but you cannot clear more than 100 messages.";
-                    } else if (amount < 2) {
+                    if (amount < 2) {
                         return "Sorry, but you cannot clear less than 2 messages.";
                     } else {
-                        throw new IllegalStateException("tf");
+                        throw new ThisShouldNotHaveBeenThrownException();
                     }
                 } catch (NumberFormatException exception) {
                     return Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE;
@@ -77,25 +78,31 @@ public class ClearCommandHandler extends AbstractCommandHandler {
                 .setAdministratorLevelRequired(2));
     }
 
+    public static void shutdownClearThreadPool() {
+        CLEAR_THREAD_POOL.shutdown();
+    }
+
     @Override
     public void onCommandFired(CommandFiredEvent event) {
         MessageChannel channel = event.getChannel().block();
-        int amountToClear = event.getValueOfArgument(AMOUNT);
-        if (!event.getGuild().block().getSelfMember().block().getBasePermissions().block().contains(Permission.MANAGE_MESSAGES)) {
-            channel.createMessage("Cannot clear messages due to insufficient permissions!").block();
-            return;
-        }
-        Flux<Message> deleteMessagesFlux = channel.getMessagesBefore(Snowflake.of(Instant.now()))
-                .take(amountToClear);
-        Long amountOfMessagesPurged = deleteMessagesFlux.count().block();
-        channel.getMessagesBefore(Snowflake.of(Instant.now()))
+        int amountToClear = event.getValueOfArgument(AMOUNT)
+                .orElseThrow(ThisShouldNotHaveBeenThrownException::new);
+        long amountOfMessagesPurged = channel.getMessagesBefore(Snowflake.of(Instant.now()))
                 .take(amountToClear)
-                .transform(((TextChannel) channel)::bulkDeleteMessages)
-                .doOnComplete(() -> channel.createMessage("Successfully purged " + amountOfMessagesPurged + " message(s).")
-                        .delayElement(Duration.ofSeconds(3))
-                        .flatMap(Message::delete)
-                        .subscribe())
-                .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10008), throwable -> Mono.empty()) //unknown message
-                .subscribe();
+                .count()
+                .blockOptional()
+                .orElseThrow(ThisShouldNotHaveBeenThrownException::new);
+        CLEAR_THREAD_POOL.submit(() -> {
+            channel.getMessagesBefore(Snowflake.of(Instant.now()))
+                    .take(amountToClear)
+                    .transform(((TextChannel) channel)::bulkDeleteMessages)
+                    .flatMap(Message::delete)
+                    .doOnComplete(() -> channel.createMessage("Successfully purged " + amountOfMessagesPurged + " message(s).")
+                            .delayElement(Duration.ofSeconds(3))
+                            .flatMap(Message::delete)
+                            .subscribe())
+                    .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10008), throwable -> Flux.empty()) //unknown message
+                    .subscribe();
+        });
     }
 }

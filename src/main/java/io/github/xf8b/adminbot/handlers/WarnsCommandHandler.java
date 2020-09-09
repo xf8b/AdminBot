@@ -19,10 +19,10 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
+import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.rest.util.Color;
 import discord4j.rest.util.Permission;
@@ -30,16 +30,16 @@ import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.api.commands.arguments.StringArgument;
-import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
+import io.github.xf8b.adminbot.data.MemberData;
+import io.github.xf8b.adminbot.data.WarnContext;
 import io.github.xf8b.adminbot.util.ParsingUtil;
 import lombok.extern.slf4j.Slf4j;
 
-import java.sql.SQLException;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-//TODO: show the person which warned you
 public class WarnsCommandHandler extends AbstractCommandHandler {
     private static final StringArgument MEMBER = StringArgument.builder()
             .setIndex(Range.atLeast(1))
@@ -59,42 +59,40 @@ public class WarnsCommandHandler extends AbstractCommandHandler {
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        try {
-            MessageChannel channel = event.getChannel().block();
-            Guild guild = event.getGuild().block();
-            String guildId = guild.getId().asString();
-            Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfArgument(MEMBER));
-            if (userId == null) {
-                channel.createMessage("The member does not exist!").block();
-                return;
-            }
-            AtomicReference<String> username = new AtomicReference<>("");
-            guild.getMemberById(userId)
-                    .map(Objects::requireNonNull)
-                    .map(member -> {
-                        username.set(member.getDisplayName());
-                        return member;
-                    })
-                    .subscribe();
-            Multimap<String, String> warns = WarnsDatabaseHelper.getWarnsForUser(guildId, userId.asString());
-            if (warns.isEmpty()) {
-                channel.createMessage("The user has no warnings.").block();
-            } else {
-                StringBuilder warnReasons = new StringBuilder();
-                StringBuilder warnIds = new StringBuilder();
-                warns.forEach((warnReason, warnId) -> {
-                    warnReasons.append(warnReason).append("\n");
-                    warnIds.append(warnId).append("\n");
-                });
-                channel.createEmbed(embedCreateSpec -> embedCreateSpec
-                        .setTitle("Warnings For `" + username.get() + "`")
-                        .addField("Warn ID", warnIds.toString().replaceAll("\n$", ""), true)
-                        .addField("Reason", warnReasons.toString().replaceAll("\n$", ""), true)
-                        .setColor(Color.BLUE))
-                        .block();
-            }
-        } catch (SQLException | ClassNotFoundException exception) {
-            LOGGER.error("An error happened while trying to read from the warns database!", exception);
+        MessageChannel channel = event.getChannel().block();
+        Guild guild = event.getGuild().block();
+        Snowflake userId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfArgument(MEMBER).get());
+        if (userId == null) {
+            channel.createMessage("The member does not exist!").block();
+            return;
+        }
+        AtomicReference<String> username = new AtomicReference<>("");
+        guild.getMemberById(userId)
+                .map(Objects::requireNonNull)
+                .map(Member::getDisplayName)
+                .subscribe(username::set);
+        List<WarnContext> warns = MemberData.getMemberData(guild, userId).getWarns();
+        if (warns.isEmpty()) {
+            channel.createMessage("The user has no warnings.").block();
+        } else {
+            StringBuilder membersWhoWarned = new StringBuilder();
+            StringBuilder warnReasons = new StringBuilder();
+            StringBuilder warnIds = new StringBuilder();
+            warns.forEach(warnContext -> {
+                warnReasons.append(warnContext.getReason()).append("\n");
+                warnIds.append(warnContext.getWarnId()).append("\n");
+                membersWhoWarned.append(guild.getMemberById(warnContext.getMemberWhoWarnedId())
+                        .map(Member::getNicknameMention)
+                        .block())
+                        .append("\n");
+            });
+            channel.createEmbed(embedCreateSpec -> embedCreateSpec
+                    .setTitle("Warnings For `" + username.get() + "`")
+                    .addField("Member Who Warned", membersWhoWarned.toString().replaceAll("\n$", ""), true)
+                    .addField("Warn ID", warnIds.toString().replaceAll("\n$", ""), true)
+                    .addField("Reason", warnReasons.toString().replaceAll("\n$", ""), true)
+                    .setColor(Color.BLUE))
+                    .block();
         }
     }
 }

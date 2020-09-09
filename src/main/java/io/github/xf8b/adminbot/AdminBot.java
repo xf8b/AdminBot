@@ -31,11 +31,10 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.rest.util.Color;
-import io.github.xf8b.adminbot.handler.FakeSlapCommandHandler;
+import io.github.xf8b.adminbot.data.BotConfiguration;
 import io.github.xf8b.adminbot.handlers.SlapBrigadierCommand;
 import io.github.xf8b.adminbot.listeners.MessageListener;
 import io.github.xf8b.adminbot.listeners.ReadyListener;
-import io.github.xf8b.adminbot.settings.BotConfiguration;
 import io.github.xf8b.adminbot.util.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -59,7 +58,9 @@ public class AdminBot {
     private final BotConfiguration botConfiguration;
 
     private AdminBot(BotConfiguration botConfiguration) throws IOException, URISyntaxException {
+        //TODO: subcommands
         //TODO: member verifying system
+        //TODO: use optional instead of null?
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         URL url = classLoader.getResource("version.txt");
         if (url == null) throw new NullPointerException("The version file does not exist!");
@@ -99,8 +100,6 @@ public class AdminBot {
         }));
         FileUtil.createFolders();
         FileUtil.createFiles();
-        //here just because i want it to be in help command
-        commandRegistry.registerCommandHandlers(new FakeSlapCommandHandler());
         commandRegistry.slurpCommandHandlers("io.github.xf8b.adminbot.handlers");
         MessageListener messageListener = new MessageListener(this, commandRegistry);
         ReadyListener readyListener = new ReadyListener(

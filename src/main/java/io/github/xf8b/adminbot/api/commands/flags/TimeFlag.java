@@ -38,34 +38,26 @@ public class TimeFlag implements Flag<Pair<Long, TimeUnit>> {
     private final boolean required = true;
     @Builder.Default
     private final Function<String, Pair<Long, TimeUnit>> parseFunction = stringToParse -> {
-        try {
-            Long time = Long.parseLong(stringToParse.replaceAll("[a-zA-Z]", ""));
-            String possibleTimeUnit = stringToParse.replaceAll("\\d", "");
-            TimeUnit timeUnit = switch (possibleTimeUnit.toLowerCase()) {
-                case "d", "day", "days" -> TimeUnit.DAYS;
-                case "h", "hr", "hrs", "hours" -> TimeUnit.HOURS;
-                case "m", "mins", "minutes" -> TimeUnit.MINUTES;
-                case "s", "sec", "secs", "second", "seconds" -> TimeUnit.SECONDS;
-                default -> null;
-            };
-            return Pair.of(time, timeUnit);
-        } catch (NumberFormatException exception) {
-            return null; //should never happen because the validity check should return false
-        }
+        Long time = Long.parseLong(stringToParse.replaceAll("[a-zA-Z]", ""));
+        String possibleTimeUnit = stringToParse.replaceAll("\\d", "");
+        TimeUnit timeUnit = switch (possibleTimeUnit.toLowerCase()) {
+            case "d", "day", "days" -> TimeUnit.DAYS;
+            case "h", "hr", "hrs", "hours" -> TimeUnit.HOURS;
+            case "m", "min", "mins", "minutes" -> TimeUnit.MINUTES;
+            case "s", "sec", "secs", "second", "seconds" -> TimeUnit.SECONDS;
+            default -> throw new IllegalStateException("The validity check should have run by now!");
+        };
+        return Pair.of(time, timeUnit);
     };
     @Builder.Default
     private final Predicate<String> validityPredicate = value -> {
         try {
             Long.parseLong(value.replaceAll("[a-zA-Z]", ""));
             String possibleTimeUnit = value.replaceAll("\\d", "");
-            TimeUnit timeUnit = switch (possibleTimeUnit.toLowerCase()) {
-                case "d", "day", "days" -> TimeUnit.DAYS;
-                case "h", "hr", "hrs", "hours" -> TimeUnit.HOURS;
-                case "m", "mins", "minutes" -> TimeUnit.MINUTES;
-                case "s", "sec", "secs", "second", "seconds" -> TimeUnit.SECONDS;
-                default -> null;
+            return switch (possibleTimeUnit.toLowerCase()) {
+                case "d", "day", "days", "m", "mins", "minutes", "h", "hr", "hrs", "hours", "s", "sec", "secs", "second", "seconds" -> true;
+                default -> false;
             };
-            return timeUnit != null;
         } catch (NumberFormatException exception) {
             return false;
         }

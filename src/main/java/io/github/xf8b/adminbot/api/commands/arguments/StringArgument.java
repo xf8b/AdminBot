@@ -50,7 +50,6 @@ public class StringArgument implements Argument<String> {
         return new StringArgumentBuilder();
     }
 
-
     @Override
     public boolean isValidValue(String value) {
         return validityPredicate.test(value);

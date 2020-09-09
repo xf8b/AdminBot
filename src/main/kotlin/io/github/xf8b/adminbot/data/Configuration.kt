@@ -1,4 +1,4 @@
-package io.github.xf8b.adminbot.settings
+package io.github.xf8b.adminbot.data
 
 interface Configuration {
     fun <T> get(name: String): T

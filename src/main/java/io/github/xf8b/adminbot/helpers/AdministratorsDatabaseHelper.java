@@ -19,6 +19,8 @@
 
 package io.github.xf8b.adminbot.helpers;
 
+import discord4j.common.util.Snowflake;
+import io.github.xf8b.adminbot.data.GuildData;
 import lombok.Cleanup;
 import lombok.experimental.UtilityClass;
 
@@ -28,8 +30,17 @@ import java.util.Map;
 
 @UtilityClass
 public class AdministratorsDatabaseHelper {
-    public void add(String guildId, String administratorRoleId, int level) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * adds a role to the database
+     *
+     * @param guildId             the id of the guild
+     * @param administratorRoleId the id of the role
+     * @param level               the administrator level for the role
+     * @throws SQLException when a sql exception happens
+     * @deprecated use {@link GuildData#addAdministratorRole(Snowflake, int)}
+     */
+    @Deprecated
+    public static void add(long guildId, long administratorRoleId, int level) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
         @Cleanup
@@ -38,8 +49,8 @@ public class AdministratorsDatabaseHelper {
         @Cleanup
         PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO administrators VALUES (?, ?, ?);");
 
-        preparedStatement.setString(1, guildId);
-        preparedStatement.setString(2, administratorRoleId);
+        preparedStatement.setLong(1, guildId);
+        preparedStatement.setLong(2, administratorRoleId);
         preparedStatement.setInt(3, level);
         preparedStatement.addBatch();
 
@@ -48,8 +59,16 @@ public class AdministratorsDatabaseHelper {
         connection.setAutoCommit(true);
     }
 
-    public void remove(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * removes the role from the database
+     *
+     * @param guildId             the id of the guild
+     * @param administratorRoleId the role to remove
+     * @throws SQLException when a sql exception happens
+     * @deprecated use {@link GuildData#removeAdministratorRole(Snowflake)}
+     */
+    @Deprecated
+    public static void remove(long guildId, long administratorRoleId) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
         @Cleanup
@@ -57,8 +76,8 @@ public class AdministratorsDatabaseHelper {
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
         @Cleanup
         PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM administrators WHERE guildId = ? AND administratorRoleId = ?;");
-        preparedStatement.setString(1, guildId);
-        preparedStatement.setString(2, administratorRoleId);
+        preparedStatement.setLong(1, guildId);
+        preparedStatement.setLong(2, administratorRoleId);
         preparedStatement.addBatch();
 
         connection.setAutoCommit(false);
@@ -66,8 +85,16 @@ public class AdministratorsDatabaseHelper {
         connection.setAutoCommit(true);
     }
 
-    public Map<String, Integer> getAllRoles(String guildId) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * gets all roles in the guild
+     *
+     * @param guildId the id of the guild
+     * @return all the roles in the guild
+     * @throws SQLException when a sql exception happens
+     * @deprecated use {@link GuildData#getAdministratorRoles()}
+     */
+    @Deprecated
+    public static Map<Long, Integer> getAllRoles(long guildId) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
         @Cleanup
@@ -75,21 +102,31 @@ public class AdministratorsDatabaseHelper {
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
         @Cleanup
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT administratorRoleId, level FROM administrators WHERE guildId = ?;");
-        preparedStatement.setString(1, guildId);
+        preparedStatement.setLong(1, guildId);
         preparedStatement.addBatch();
 
         @Cleanup
         ResultSet resultSet = preparedStatement.executeQuery();
-        Map<String, Integer> allowedRoles = new HashMap<>();
+        Map<Long, Integer> allowedRoles = new HashMap<>();
+
         while (resultSet.next()) {
-            allowedRoles.put("<@&" + resultSet.getString("administratorRoleId") + ">", resultSet.getInt("level"));
+            allowedRoles.put(resultSet.getLong("administratorRoleId"), resultSet.getInt("level"));
         }
 
         return allowedRoles;
     }
 
-    public boolean isRoleInDatabase(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * checks if the role exists in the database
+     *
+     * @param guildId             the id of the guild
+     * @param administratorRoleId the id of the role
+     * @return if the role exists in the database
+     * @throws SQLException when a sql exception happens
+     * @deprecated use {@link io.github.xf8b.adminbot.data.GuildData#hasAdministratorRole(Snowflake)}
+     */
+    @Deprecated
+    public static boolean isRoleInDatabase(long guildId, long administratorRoleId) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
         @Cleanup
@@ -97,8 +134,8 @@ public class AdministratorsDatabaseHelper {
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
         @Cleanup
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT administratorRoleId FROM administrators WHERE guildId = ? AND administratorRoleId = ?;");
-        preparedStatement.setString(1, guildId);
-        preparedStatement.setString(2, administratorRoleId);
+        preparedStatement.setLong(1, guildId);
+        preparedStatement.setLong(2, administratorRoleId);
         preparedStatement.addBatch();
 
         @Cleanup
@@ -107,8 +144,17 @@ public class AdministratorsDatabaseHelper {
         return resultSet.next();
     }
 
-    public int getLevelOfRole(String guildId, String administratorRoleId) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * gets the level of the role passed in
+     *
+     * @param guildId             the id of the guild
+     * @param administratorRoleId the id of the role
+     * @return the level of the role
+     * @throws SQLException when a sql exception happens
+     * @deprecated use {@link io.github.xf8b.adminbot.data.GuildData#getLevelOfAdministratorRole(Snowflake)}
+     */
+    @Deprecated
+    public static int getLevelOfRole(long guildId, long administratorRoleId) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/administrators.db");
         @Cleanup
@@ -116,8 +162,8 @@ public class AdministratorsDatabaseHelper {
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS administrators (guildId, administratorRoleId, level);");
         @Cleanup
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT level FROM administrators WHERE guildId = ? AND administratorRoleId = ?;");
-        preparedStatement.setString(1, guildId);
-        preparedStatement.setString(2, administratorRoleId);
+        preparedStatement.setLong(1, guildId);
+        preparedStatement.setLong(2, administratorRoleId);
         preparedStatement.addBatch();
 
         @Cleanup

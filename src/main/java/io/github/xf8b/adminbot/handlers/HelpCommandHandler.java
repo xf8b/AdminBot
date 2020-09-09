@@ -19,7 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
@@ -30,12 +29,13 @@ import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.api.commands.arguments.IntegerArgument;
 import io.github.xf8b.adminbot.api.commands.arguments.StringArgument;
-import io.github.xf8b.adminbot.settings.GuildSettings;
+import io.github.xf8b.adminbot.data.GuildData;
 import io.github.xf8b.adminbot.util.CommandRegistry;
 import org.apache.commons.text.WordUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class HelpCommandHandler extends AbstractCommandHandler {
     //TODO: make paginated embed system so this can go back to using reactions for pages
@@ -61,17 +61,16 @@ public class HelpCommandHandler extends AbstractCommandHandler {
                         "If no command was specified, all the commands in the section will be shown. \n" +
                         "If no section was specified, all the commands will be shown.")
                 .setCommandType(CommandType.OTHER)
-                .setArguments(ImmutableList.of(SECTION_OR_COMMAND, PAGE))
+                .setArguments(SECTION_OR_COMMAND, PAGE)
                 .setBotRequiredPermissions(PermissionSet.of(Permission.EMBED_LINKS)));
     }
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        String content = event.getMessage().getContent();
         MessageChannel channel = event.getChannel().block();
         String guildId = event.getGuild().block().getId().asString();
-        String commandOrSection = event.getValueOfArgument(SECTION_OR_COMMAND);
-        if (commandOrSection == null) {
+        Optional<String> commandOrSection = event.getValueOfArgument(SECTION_OR_COMMAND);
+        if (commandOrSection.isEmpty()) {
             channel.createEmbed(embedCreateSpec -> {
                 embedCreateSpec.setTitle("AdminBot Help Page")
                         .setColor(Color.BLUE);
@@ -82,7 +81,7 @@ public class HelpCommandHandler extends AbstractCommandHandler {
                     embedCreateSpec.addField(
                             "`" + commandTypeName + "`",
                             commandType.getDescription() + "\n" +
-                                    "To go to this section, use `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help " + commandType.name()
+                                    "To go to this section, use `" + GuildData.getGuildData(guildId).getPrefix() + "help " + commandType.name()
                                     .toLowerCase()
                                     .replace(" ", "_") + "`.",
                             false
@@ -91,17 +90,13 @@ public class HelpCommandHandler extends AbstractCommandHandler {
             }).block();
         } else {
             for (CommandType commandType : CommandType.values()) {
-                if (commandOrSection.equalsIgnoreCase(commandType.name())) {
-                    Integer pageNumber = event.getValueOfArgument(PAGE);
-                    if (pageNumber != null) {
-                        List<AbstractCommandHandler> commandHandlersWithCurrentCommandType = event.getAdminBot().getCommandRegistry()
-                                .getCommandHandlersWithCommandType(commandType);
-                        if (!Range.closedOpen(0, commandHandlersWithCurrentCommandType.size() % 6).contains(pageNumber)) {
-                            channel.createMessage("No page with the index " + (pageNumber + 1) + " exists!").subscribe();
-                            return;
-                        }
-                    } else {
-                        pageNumber = 0;
+                if (commandOrSection.get().equalsIgnoreCase(commandType.name())) {
+                    Integer pageNumber = event.getValueOfArgument(PAGE).orElse(0);
+                    List<AbstractCommandHandler> commandHandlersWithCurrentCommandType = event.getAdminBot().getCommandRegistry()
+                            .getCommandHandlersWithCommandType(commandType);
+                    if (!Range.closedOpen(0, commandHandlersWithCurrentCommandType.size() % 6).contains(pageNumber)) {
+                        channel.createMessage("No page with the index " + (pageNumber + 1) + " exists!").subscribe();
+                        return;
                     }
                     //commandsShown.clear();
                     //currentCommandType = commandType;
@@ -125,14 +120,14 @@ public class HelpCommandHandler extends AbstractCommandHandler {
                 String nameWithPrefix = commandHandler.getNameWithPrefix(guildId);
                 List<String> aliases = commandHandler.getAliases();
                 List<String> aliasesWithPrefixes = commandHandler.getAliasesWithPrefixes(guildId);
-                if (commandOrSection.equals(name.replace("${prefix}", ""))) {
+                if (commandOrSection.get().equals(name.replace("${prefix}", ""))) {
                     String description = commandHandler.getDescription();
                     String usage = commandHandler.getUsageWithPrefix(guildId);
                     Map<String, String> actions = commandHandler.getActions();
                     channel.createEmbed(embedCreateSpec -> generateCommandEmbed(embedCreateSpec, nameWithPrefix, description, usage, aliasesWithPrefixes, actions)).block();
                 } else if (!aliases.isEmpty()) {
                     for (String alias : aliases) {
-                        if (commandOrSection.equals(alias.replace("${prefix}", ""))) {
+                        if (commandOrSection.get().equals(alias.replace("${prefix}", ""))) {
                             String description = commandHandler.getDescription();
                             String usage = commandHandler.getUsageWithPrefix(guildId);
                             Map<String, String> actions = commandHandler.getActions();
@@ -146,8 +141,8 @@ public class HelpCommandHandler extends AbstractCommandHandler {
 
     private void generateCommandTypeEmbed(CommandRegistry commandRegistry, EmbedCreateSpec embedCreateSpec, CommandType commandType, String guildId, int pageNumber) {
         embedCreateSpec.setTitle("AdminBot Help Page #" + (pageNumber + 1))
-                .setDescription("Actions are not listed on this page. To see them, do `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help <section> <command>`.\n" +
-                        "To go to a different page, use `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help <section> <page>`.")
+                .setDescription("Actions are not listed on this page. To see them, do `" + GuildData.getGuildData(guildId).getPrefix() + "help <section> <command>`.\n" +
+                        "To go to a different page, use `" + GuildData.getGuildData(guildId).getPrefix() + "help <section> <page>`.")
                 .setColor(Color.BLUE);
         List<AbstractCommandHandler> commandHandlersWithCurrentCommandType = commandRegistry
                 .getCommandHandlersWithCommandType(commandType);
@@ -166,7 +161,7 @@ public class HelpCommandHandler extends AbstractCommandHandler {
                     "`" + name + "`",
                     description + "\n" +
                             "Usage: `" + usage + "`\n" +
-                            "If you want to go to the help page for this command, use `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help " + nameWithPrefixRemoved + "`.",
+                            "If you want to go to the help page for this command, use `" + GuildData.getGuildData(guildId).getPrefix() + "help " + nameWithPrefixRemoved + "`.",
                     false
             );
         }

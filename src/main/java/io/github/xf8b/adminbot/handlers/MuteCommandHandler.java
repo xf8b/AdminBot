@@ -19,7 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -54,7 +53,7 @@ public class MuteCommandHandler extends AbstractCommandHandler {
                 .setDescription("Mutes the specified member for the specified amount of time.")
                 .setCommandType(CommandType.ADMINISTRATION)
                 .setMinimumAmountOfArgs(2)
-                .setFlags(ImmutableList.of(MEMBER, TIME))
+                .setFlags(MEMBER, TIME)
                 .setBotRequiredPermissions(PermissionSet.of(Permission.MANAGE_ROLES))
                 .setAdministratorLevelRequired(1));
     }
@@ -63,9 +62,9 @@ public class MuteCommandHandler extends AbstractCommandHandler {
     public void onCommandFired(CommandFiredEvent event) {
         MessageChannel channel = event.getChannel().block();
         Guild guild = event.getGuild().block();
-        Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfFlag(MEMBER));
-        Long time = event.getValueOfFlag(TIME).getLeft();
-        TimeUnit timeType = event.getValueOfFlag(TIME).getRight();
+        Snowflake userId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfFlag(MEMBER).get());
+        Long time = event.getValueOfFlag(TIME).get().getLeft();
+        TimeUnit timeType = event.getValueOfFlag(TIME).get().getRight();
         if (userId == null) {
             channel.createMessage("The member does not exist!").block();
             return;

@@ -83,11 +83,11 @@ public class CommandRegistry extends AbstractList<AbstractCommandHandler> {
         return commandHandlers.size();
     }
 
-    public AbstractCommandHandler getCommandHandler(Class<? extends AbstractCommandHandler> clazz) {
-        return commandHandlers.stream()
+    public <T extends AbstractCommandHandler> T getCommandHandler(Class<? extends T> clazz) {
+        return clazz.cast(commandHandlers.stream()
                 .filter(abstractCommandHandler -> abstractCommandHandler.getClass() == clazz)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("No command handler matches the class inputted!"));
+                .orElseThrow(() -> new IllegalArgumentException("No command handler matches the class inputted!")));
     }
 
     public List<AbstractCommandHandler> getCommandHandlersWithCommandType(AbstractCommandHandler.CommandType commandType) {

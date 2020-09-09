@@ -19,21 +19,17 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
 import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.flags.IntegerFlag;
 import io.github.xf8b.adminbot.api.commands.flags.StringFlag;
-import io.github.xf8b.adminbot.helpers.WarnsDatabaseHelper;
-import io.github.xf8b.adminbot.util.ClientExceptionUtil;
+import io.github.xf8b.adminbot.data.MemberData;
 import io.github.xf8b.adminbot.util.ParsingUtil;
+import io.github.xf8b.adminbot.util.ThisShouldNotHaveBeenThrownException;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
-
-import java.sql.SQLException;
-import java.util.Objects;
 
 @Slf4j
 public class RemoveWarnCommandHandler extends AbstractCommandHandler {
@@ -41,13 +37,18 @@ public class RemoveWarnCommandHandler extends AbstractCommandHandler {
             .setShortName("m")
             .setLongName("member")
             .build();
+    private static final StringFlag MEMBER_WHO_WARNED = StringFlag.builder()
+            .setShortName("mww")
+            .setLongName("memberwhowarned")
+            .setRequired(false)
+            .build();
     private static final StringFlag REASON = StringFlag.builder()
             .setShortName("r")
             .setLongName("reason")
             .build();
-    private static final StringFlag WARN_ID = StringFlag.builder()
+    private static final IntegerFlag WARN_ID = IntegerFlag.builder()
             .setShortName("w")
-            .setLongName("warnreason")
+            .setLongName("warnid")
             .setRequired(false)
             .build();
 
@@ -58,45 +59,45 @@ public class RemoveWarnCommandHandler extends AbstractCommandHandler {
                         "\nIf the reason is all, all warns will be removed. The warnId is not needed." +
                         "\nIf the warnId is all, all warns with the same reason will be removed. ")
                 .setCommandType(CommandType.ADMINISTRATION)
-                .setAliases(ImmutableList.of("${prefix}removewarns", "${prefix}rmwarn", "${prefix}rmwarns"))
+                .setAliases("${prefix}removewarns", "${prefix}rmwarn", "${prefix}rmwarns")
                 .setMinimumAmountOfArgs(2)
-                .setFlags(ImmutableList.of(MEMBER, REASON, WARN_ID))
+                .setFlags(MEMBER, MEMBER_WHO_WARNED, REASON, WARN_ID)
                 .setAdministratorLevelRequired(1));
     }
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        try {
-            MessageChannel channel = event.getChannel().block();
-            Guild guild = event.getGuild().block();
-            String guildId = guild.getId().asString();
-            Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfFlag(MEMBER));
-            if (userId == null) {
-                channel.createMessage("The member does not exist!").block();
+        MessageChannel channel = event.getChannel().block();
+        Guild guild = event.getGuild().block();
+        Snowflake userId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfFlag(MEMBER)
+                .orElseThrow(ThisShouldNotHaveBeenThrownException::new));
+        if (userId == null) {
+            channel.createMessage("The member does not exist!").block();
+            return;
+        }
+        Snowflake memberWhoWarnedId;
+        if (event.getValueOfFlag(MEMBER_WHO_WARNED).isPresent()) {
+            Snowflake tempMemberWhoWarnedId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfFlag(MEMBER_WHO_WARNED).get());
+            if (tempMemberWhoWarnedId == null) {
+                channel.createMessage("The member who warned does not exist!").block();
                 return;
-            }
-            String reason = event.getValueOfFlag(REASON);
-            String warnId = event.getValueOfFlag(WARN_ID);
-            boolean checkIfWarnExists = !reason.equals("all");
-            boolean removeAllWarnsWithSameName = warnId == null;
-            guild.getMemberById(userId)
-                    .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
-                    .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())); //unknown member
-            if (!WarnsDatabaseHelper.hasWarn(guildId, userId.asString(), reason) && checkIfWarnExists) {
-                channel.createMessage("The user does not have a warn with that reason!").block();
             } else {
-                WarnsDatabaseHelper.remove(
-                        guildId,
-                        userId.asString(),
-                        removeAllWarnsWithSameName ? null : warnId,
-                        checkIfWarnExists ? reason : null
-                );
-                guild.getMemberById(userId)
-                        .flatMap(member -> channel.createMessage("Successfully removed warn(s) for " + member.getDisplayName() + "."))
-                        .subscribe();
+                memberWhoWarnedId = tempMemberWhoWarnedId;
             }
-        } catch (SQLException | ClassNotFoundException exception) {
-            LOGGER.error("An exception happened while trying to/from read/write to the prefix database!", exception);
+        } else {
+            memberWhoWarnedId = null;
+        }
+        String reason = event.getValueOfFlag(REASON)
+                .orElseThrow(ThisShouldNotHaveBeenThrownException::new);
+        int warnId = event.getValueOfFlag(WARN_ID).orElse(-1);
+        if (!MemberData.getMemberData(guild, userId).hasWarn(reason) && !reason.equals("all")) {
+            channel.createMessage("The user does not have a warn with that reason!").block();
+        } else {
+            MemberData memberData = MemberData.getMemberData(guild, userId);
+            memberData.removeWarn(memberWhoWarnedId, warnId, reason);
+            guild.getMemberById(userId)
+                    .flatMap(member -> channel.createMessage("Successfully removed warn(s) for " + member.getDisplayName() + "."))
+                    .subscribe();
         }
     }
 }

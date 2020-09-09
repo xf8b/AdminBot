@@ -19,6 +19,7 @@
 
 package io.github.xf8b.adminbot.helpers;
 
+import io.github.xf8b.adminbot.data.GuildData;
 import lombok.Cleanup;
 import lombok.experimental.UtilityClass;
 
@@ -26,78 +27,120 @@ import java.sql.*;
 
 @UtilityClass
 public class PrefixesDatabaseHelper {
-    public static void add(String guildId, String prefix) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * adds a prefix to the database
+     *
+     * @param guildId the guild id
+     * @param prefix  the prefix to add
+     * @throws SQLException when a sql exception happens
+     * @deprecated prefixes are automatically added from {@link io.github.xf8b.adminbot.data.GuildData}
+     */
+    @Deprecated
+    public static void add(long guildId, String prefix) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
         @Cleanup
         Statement statement = connection.createStatement();
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS prefixes (guildId, prefix);");
         @Cleanup
-        PreparedStatement prep = connection.prepareStatement("INSERT INTO prefixes VALUES (?, ?);");
+        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO prefixes VALUES (?, ?);");
 
-        prep.setString(1, guildId);
-        prep.setString(2, prefix);
-        prep.addBatch();
+        preparedStatement.setLong(1, guildId);
+        preparedStatement.setString(2, prefix);
+        preparedStatement.addBatch();
 
         connection.setAutoCommit(false);
-        prep.executeBatch();
+        preparedStatement.executeBatch();
         connection.setAutoCommit(true);
-        prep.close();
+        preparedStatement.close();
     }
 
-    public static String get(String guildId) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * gets a prefix from the database
+     *
+     * @param guildId the guild id
+     * @return the prefix for the guild
+     * @throws SQLException when a sql exception happens
+     * @deprecated use {@link GuildData#getPrefix()}
+     */
+    @Deprecated
+    public static String get(long guildId) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
         @Cleanup
         Statement statement = connection.createStatement();
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS prefixes (guildId, prefix);");
         @Cleanup
-        PreparedStatement prep = connection.prepareStatement("SELECT prefix FROM prefixes WHERE guildId = ?;");
-        prep.setString(1, guildId);
-        prep.addBatch();
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT prefix FROM prefixes WHERE guildId = ?;");
+        preparedStatement.setLong(1, guildId);
+        preparedStatement.addBatch();
         @Cleanup
-        ResultSet resultSet = prep.executeQuery();
-
+        ResultSet resultSet = preparedStatement.executeQuery();
         return resultSet.getString("prefix");
     }
 
-    public static void overwrite(String guildId, String prefix) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * overwrites a prefix in the database
+     *
+     * @param guildId the guild id
+     * @param prefix  the new prefix
+     * @throws SQLException when a sql exception happens
+     * @deprecated use {@link GuildData#setPrefix(String)}
+     */
+    @Deprecated
+    public static void overwrite(long guildId, String prefix) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
         @Cleanup
         Statement statement = connection.createStatement();
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS prefixes (guildId, prefix);");
         @Cleanup
-        PreparedStatement prep = connection.prepareStatement("UPDATE prefixes SET prefix = ? WHERE guildId = ?;");
-        prep.setString(1, prefix);
-        prep.setString(2, guildId);
-        prep.addBatch();
+        PreparedStatement preparedStatement = connection.prepareStatement("UPDATE prefixes SET prefix = ? WHERE guildId = ?;");
+        preparedStatement.setString(1, prefix);
+        preparedStatement.setLong(2, guildId);
+        preparedStatement.addBatch();
 
         connection.setAutoCommit(false);
-        prep.executeUpdate();
+        preparedStatement.executeUpdate();
         connection.setAutoCommit(true);
-        prep.close();
+        preparedStatement.close();
     }
 
-    public static boolean isNotInDatabase(String guildId) throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
+    /**
+     * checks if a guild is in the database
+     *
+     * @param guildId the guild id
+     * @return if the guild is in the database
+     * @throws SQLException when a sql exception happens
+     * @deprecated prefixes are automatically added from {@link io.github.xf8b.adminbot.data.GuildData}
+     */
+    @Deprecated
+    public static boolean isInDatabase(long guildId) throws SQLException {
         @Cleanup
         Connection connection = DriverManager.getConnection("jdbc:sqlite:databases/prefixes.db");
         @Cleanup
         Statement statement = connection.createStatement();
         statement.executeUpdate("CREATE TABLE IF NOT EXISTS prefixes (guildId, prefix);");
         @Cleanup
-        PreparedStatement prep = connection.prepareStatement("SELECT prefix FROM prefixes WHERE guildId = ?;");
-        prep.setString(1, guildId);
-        prep.addBatch();
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT prefix FROM prefixes WHERE guildId = ?;");
+        preparedStatement.setLong(1, guildId);
+        preparedStatement.addBatch();
         @Cleanup
-        ResultSet resultSet = prep.executeQuery();
+        ResultSet resultSet = preparedStatement.executeQuery();
 
-        boolean doesExist = resultSet.next();
+        return resultSet.next();
+    }
 
-        return !doesExist;
+    /**
+     * checks if a guild is not in the database
+     *
+     * @param guildId the guild id
+     * @return if the guild is not in the database
+     * @throws SQLException when a sql exception happens
+     * @deprecated prefixes are automatically added from {@link io.github.xf8b.adminbot.data.GuildData}
+     */
+    @Deprecated
+    public static boolean isNotInDatabase(long guildId) throws SQLException {
+        return !isInDatabase(guildId);
     }
 }

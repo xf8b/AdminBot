@@ -19,7 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -55,7 +54,7 @@ public class KickCommandHandler extends AbstractCommandHandler {
                 .setDescription("Kicks the specified member with the reason provided, or `No kick reason was provided` if there was none.")
                 .setCommandType(CommandType.OTHER)
                 .setMinimumAmountOfArgs(1)
-                .setFlags(ImmutableList.of(MEMBER, REASON))
+                .setFlags(MEMBER, REASON)
                 .setBotRequiredPermissions(PermissionSet.of(Permission.KICK_MEMBERS))
                 .setAdministratorLevelRequired(2));
     }
@@ -64,15 +63,12 @@ public class KickCommandHandler extends AbstractCommandHandler {
     public void onCommandFired(CommandFiredEvent event) {
         MessageChannel channel = event.getChannel().block();
         Guild guild = event.getGuild().block();
-        Snowflake userId = ParsingUtil.parseUserIdAndReturnSnowflake(guild, event.getValueOfFlag(MEMBER));
+        Snowflake userId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfFlag(MEMBER).get());
         if (userId == null) {
             channel.createMessage("The member does not exist!").block();
             return;
         }
-        String reason = event.getValueOfFlag(REASON);
-        if (reason == null) reason = "No kick reason was provided.";
-        String finalReason = reason;
-        String finalReason1 = reason;
+        String reason = event.getValueOfFlag(REASON).orElse("No kick reason was provided.");
         guild.getMemberById(userId)
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
                 .map(member -> Objects.requireNonNull(member, "Member must not be null!"))
@@ -101,27 +97,26 @@ public class KickCommandHandler extends AbstractCommandHandler {
                     }
                 })))
                 .flatMap(member -> {
-                    if (PermissionUtil.getAdministratorLevel(guild, member) <= PermissionUtil.getAdministratorLevel(guild, event.getMember().get())) {
-                        return Mono.just(member);
-                    } else {
-                        channel.createMessage("Cannot kick member because the member is higher than you!").block();
+                    if (!PermissionUtil.isMemberHigher(guild, event.getMember().get(), member)) {
+                        channel.createMessage("Cannot kick member because the member is equal to or higher than you!").block();
                         return Mono.empty();
+                    } else {
+                        return Mono.just(member);
                     }
                 })
                 .flatMap(member -> {
                     String username = member.getDisplayName();
-                    Mono<?> mono = member.kick(finalReason1)
-                            .onErrorResume(throwable1 -> Mono.fromRunnable(() -> channel.createMessage("Failed to kick " + username + ".").block()))
-                            .doOnSuccess(success -> channel.createMessage("Successfully kicked " + username + "!").block());
                     return member.getPrivateChannel().flatMap(privateChannel -> {
                         if (member.isBot()) return Mono.empty();
                         return privateChannel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("You were kicked!")
                                 .setFooter("Kicked by: " + ExtensionsKt.getTagWithDisplayName(event.getMember().get()), event.getMember().get().getAvatarUrl())
                                 .addField("Server", guild.getName(), false)
-                                .addField("Reason", finalReason, false)
+                                .addField("Reason", reason, false)
                                 .setTimestamp(Instant.now())
                                 .setColor(Color.RED));
-                    }).and(mono);
+                    }).onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(50007), throwable -> Mono.empty()) //cannot send messages to user
+                            .then(member.kick(reason)
+                                    .doOnSuccess(success -> channel.createMessage("Successfully kicked " + username + "!").block()));
                 }).subscribe();
     }
 }

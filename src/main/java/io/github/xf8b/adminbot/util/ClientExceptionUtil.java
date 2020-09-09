@@ -20,6 +20,7 @@
 package io.github.xf8b.adminbot.util;
 
 import discord4j.rest.http.client.ClientException;
+import discord4j.rest.json.response.ErrorResponse;
 import lombok.experimental.UtilityClass;
 
 import java.util.function.Predicate;
@@ -32,8 +33,9 @@ public class ClientExceptionUtil {
             if (throwable instanceof ClientException) {
                 ClientException exception = (ClientException) throwable;
                 if (exception.getErrorResponse().isEmpty()) return false;
-                if (exception.getErrorResponse().get().getFields().get("code") == null) return false;
-                return (int) exception.getErrorResponse().get().getFields().get("code") == code;
+                ErrorResponse errorResponse = exception.getErrorResponse().get();
+                if (errorResponse.getFields().get("code") == null) return false;
+                return (int) errorResponse.getFields().get("code") == code;
             } else {
                 return false;
             }

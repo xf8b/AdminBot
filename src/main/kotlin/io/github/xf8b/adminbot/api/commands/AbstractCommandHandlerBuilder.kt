@@ -5,7 +5,7 @@ import io.github.xf8b.adminbot.api.commands.arguments.Argument
 import io.github.xf8b.adminbot.api.commands.flags.Flag
 
 //only here for java compatibility
-class AbstractCommandHandlerBuilder constructor(
+class AbstractCommandHandlerBuilder(
         name: String? = null,
         usage: String? = null,
         description: String? = null,
@@ -73,6 +73,10 @@ class AbstractCommandHandlerBuilder constructor(
         aliases.add(alias)
     }
 
+    fun setAliases(vararg aliases: String): AbstractCommandHandlerBuilder = apply {
+        this.aliases = aliases.toMutableList()
+    }
+
     fun setAliases(aliases: List<String>): AbstractCommandHandlerBuilder = apply {
         this.aliases = aliases as MutableList<String>
     }
@@ -85,12 +89,20 @@ class AbstractCommandHandlerBuilder constructor(
         flags.add(flag)
     }
 
+    fun setFlags(vararg flags: Flag<*>): AbstractCommandHandlerBuilder = apply {
+        this.flags = flags.toMutableList()
+    }
+
     fun setFlags(flags: List<Flag<*>>): AbstractCommandHandlerBuilder = apply {
         this.flags = flags as MutableList<Flag<*>>
     }
 
     fun addArgument(argument: Argument<*>): AbstractCommandHandlerBuilder = apply {
         arguments.add(argument)
+    }
+
+    fun setArguments(vararg arguments: Argument<*>): AbstractCommandHandlerBuilder = apply {
+        this.arguments = arguments.toMutableList()
     }
 
     fun setArguments(arguments: List<Argument<*>>): AbstractCommandHandlerBuilder = apply {
@@ -148,6 +160,18 @@ class AbstractCommandHandlerBuilder constructor(
     }
 
     override fun toString(): String {
-        return "AbstractCommandHandlerBuilder(name=$name, usage=$usage, description=$description, commandType=$commandType, actions=$actions, aliases=$aliases, minimumAmountOfArgs=$minimumAmountOfArgs, flags=$flags, arguments=$arguments, botRequiredPermissions=$botRequiredPermissions, administratorLevelRequired=$administratorLevelRequired, isBotAdministratorOnly=$isBotAdministratorOnly)"
+        return "AbstractCommandHandlerBuilder(name=$name, " +
+                "usage=$usage, " +
+                "description=$description, " +
+                "commandType=$commandType, " +
+                "actions=$actions, " +
+                "aliases=$aliases, " +
+                "minimumAmountOfArgs=$minimumAmountOfArgs, " +
+                "flags=$flags, " +
+                "arguments=$arguments, " +
+                "botRequiredPermissions=$botRequiredPermissions, " +
+                "administratorLevelRequired=$administratorLevelRequired, " +
+                "isBotAdministratorOnly=$isBotAdministratorOnly" +
+                ")"
     }
 }

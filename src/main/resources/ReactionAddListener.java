@@ -28,7 +28,7 @@ import discord4j.rest.util.Color;
 import io.github.xf8b.adminbot.AdminBot;
 import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.handlers.HelpCommandHandler;
-import io.github.xf8b.adminbot.settings.GuildSettings;
+import io.github.xf8b.adminbot.data.GuildData;
 import lombok.RequiredArgsConstructor;
 
 import javax.annotation.Nonnull;
@@ -59,7 +59,7 @@ public class ReactionAddListener {
                 if (currentPage * 6 >= commandHandlersWithSameCommandType.size()) return;
                 message.edit(messageEditSpec -> messageEditSpec.setEmbed(embedCreateSpec -> {
                     embedCreateSpec.setTitle("AdminBot Help Page #" + (currentPage + 1))
-                            .setDescription("Actions are not listed on this page. To see them, do `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help <section> <command>`.")
+                            .setDescription("Actions are not listed on this page. To see them, do `" + GuildData.getGuildData(guildId).getPrefix() + "help <section> <command>`.")
                             .setColor(Color.BLUE);
                     for (int i = currentPage * 6; i < currentPage * 6 + 6; i++) {
                         AbstractCommandHandler commandHandler;
@@ -77,7 +77,7 @@ public class ReactionAddListener {
                                     "`" + name + "`",
                                     description + "\n" +
                                             "Usage: `" + usage + "`\n" +
-                                            "If you want to go to the help page for this command, use `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help " + HelpCommandHandler.currentCommandType.name().toLowerCase() + " " + nameWithPrefixRemoved + "`.",
+                                            "If you want to go to the help page for this command, use `" + GuildData.getGuildData(guildId).getPrefix() + "help " + HelpCommandHandler.currentCommandType.name().toLowerCase() + " " + nameWithPrefixRemoved + "`.",
                                     false
                             );
                             HelpCommandHandler.commandsShown.remove(commandHandler);
@@ -97,7 +97,7 @@ public class ReactionAddListener {
                 if (currentPage * 6 >= commandHandlersWithSameCommandType.size()) return;
                 message.edit(messageEditSpec -> messageEditSpec.setEmbed(embedCreateSpec -> {
                     embedCreateSpec.setTitle("AdminBot Help Page #" + (currentPage + 1))
-                            .setDescription("Actions are not listed on this page. To see them, do `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help <section> <command>`.")
+                            .setDescription("Actions are not listed on this page. To see them, do `" + GuildData.getGuildData(guildId).getPrefix() + "help <section> <command>`.")
                             .setColor(Color.BLUE);
                     for (int i = currentPage * 6; i < currentPage * 6 + 6; i++) {
                         AbstractCommandHandler commandHandler;
@@ -115,7 +115,7 @@ public class ReactionAddListener {
                                     "`" + name + "`",
                                     description + "\n" +
                                             "Usage: `" + usage + "`\n" +
-                                            "If you want to go to the help page for this command, use `" + GuildSettings.getGuildSettings(guildId).getPrefix() + "help " + HelpCommandHandler.currentCommandType.name().toLowerCase() + " " + nameWithPrefixRemoved + "`.",
+                                            "If you want to go to the help page for this command, use `" + GuildData.getGuildData(guildId).getPrefix() + "help " + HelpCommandHandler.currentCommandType.name().toLowerCase() + " " + nameWithPrefixRemoved + "`.",
                                     false
                             );
                             HelpCommandHandler.commandsShown.add(commandHandler);

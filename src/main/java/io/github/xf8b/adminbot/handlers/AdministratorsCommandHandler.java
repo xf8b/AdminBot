@@ -19,7 +19,6 @@
 
 package io.github.xf8b.adminbot.handlers;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import discord4j.common.util.Snowflake;
@@ -36,7 +35,7 @@ import io.github.xf8b.adminbot.api.commands.arguments.StringArgument;
 import io.github.xf8b.adminbot.api.commands.flags.Flag;
 import io.github.xf8b.adminbot.api.commands.flags.IntegerFlag;
 import io.github.xf8b.adminbot.api.commands.flags.StringFlag;
-import io.github.xf8b.adminbot.helpers.AdministratorsDatabaseHelper;
+import io.github.xf8b.adminbot.data.GuildData;
 import io.github.xf8b.adminbot.settings.CommandHandlerChecks;
 import io.github.xf8b.adminbot.settings.DisableChecks;
 import io.github.xf8b.adminbot.util.MapUtil;
@@ -44,7 +43,6 @@ import io.github.xf8b.adminbot.util.ParsingUtil;
 import io.github.xf8b.adminbot.util.PermissionUtil;
 import lombok.extern.slf4j.Slf4j;
 
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -107,116 +105,106 @@ public class AdministratorsCommandHandler extends AbstractCommandHandler {
                 .addAlias("${prefix}admins")
                 .setMinimumAmountOfArgs(1)
                 .addArgument(ACTION)
-                .setFlags(ImmutableList.of(ROLE, ADMINISTRATOR_LEVEL))
+                .setFlags(ROLE, ADMINISTRATOR_LEVEL)
                 .setBotRequiredPermissions(PermissionSet.of(Permission.EMBED_LINKS))
                 .setAdministratorLevelRequired(4));
     }
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        try {
-            MessageChannel channel = event.getChannel().block();
-            Guild guild = event.getGuild().block();
-            String guildId = guild.getId().asString();
-            Member member = event.getMember().get();
-            String action = event.getValueOfArgument(ACTION);
-            boolean isAdministrator = PermissionUtil.isAdministrator(guild, member) &&
-                    PermissionUtil.getAdministratorLevel(guild, member) >= this.getAdministratorLevelRequired();
-            switch (action) {
-                case "add":
-                case "addrole":
-                    if (isAdministrator) {
-                        if (event.getValueOfFlag(ROLE) == null || event.getValueOfFlag(ADMINISTRATOR_LEVEL) == null) {
-                            channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
-                            return;
-                        }
-                        Snowflake roleId = ParsingUtil.parseRoleIdAndReturnSnowflake(guild, event.getValueOfFlag(ROLE));
-                        if (roleId == null) {
-                            channel.createMessage("The role does not exist!").block();
-                            return;
-                        }
-                        String roleName = guild.getRoleById(roleId).map(Role::getName).block();
-                        int level = event.getValueOfFlag(ADMINISTRATOR_LEVEL);
-                        if (AdministratorsDatabaseHelper.isRoleInDatabase(guildId, roleId.asString())) {
-                            channel.createMessage("The role already has been added as an administrator role.").block();
-                        } else {
-                            AdministratorsDatabaseHelper.add(guildId, roleId.asString(), level);
-                            channel.createMessage("Successfully added " + roleName + " to the list of administrator roles.").block();
-                        }
-                    } else {
-                        channel.createMessage("Sorry, you don't have high enough permissions.").block();
+        MessageChannel channel = event.getChannel().block();
+        Guild guild = event.getGuild().block();
+        String guildId = guild.getId().asString();
+        Member member = event.getMember().get();
+        String action = event.getValueOfArgument(ACTION).get();
+        boolean isAdministrator = PermissionUtil.canMemberUseCommand(guild, member, this);
+        switch (action) {
+            case "add", "addrole" -> {
+                if (isAdministrator) {
+                    if (event.getValueOfFlag(ROLE).isEmpty() || event.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty()) {
+                        channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
+                        return;
                     }
-                    break;
-                case "rm":
-                case "remove":
-                case "removerole":
-                    if (isAdministrator) {
-                        if (event.getValueOfFlag(ROLE) == null) {
-                            channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
-                            return;
-                        }
-                        Snowflake roleId = ParsingUtil.parseRoleIdAndReturnSnowflake(guild, event.getValueOfFlag(ROLE));
-                        if (roleId == null) {
-                            channel.createMessage("The role does not exist!").block();
-                            return;
-                        }
-                        String roleName = guild.getRoleById(roleId).map(Role::getName).block();
-                        if (!AdministratorsDatabaseHelper.isRoleInDatabase(guildId, roleId.asString())) {
-                            channel.createMessage("The role has not been added as an administrator role!").block();
-                        } else {
-                            AdministratorsDatabaseHelper.remove(guildId, roleId.asString());
-                            channel.createMessage("Successfully removed " + roleName + " from the list of administrator roles.").block();
-                        }
-                    } else {
-                        channel.createMessage("Sorry, you don't have high enough permissions.").block();
+                    Snowflake roleId = ParsingUtil.parseRoleIdAsSnowflake(guild, event.getValueOfFlag(ROLE).get());
+                    if (roleId == null) {
+                        channel.createMessage("The role does not exist!").block();
+                        return;
                     }
-                    break;
-                case "rdm":
-                case "rmdel":
-                case "removedeletedroles":
-                    if (isAdministrator) {
-                        for (String string : AdministratorsDatabaseHelper.getAllRoles(guildId).keySet()) {
-                            if (guild.getRoleById(Snowflake.of(string.replaceAll("[<@&>]", ""))).block() == null) {
-                                AdministratorsDatabaseHelper.remove(guildId, string.replaceAll("[<@&>]", ""));
-                            }
-                        }
-                        channel.createMessage("Successfully removed deleted roles from the list of administrator roles.").block();
+                    String roleName = guild.getRoleById(roleId).map(Role::getName).block();
+                    int level = event.getValueOfFlag(ADMINISTRATOR_LEVEL).get();
+                    if (GuildData.getGuildData(guildId).hasAdministratorRole(roleId)) {
+                        channel.createMessage("The role already has been added as an administrator role.").block();
                     } else {
-                        channel.createMessage("Sorry, you don't have high enough permissions.").block();
+                        GuildData.getGuildData(guildId).addAdministratorRole(roleId, level);
+                        channel.createMessage("Successfully added " + roleName + " to the list of administrator roles.").block();
                     }
-                    break;
-                case "ls":
-                case "list":
-                case "listroles":
-                case "get":
-                case "getroles":
-                    Map<String, Integer> administratorRoles = AdministratorsDatabaseHelper.getAllRoles(guildId);
-                    if (administratorRoles.isEmpty()) {
-                        channel.createMessage("The only administrator is the owner.").block();
-                    } else {
-                        administratorRoles = MapUtil.sortByValue(administratorRoles);
-                        Arrays.sort(administratorRoles.keySet().toArray(new String[0]));
-                        Arrays.sort(administratorRoles.values().toArray(new Integer[0]));
-                        String roleNames = String.join("\n", administratorRoles.keySet())
-                                .replaceAll("\n$", "");
-                        String roleLevels = administratorRoles.values()
-                                .stream()
-                                .map(Object::toString)
-                                .collect(Collectors.joining("\n"))
-                                .replaceAll("\n$", "");
-                        channel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("Administrator Roles")
-                                .addField("Role", roleNames, true)
-                                .addField("Level", roleLevels, true)
-                                .setColor(Color.BLUE))
-                                .block();
-                    }
-                    break;
-                default:
-                    channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
-                    break;
+                } else {
+                    channel.createMessage("Sorry, you don't have high enough permissions.").block();
+                }
             }
-        } catch (SQLException | ClassNotFoundException exception) {
-            LOGGER.error("An exception happened while trying to read/write to/from the administrators database!", exception);
+            case "rm", "remove", "removerole" -> {
+                if (isAdministrator) {
+                    if (event.getValueOfFlag(ROLE).isEmpty()) {
+                        channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
+                        return;
+                    }
+                    Snowflake roleId = ParsingUtil.parseRoleIdAsSnowflake(guild, event.getValueOfFlag(ROLE).get());
+                    if (roleId == null) {
+                        channel.createMessage("The role does not exist!").block();
+                        return;
+                    }
+                    String roleName = guild.getRoleById(roleId).map(Role::getName).block();
+                    if (!GuildData.getGuildData(guildId).hasAdministratorRole(roleId)) {
+                        channel.createMessage("The role has not been added as an administrator role!").block();
+                    } else {
+                        GuildData.getGuildData(guildId).removeAdministratorRole(roleId);
+                        channel.createMessage("Successfully removed " + roleName + " from the list of administrator roles.").block();
+                    }
+                } else {
+                    channel.createMessage("Sorry, you don't have high enough permissions.").block();
+                }
+            }
+            case "rdr", "rmdel", "removedeletedroles" -> {
+                if (isAdministrator) {
+                    int amountOfRemovedRoles = 0;
+                    GuildData guildData = GuildData.getGuildData(guildId);
+                    for (Long roleId : GuildData.getGuildData(guildId).getAdministratorRoles().keySet()) {
+                        if (guild.getRoleById(Snowflake.of(roleId)).blockOptional().isEmpty()) {
+                            guildData.removeAdministratorRole(roleId);
+                            amountOfRemovedRoles++;
+                        }
+                    }
+                    channel.createMessage(String.format("Successfully removed %d deleted roles from the list of administrator roles.", amountOfRemovedRoles)).block();
+                } else {
+                    channel.createMessage("Sorry, you don't have high enough permissions.").block();
+                }
+            }
+            case "ls", "list", "listroles", "get", "getroles" -> {
+                Map<Long, Integer> administratorRoles = GuildData.getGuildData(guildId).getAdministratorRoles();
+                if (administratorRoles.isEmpty()) {
+                    channel.createMessage("The only administrator is the owner.").block();
+                } else {
+                    administratorRoles = MapUtil.sortByValue(administratorRoles);
+                    Arrays.sort(administratorRoles.keySet().toArray(new Long[0]));
+                    Arrays.sort(administratorRoles.values().toArray(new Integer[0]));
+                    String roleNames = administratorRoles.keySet()
+                            .stream()
+                            .map(roleId -> "<@&" + roleId + ">")
+                            .collect(Collectors.joining("\n"))
+                            .replaceAll("\n$", "");
+                    String roleLevels = administratorRoles.values()
+                            .stream()
+                            .map(Object::toString)
+                            .collect(Collectors.joining("\n"))
+                            .replaceAll("\n$", "");
+                    channel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("Administrator Roles")
+                            .addField("Role", roleNames, true)
+                            .addField("Level", roleLevels, true)
+                            .setColor(Color.BLUE))
+                            .block();
+                }
+            }
+            default -> channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(guildId) + "`.").block();
         }
     }
 }

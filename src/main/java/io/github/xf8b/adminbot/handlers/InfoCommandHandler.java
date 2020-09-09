@@ -26,7 +26,7 @@ import discord4j.rest.util.Permission;
 import discord4j.rest.util.PermissionSet;
 import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
-import io.github.xf8b.adminbot.settings.GuildSettings;
+import io.github.xf8b.adminbot.data.GuildData;
 
 public class InfoCommandHandler extends AbstractCommandHandler {
     public InfoCommandHandler() {
@@ -42,7 +42,7 @@ public class InfoCommandHandler extends AbstractCommandHandler {
     public void onCommandFired(CommandFiredEvent event) {
         MessageChannel messageChannel = event.getChannel().block();
         String guildId = event.getGuildId().get().asString();
-        String prefix = GuildSettings.getGuildSettings(guildId).getPrefix();
+        String prefix = GuildData.getGuildData(guildId).getPrefix();
         int totalCommands = event.getAdminBot().getCommandRegistry().size();
         String username = event.getClient().getSelf().map(User::getUsername).block();
         String avatarUrl = event.getClient().getSelf().map(User::getAvatarUrl).block();

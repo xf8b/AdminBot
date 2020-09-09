@@ -22,7 +22,7 @@ package io.github.xf8b.adminbot.api.commands.flags;
 public interface Flag<T> {
     String DEFAULT_INVALID_VALUE_ERROR_MESSAGE = "Invalid value `%s`! Required value: %s.";
 
-    String REGEX = "(--?)(\\w+) ?=? ?(\"?[\\w ]+\"?)";
+    String REGEX = "(--?)([a-zA-Z]+) ?=? ?(\"?[\\w ]+\"?)";
 
     boolean requiresValue();
 

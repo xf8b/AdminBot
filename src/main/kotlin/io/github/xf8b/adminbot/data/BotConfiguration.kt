@@ -1,4 +1,4 @@
-package io.github.xf8b.adminbot.settings
+package io.github.xf8b.adminbot.data
 
 import com.beust.jcommander.Parameter
 import com.electronwill.nightconfig.core.file.CommentedFileConfig
@@ -31,9 +31,11 @@ class BotConfiguration(baseConfigFilePath: String, configFilePath: String) : Con
             .build()
 
     init {
+        //config is closed after this point
+        //can still be used to get values, but save and load will throw an exception
         config.use { it.load() }
         token = get("token")
-        activity = get<String>("activity").replace("\${defaultPrefix}", GuildSettings.DEFAULT_PREFIX)
+        activity = get<String>("activity").replace("\${defaultPrefix}", GuildData.DEFAULT_PREFIX)
         logDumpWebhook = get("logDumpWebhook")
         botAdministrators = getAndMap<Long, Snowflake>("admins", Snowflake::of)
         shardingStrategy = ShardingStrategyConverter().convert(get("sharding"))

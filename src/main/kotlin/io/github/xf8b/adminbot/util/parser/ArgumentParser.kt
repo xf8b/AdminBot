@@ -7,7 +7,6 @@ import io.github.xf8b.adminbot.api.commands.arguments.Argument
 import io.github.xf8b.adminbot.api.commands.flags.Flag
 import net.jodah.typetools.TypeResolver
 import java.util.*
-import java.util.function.Consumer
 import java.util.stream.Collectors
 import kotlin.collections.HashMap
 
@@ -16,9 +15,11 @@ class ArgumentParser : Parser<Argument<*>> {
         val flagMap: MutableMap<Argument<*>, Any> = HashMap()
         val invalidValues: MutableMap<Argument<*>, Any> = HashMap()
         val missingArguments: MutableList<Argument<*>> = ArrayList()
-        val strings = messageContent.replace(Flag.REGEX.toRegex(), "").split(" ").toTypedArray()
+        val strings = messageContent.replace(Flag.REGEX.toRegex(), "")
+                .split(" ")
+                .toTypedArray()
         val arguments = commandHandler.arguments
-        arguments.forEach(Consumer { argument: Argument<*> ->
+        arguments.forEach { argument: Argument<*> ->
             try {
                 val stringAtIndexOfArgument = StringBuilder()
                 //should be fixed
@@ -26,7 +27,7 @@ class ArgumentParser : Parser<Argument<*>> {
                 if (!argument.index().hasUpperBound()) {
                     stringAtIndexOfArgument.append(Arrays.stream(strings)
                             .skip(argument.index().lowerEndpoint().toLong())
-                            .collect(Collectors.joining()))
+                            .collect(Collectors.joining(" ")))
                             .append(" ")
                 } else {
                     var i = argument.index().lowerEndpoint()
@@ -35,17 +36,17 @@ class ArgumentParser : Parser<Argument<*>> {
                         i++
                     }
                 }
-                if (argument.isValidValue(stringAtIndexOfArgument.toString().trim { it <= ' ' })) {
-                    flagMap[argument] = argument.parse(stringAtIndexOfArgument.toString().trim { it <= ' ' })
+                if (argument.isValidValue(stringAtIndexOfArgument.toString().trim())) {
+                    flagMap[argument] = argument.parse(stringAtIndexOfArgument.toString().trim())
                 } else {
-                    invalidValues[argument] = stringAtIndexOfArgument.toString().trim { it <= ' ' }
+                    invalidValues[argument] = stringAtIndexOfArgument.toString().trim()
                 }
             } catch (exception: IndexOutOfBoundsException) {
                 if (argument.isRequired) {
                     missingArguments.add(argument)
                 }
             }
-        })
+        }
         return when {
             missingArguments.isNotEmpty() -> {
                 val missingArgumentsIndexes = missingArguments.stream()
@@ -75,9 +76,7 @@ class ArgumentParser : Parser<Argument<*>> {
                         .subscribe()
                 null
             }
-            else -> {
-                ImmutableMap.copyOf(flagMap)
-            }
+            else -> ImmutableMap.copyOf(flagMap)
         }
     }
 }

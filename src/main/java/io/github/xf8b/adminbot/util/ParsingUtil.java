@@ -58,11 +58,9 @@ public class ParsingUtil {
                     return Mono.empty();
                 });
                 Long memberWhoMatchesUsername = memberUsernameMatchesMono.blockLast();
-                if (memberWhoMatchesUsername == null) {
-                    return memberNicknameMatchesMono.blockLast();
-                } else {
-                    return memberWhoMatchesUsername;
-                }
+                return memberWhoMatchesUsername == null
+                        ? memberNicknameMatchesMono.blockLast()
+                        : memberWhoMatchesUsername;
             }
         }
     }
@@ -87,23 +85,15 @@ public class ParsingUtil {
     }
 
     @Nullable
-    public Snowflake parseUserIdAndReturnSnowflake(Guild guild, String stringToParse) {
+    public Snowflake parseUserIdAsSnowflake(Guild guild, String stringToParse) {
         Long id = parseUserId(guild, stringToParse);
-        if (id == null) {
-            return null;
-        } else {
-            return Snowflake.of(id);
-        }
+        return id == null ? null : Snowflake.of(id);
     }
 
     @Nullable
-    public Snowflake parseRoleIdAndReturnSnowflake(Guild guild, String stringToParse) {
+    public Snowflake parseRoleIdAsSnowflake(Guild guild, String stringToParse) {
         Long id = parseRoleId(guild, stringToParse);
-        if (id == null) {
-            return null;
-        } else {
-            return Snowflake.of(id);
-        }
+        return id == null ? null : Snowflake.of(id);
     }
 
     public Pair<Snowflake, String> parseWebhookUrl(String webhookUrl) {

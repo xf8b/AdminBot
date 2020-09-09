@@ -9,13 +9,8 @@ import java.util.*
 import java.util.function.Consumer
 import java.util.regex.Pattern
 import kotlin.collections.HashMap
-import kotlin.collections.Map
-import kotlin.collections.MutableList
-import kotlin.collections.MutableMap
 import kotlin.collections.component1
 import kotlin.collections.component2
-import kotlin.collections.forEach
-import kotlin.collections.isNotEmpty
 import kotlin.collections.set
 
 class FlagParser : Parser<Flag<*>> {
@@ -27,17 +22,16 @@ class FlagParser : Parser<Flag<*>> {
         val matcher = Pattern.compile(Flag.REGEX).matcher(messageContent)
         while (matcher.find()) {
             val flagName = matcher.group(2)
-            var flag: Flag<*>?
-            flag = if (matcher.group(1) == "--") {
+            val flag: Flag<*>? = if (matcher.group(1) == "--") {
                 commandHandler.flags
                         .stream()
-                        .filter { flag1: Flag<*> -> flag1.longName() == flagName }
+                        .filter { it.longName() == flagName }
                         .findFirst()
                         .orElse(null)
             } else {
                 commandHandler.flags
                         .stream()
-                        .filter { flag1: Flag<*> -> flag1.shortName() == flagName }
+                        .filter { it.shortName() == flagName }
                         .findFirst()
                         .orElse(null)
             }
@@ -64,13 +58,13 @@ class FlagParser : Parser<Flag<*>> {
             }
             flagMap[flag] = value
         }
-        commandHandler.flags.forEach(Consumer { flag: Flag<*> ->
+        commandHandler.flags.forEach { flag: Flag<*> ->
             if (!flagMap.containsKey(flag)) {
                 if (flag.isRequired) {
                     missingFlags.add(flag)
                 }
             }
-        })
+        }
         return when {
             missingFlags.isNotEmpty() -> {
                 val invalidFlagsNames = StringBuilder()
@@ -112,9 +106,7 @@ class FlagParser : Parser<Flag<*>> {
                         .subscribe()
                 null
             }
-            else -> {
-                ImmutableMap.copyOf(flagMap)
-            }
+            else -> ImmutableMap.copyOf(flagMap)
         }
     }
 }

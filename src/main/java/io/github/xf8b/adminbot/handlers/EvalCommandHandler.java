@@ -54,7 +54,7 @@ public class EvalCommandHandler extends AbstractCommandHandler {
 
     @Override
     public void onCommandFired(CommandFiredEvent event) {
-        String thingToEval = event.getValueOfArgument(CODE_TO_EVAL);
+        String thingToEval = event.getValueOfArgument(CODE_TO_EVAL).get();
         ScriptEngine engine = new GroovyScriptEngineImpl();
         EVAL_POOL.submit(() -> {
             try {

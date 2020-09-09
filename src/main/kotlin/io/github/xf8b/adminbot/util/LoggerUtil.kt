@@ -9,5 +9,12 @@ import kotlin.reflect.KProperty
 fun <T : Any> logger(clazz: Class<T>): Logger = LoggerFactory.getLogger(clazz)
 
 class LoggerDelegate<in R : Any> : ReadOnlyProperty<R, Logger> {
-    override fun getValue(thisRef: R, property: KProperty<*>) = logger(thisRef.javaClass)
+    private lateinit var logger: Logger
+
+    override fun getValue(thisRef: R, property: KProperty<*>): Logger {
+        if (!::logger.isInitialized) {
+            logger = logger(thisRef.javaClass)
+        }
+        return logger
+    }
 }

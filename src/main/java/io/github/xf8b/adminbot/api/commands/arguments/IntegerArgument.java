@@ -36,13 +36,7 @@ public class IntegerArgument implements Argument<Integer> {
     @Builder.Default
     private final boolean required = true;
     @Builder.Default
-    private final Function<String, Integer> parseFunction = stringToParse -> {
-        try {
-            return Integer.parseInt(stringToParse);
-        } catch (NumberFormatException exception) {
-            return null; //should never happen because the validity check should return false
-        }
-    };
+    private final Function<String, Integer> parseFunction = Integer::parseInt;
     @Builder.Default
     private final Predicate<String> validityPredicate = value -> {
         try {

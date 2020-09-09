@@ -26,8 +26,10 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
 import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.api.commands.arguments.StringArgument;
-import io.github.xf8b.adminbot.settings.GuildSettings;
+import io.github.xf8b.adminbot.data.GuildData;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Optional;
 
 @Slf4j
 public class PrefixCommandHandler extends AbstractCommandHandler {
@@ -50,19 +52,19 @@ public class PrefixCommandHandler extends AbstractCommandHandler {
     @Override
     public void onCommandFired(CommandFiredEvent event) {
         MessageChannel channel = event.getChannel().block();
-        String guildId = event.getGuild().map(Guild::getId).map(Snowflake::asString).block();
-        String previousPrefix = GuildSettings.getGuildSettings(guildId).getPrefix();
-        String newPrefix = event.getValueOfArgument(NEW_PREFIX);
-        if (previousPrefix.equals(newPrefix)) {
-            channel.createMessage("You can't set the prefix to the same thing, silly.").block();
-        } else if (newPrefix == null) {
+        Snowflake guildId = event.getGuild().map(Guild::getId).block();
+        String previousPrefix = GuildData.getGuildData(guildId).getPrefix();
+        Optional<String> newPrefix = event.getValueOfArgument(NEW_PREFIX);
+        if (newPrefix.isEmpty()) {
             //reset prefix
-            GuildSettings.getGuildSettings(guildId).setPrefix(GuildSettings.DEFAULT_PREFIX);
+            GuildData.getGuildData(guildId).setPrefix(GuildData.DEFAULT_PREFIX);
             channel.createMessage("Successfully reset prefix.").block();
+        } else if (previousPrefix.equals(newPrefix.get())) {
+            channel.createMessage("You can't set the prefix to the same thing, silly.").block();
         } else {
             //set prefix
-            GuildSettings.getGuildSettings(guildId).setPrefix(newPrefix);
-            channel.createMessage("Successfully set prefix from " + previousPrefix + " to " + newPrefix + ".").block();
+            GuildData.getGuildData(guildId).setPrefix(newPrefix.get());
+            channel.createMessage("Successfully set prefix from " + previousPrefix + " to " + newPrefix.get() + ".").block();
         }
     }
 }

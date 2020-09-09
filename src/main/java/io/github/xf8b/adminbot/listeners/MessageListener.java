@@ -32,10 +32,8 @@ import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
 import io.github.xf8b.adminbot.api.commands.arguments.Argument;
 import io.github.xf8b.adminbot.api.commands.flags.Flag;
 import io.github.xf8b.adminbot.handlers.InfoCommandHandler;
-import io.github.xf8b.adminbot.helpers.PrefixesDatabaseHelper;
 import io.github.xf8b.adminbot.settings.CommandHandlerChecks;
 import io.github.xf8b.adminbot.settings.DisableChecks;
-import io.github.xf8b.adminbot.settings.GuildSettings;
 import io.github.xf8b.adminbot.util.CommandRegistry;
 import io.github.xf8b.adminbot.util.PermissionUtil;
 import io.github.xf8b.adminbot.util.parser.ArgumentParser;
@@ -44,7 +42,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +59,10 @@ public class MessageListener {
     private static final ArgumentParser ARGUMENT_PARSER = new ArgumentParser();
     private static final FlagParser FLAG_PARSER = new FlagParser();
 
+    public static void shutdownCommandThreadPool() {
+        COMMAND_THREAD_POOL.shutdown();
+    }
+
     public void onMessageCreateEvent(MessageCreateEvent event) {
         //TODO: reactify all the classes
         //TODO: make exception handler
@@ -72,15 +73,8 @@ public class MessageListener {
         String guildId = event.getGuild().map(Guild::getId)
                 .map(Snowflake::asString)
                 .block();
-        try {
-            if (PrefixesDatabaseHelper.isNotInDatabase(guildId)) {
-                new GuildSettings(guildId);
-            }
-        } catch (ClassNotFoundException | SQLException exception) {
-            LOGGER.error("An exception happened while reading from the prefixes database!", exception);
-        }
-        if (content.trim().replaceAll("<@!" + event.getClient().getSelfId().asString() + ">", "").trim().equals("help")) {
-            InfoCommandHandler commandHandler = (InfoCommandHandler) commandRegistry.getCommandHandler(InfoCommandHandler.class);
+        if (content.trim().equals("<@!" + event.getClient().getSelfId().asString() + "> help")) {
+            InfoCommandHandler commandHandler = commandRegistry.getCommandHandler(InfoCommandHandler.class);
             Map<Flag<?>, Object> flagMap = FLAG_PARSER.parse(channel, commandHandler, content);
             Map<Argument<?>, Object> argumentMap = ARGUMENT_PARSER.parse(channel, commandHandler, content);
             if (flagMap != null && argumentMap != null) {
@@ -144,7 +138,7 @@ public class MessageListener {
                         }
                     }
                     if (commandHandler.requiresAdministrator()) {
-                        if (PermissionUtil.getAdministratorLevel(event.getGuild().block(), event.getMember().get()) < commandHandler.getAdministratorLevelRequired()) {
+                        if (!PermissionUtil.canMemberUseCommand(event.getGuild().block(), event.getMember().get(), commandHandler)) {
                             event.getChannel().flatMap(messageChannel -> messageChannel.createMessage("Sorry, you don't have high enough permissions.")).subscribe();
                             return Mono.empty();
                         }
@@ -184,10 +178,6 @@ public class MessageListener {
                         return Mono.just(bool);
                     }
                 })
-                .subscribe(bool -> COMMAND_THREAD_POOL.submit(() -> commandHandler.onCommandFired(event)));
-    }
-
-    public static void shutdownCommandThreadPool() {
-        COMMAND_THREAD_POOL.shutdown();
+                .subscribe($ -> COMMAND_THREAD_POOL.submit(() -> commandHandler.onCommandFired(event)));
     }
 }

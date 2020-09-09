@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap
 import discord4j.rest.util.PermissionSet
 import io.github.xf8b.adminbot.api.commands.arguments.Argument
 import io.github.xf8b.adminbot.api.commands.flags.Flag
-import io.github.xf8b.adminbot.settings.GuildSettings.Companion.getGuildSettings
+import io.github.xf8b.adminbot.data.GuildData.Companion.getGuildData
 
 abstract class AbstractCommandHandler {
     val name: String
@@ -85,6 +85,15 @@ abstract class AbstractCommandHandler {
 
         private fun generateUsage(commandName: String, flags: List<Flag<*>>, arguments: List<Argument<*>>): String {
             val tempUsage = StringBuilder(commandName).append(" ")
+            for (argument in arguments) {
+                if (argument.isRequired) {
+                    tempUsage.append("<").append(argument.name).append(">")
+                            .append(" ")
+                } else {
+                    tempUsage.append("[").append(argument.name).append("]")
+                            .append(" ")
+                }
+            }
             for (flag in flags) {
                 if (flag.isRequired) {
                     tempUsage.append("<")
@@ -105,15 +114,6 @@ abstract class AbstractCommandHandler {
                 }
                 tempUsage.append(" ")
             }
-            for (argument in arguments) {
-                if (argument.isRequired) {
-                    tempUsage.append("<").append(argument.name).append(">")
-                            .append(" ")
-                } else {
-                    tempUsage.append("[").append(argument.name).append("]")
-                            .append(" ")
-                }
-            }
             return tempUsage.toString().trim {
                 it <= ' '
             }
@@ -122,12 +122,12 @@ abstract class AbstractCommandHandler {
 
     abstract fun onCommandFired(event: CommandFiredEvent)
 
-    fun getNameWithPrefix(guildId: String): String = name.replace("\${prefix}", getGuildSettings(guildId).getPrefix())
+    fun getNameWithPrefix(guildId: String): String = name.replace("\${prefix}", getGuildData(guildId).getPrefix())
 
-    fun getUsageWithPrefix(guildId: String): String = usage.replace("\${prefix}", getGuildSettings(guildId).getPrefix())
+    fun getUsageWithPrefix(guildId: String): String = usage.replace("\${prefix}", getGuildData(guildId).getPrefix())
 
     fun getAliasesWithPrefixes(guildId: String): List<String> = aliases.map {
-        it.replace("\${prefix}", getGuildSettings(guildId).getPrefix())
+        it.replace("\${prefix}", getGuildData(guildId).getPrefix())
     }
 
     fun requiresAdministrator(): Boolean = administratorLevelRequired > 0
