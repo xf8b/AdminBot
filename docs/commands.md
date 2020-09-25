@@ -1,5 +1,6 @@
 ---
 layout: default
+title: AdminBot Commands
 permalink: /docs/commands/
 ---
 # AdminBot Commands
