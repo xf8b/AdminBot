@@ -1,7 +1,9 @@
 ---
 layout: default
-title: AdminBot Documentation
-permalink: /docs/
+title: AdminBot
+permalink: /
 ---
-# AdminBot Documentation
-yes pog
+# AdminBot 
+A bot which does administrative stuff.
+## Docs
+See [https://xf8b.github.io/AdminBot/docs/](https://xf8b.github.io/AdminBot/docs/).
