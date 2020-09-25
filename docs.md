@@ -1,6 +1,7 @@
 ---
 layout: default
 title: AdminBot Documentation
-permalink: /AdminBot/docs/
+permalink: /docs/
 ---
-gesag
+# AdminBot Documentation
+yes
