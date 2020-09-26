@@ -12,12 +12,12 @@ The minimum amount of messages you can delete at once is 2. The maximum you can 
 
 **This is a level one command.**
 
-##Usage
+## Usage
 * NOTE: Required Parameters = <> and Optional Parameters = []
 
 * Usage: `{prefix}clear <messagesToDelete>`
 
-##Aliases
+## Aliases
 * `purge`
 
 ### **Author: AG6**
