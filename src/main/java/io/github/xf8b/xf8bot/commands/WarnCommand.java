@@ -122,11 +122,11 @@ public class WarnCommand extends AbstractCommand {
                                             .setTimestamp(Instant.now())
                                             .setColor(Color.RED)))
                             .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(50007), throwable -> Mono.empty()); //cannot send to user
-                    return Flux.from(mongoCollection.find(Filters.eq("userId", userId)))
+                    return Flux.from(mongoCollection.find(Filters.eq("userId", userId.get().asLong())))
                             .sort(Comparator.comparing(o -> o.get("warnId", Integer.TYPE)))
                             .take(1)
                             .flatMap(document -> {
-                                int warnId = document.get("warnId", Integer.TYPE) + 1;
+                                int warnId = document.getInteger("warnId") + 1;
                                 return Mono.from(mongoCollection.insertOne(new Document()
                                         .append("memberWhoWarnedId", memberWhoWarnedId.asLong())
                                         .append("warnId", warnId)

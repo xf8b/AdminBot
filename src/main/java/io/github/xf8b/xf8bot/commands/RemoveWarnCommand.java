@@ -111,17 +111,17 @@ public class RemoveWarnCommand extends AbstractCommand {
                     .then(guild.getMemberById(userId.get()).flatMap(member -> channel.createMessage("Successfully removed warn(s) for " + member.getDisplayName() + ".")))
                     .then();
         } else {
-            return warnDocuments.filter(document -> document.get("reason", String.class).equals(reason))
+            return warnDocuments.filter(document -> document.getString("reason").equals(reason))
                     .filter(document -> {
                         if (warnId != -1) {
-                            return document.get("warnId", Integer.TYPE).equals(warnId);
+                            return document.getInteger("warnId").equals(warnId);
                         } else {
                             return true;
                         }
                     })
                     .filter(document -> {
                         if (memberWhoWarnedId != null) {
-                            return document.get("memberWhoWarnedId", Long.TYPE).equals(memberWhoWarnedId.asLong());
+                            return document.getLong("memberWhoWarnedId").equals(memberWhoWarnedId.asLong());
                         } else {
                             return true;
                         }

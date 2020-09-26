@@ -15,7 +15,7 @@ build
 
 # Secret/confidential
 databases
-secrets
+config.toml
 
 # misc
 logs

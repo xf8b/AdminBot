@@ -79,7 +79,6 @@ license {
     }
     include("**/*.java")
     include("**/*.kt")
-    ignoreFailures = true
 }
 java {
     sourceCompatibility = JavaVersion.VERSION_15

@@ -17,24 +17,11 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.util;
+package io.github.xf8b.xf8bot.util.converter
 
-import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
+import com.beust.jcommander.IStringConverter
+import discord4j.common.util.Snowflake
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-
-@UtilityClass
-@Slf4j
-public class FileUtil {
-    private final File SECRETS = new File("secrets");
-
-    public void createFolders() throws IOException {
-        if (!SECRETS.exists()) {
-            Files.createDirectory(SECRETS.toPath());
-            LOGGER.info("Secrets folder did not exist, creating folder.");
-        }
-    }
+class SnowflakeConverter : IStringConverter<Snowflake> {
+    override fun convert(value: String): Snowflake = Snowflake.of(value)
 }

@@ -25,8 +25,8 @@ import com.electronwill.nightconfig.core.file.FileNotFoundAction
 import discord4j.common.util.Snowflake
 import discord4j.core.shard.ShardingStrategy
 import io.github.xf8b.xf8bot.Xf8bot
-import io.github.xf8b.xf8bot.util.SnowflakeConverter
 import io.github.xf8b.xf8bot.util.converter.ShardingStrategyConverter
+import io.github.xf8b.xf8bot.util.converter.SnowflakeConverter
 import java.io.File
 
 class BotConfiguration(baseConfigFilePath: String, configFilePath: String) : Configuration {

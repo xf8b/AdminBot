@@ -29,7 +29,7 @@ import java.util.*
 import java.util.stream.Collectors
 
 /**
- * Used to find command handlers when their respective commands are fired.
+ * Used to find commands when they are fired.
  *
  * @author xf8b
  */
@@ -41,13 +41,13 @@ class CommandRegistry : AbstractList<AbstractCommand>() {
     var locked = false
 
     /**
-     * Registers the passed in [AbstractCommand](s).
+     * Registers the passed in [AbstractCommand].
      *
-     * @param commands The command handler(s) to be registered.
+     * @param command The command to be registered.
      */
-    private fun registerCommandHandler(vararg commands: AbstractCommand) {
+    private fun registerCommandHandler(command: AbstractCommand) {
         if (locked) throw UnsupportedOperationException("Registry is currently locked!")
-        commandHandlers.addAll(listOf(*commands))
+        commandHandlers.add(command)
     }
 
     fun slurpCommandHandlers(packagePrefix: String) {

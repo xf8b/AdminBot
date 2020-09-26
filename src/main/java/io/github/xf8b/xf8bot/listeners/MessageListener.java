@@ -19,7 +19,6 @@
 
 package io.github.xf8b.xf8bot.listeners;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.model.Filters;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -47,12 +46,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -61,15 +59,8 @@ public class MessageListener {
     private final Xf8bot xf8bot;
     @NotNull
     private final CommandRegistry commandRegistry;
-    private static final ExecutorService COMMAND_THREAD_POOL = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-            .setNameFormat("Command Pool Thread-%d")
-            .build());
     private static final ArgumentParser ARGUMENT_PARSER = new ArgumentParser();
     private static final FlagParser FLAG_PARSER = new FlagParser();
-
-    public static void shutdownCommandThreadPool() {
-        COMMAND_THREAD_POOL.shutdown();
-    }
 
     public Mono<MessageCreateEvent> onMessageCreateEvent(@NotNull MessageCreateEvent event) {
         //TODO: reactify all the classes
@@ -188,9 +179,10 @@ public class MessageListener {
                         }
                     })
                     .flatMap($ -> commandHandler.onCommandFired(commandFiredEvent))
+                    .subscribeOn(Schedulers.boundedElastic())
                     .doOnError(throwable -> LOGGER.error("An error happened while handling commands!", throwable))
                     .onErrorResume(ClientException.class, t -> commandFiredEvent.getChannel()
-                            .flatMap(messageChannel -> messageChannel.createMessage("Client exception happened while handling command: " + t.getErrorResponse().get().getFields()))
+                            .flatMap(messageChannel -> messageChannel.createMessage("Client exception happened while handling command: " + t.getStatus() + " " + t.getErrorResponse().get().getFields()))
                             .then())
                     .onErrorResume(MongoCommandException.class, t -> commandFiredEvent.getChannel()
                             .flatMap(messageChannel -> messageChannel.createMessage("Database error happened while handling command: " + t.getErrorCodeName()))

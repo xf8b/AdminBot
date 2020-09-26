@@ -19,11 +19,13 @@
 
 package io.github.xf8b.xf8bot.commands
 
+import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Permission
+import discord4j.rest.util.PermissionSet
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
@@ -38,14 +40,14 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.*
 
-class MemberInfoCommand : AbstractCommand(builder()
-        .setName("\${prefix}memberinfo")
-        .setDescription("Shows information about the member.")
-        .setCommandType(CommandType.OTHER)
-        .addAlias("\${prefix}userinfo")
-        .setMinimumAmountOfArgs(1)
-        .addArgument(MEMBER)
-        .setBotRequiredPermissions(Permission.EMBED_LINKS)
+class MemberInfoCommand : AbstractCommand(
+        name = "\${prefix}memberinfo",
+        description = "Shows information about the member.",
+        commandType = CommandType.OTHER,
+        aliases = ImmutableList.of("\${prefix}userinfo"),
+        arguments = ImmutableList.of(MEMBER),
+        minimumAmountOfArgs = 1,
+        botRequiredPermissions = PermissionSet.of(Permission.EMBED_LINKS)
 ) {
     companion object {
         private val MEMBER: StringArgument = StringArgument.builder()
@@ -66,12 +68,8 @@ class MemberInfoCommand : AbstractCommand(builder()
         val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
                 .withLocale(Locale.UK)
                 .withZone(ZoneOffset.UTC)
+
         return guild.getMemberById(userId.get())
-                .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007)) {
-                    Mono.fromRunnable {
-                        channel.createMessage("The member is not in the guild!").block()
-                    }
-                } //unknown member
                 .flatMap { member: Member ->
                     val displayName = member.displayName
                     val avatarUrl = member.avatarUrl
@@ -89,7 +87,6 @@ class MemberInfoCommand : AbstractCommand(builder()
                             .orElse("No activity.")
                     val isOwner = member.id == guild.ownerId
                     val roleMentions = member.roles.map { it.mention }
-                            .map { " " }
                             .collectList()
                             .map { it.joinToString(separator = " ") }
                             .block()!!
@@ -104,14 +101,14 @@ class MemberInfoCommand : AbstractCommand(builder()
                                 .addField("Joined Discord:", formatter.format(memberJoinDiscordTime), true)
                                 .addField("Joined Server:", formatter.format(memberJoinServerTime), true)
                                 .addField("ID:", id, true)
-                                .addField(
-                                        "Role Color RGB:",
-                                        "Red: " + color.red + ", Green: " + color.green + ", Blue: " + color.blue,
-                                        true
-                                )
+                                .addField("Role Color RGB:", "Red: ${color.red}, Green: ${color.green}, Blue: ${color.blue}", true)
                                 .addField("Avatar URL:", avatarUrl, true)
                                 .setTimestamp(Instant.now())
                     }
-                }.then()
+                }
+                .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007)) {
+                    Mono.from(channel.createMessage("The member is not in the guild!"))
+                } //unknown member
+                .then()
     }
 }

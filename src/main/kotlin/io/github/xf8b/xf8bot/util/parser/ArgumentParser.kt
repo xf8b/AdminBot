@@ -72,7 +72,7 @@ class ArgumentParser : Parser<Argument<*>> {
                         .map { it.index }
                         .map { it.toString() }
                         .collect(Collectors.toUnmodifiableList())
-                Result.failure("Missing argument(s) at indexes ${java.lang.String.join(", ", missingArgumentsIndexes)}!")
+                Result.failure("Missing argument(s) at indexes ${missingArgumentsIndexes.joinToString()}!")
             }
             invalidValues.isNotEmpty() -> {
                 val invalidValuesFormatted = StringBuilder()

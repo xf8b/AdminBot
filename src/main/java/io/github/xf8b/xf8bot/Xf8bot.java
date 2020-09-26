@@ -39,10 +39,8 @@ import io.github.xf8b.xf8bot.commands.SlapBrigadierCommand;
 import io.github.xf8b.xf8bot.data.BotConfiguration;
 import io.github.xf8b.xf8bot.listeners.MessageListener;
 import io.github.xf8b.xf8bot.listeners.ReadyListener;
-import io.github.xf8b.xf8bot.util.FileUtil;
 import io.github.xf8b.xf8bot.util.LogbackUtil;
 import io.github.xf8b.xf8bot.util.ParsingUtil;
-import io.github.xf8b.xf8bot.util.ShutdownHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -82,21 +80,20 @@ public class Xf8bot {
                 .login()
                 .doOnError(throwable -> {
                     LOGGER.error("Could not login!", throwable);
-                    ShutdownHandler.shutdownWithError(throwable);
+                    System.exit(0);
                 })
                 .block();
         this.botConfiguration = botConfiguration;
         MongoClient mongoClient = MongoClients.create(ParsingUtil.fixMongoConnectionUrl(
                 botConfiguration.getMongoConnectionUrl()
         ));
-        ;
-        mongoDatabase = mongoClient.getDatabase("bot");
+        mongoDatabase = mongoClient.getDatabase(botConfiguration.getMongoDatabaseName());
     }
 
     public static void main(String[] args) throws IOException, URISyntaxException {
         BotConfiguration botConfiguration = new BotConfiguration(
                 "baseConfig.toml",
-                "secrets/config.toml"
+                "config.toml"
         );
         JCommander.newBuilder()
                 .addObject(botConfiguration)
@@ -105,12 +102,11 @@ public class Xf8bot {
         new Xf8bot(botConfiguration).start();
     }
 
-    private void start() throws IOException {
+    private void start() {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            ShutdownHandler.shutdown();
             client.logout().block();
+            LOGGER.info("Shutting down!");
         }));
-        FileUtil.createFolders();
         commandRegistry.slurpCommandHandlers("io.github.xf8b.xf8bot.commands");
         MessageListener messageListener = new MessageListener(this, commandRegistry);
         ReadyListener readyListener = new ReadyListener(

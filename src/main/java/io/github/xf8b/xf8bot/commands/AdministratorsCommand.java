@@ -200,7 +200,7 @@ public class AdministratorsCommand extends AbstractCommand {
             case "rdr", "rmdel", "removedeletedroles" -> {
                 if (isAdministrator) {
                     Flux<Document> documentFlux = Flux.from(mongoCollection.find(Filters.eq("guildId", Long.parseLong(guildId))))
-                            .filter(document -> guild.getRoleById(Snowflake.of(document.get("roleId", Long.TYPE)))
+                            .filter(document -> guild.getRoleById(Snowflake.of(document.getLong("roleId")))
                                     .blockOptional()
                                     .isEmpty());
                     long amountOfRemovedRoles = documentFlux.count()
@@ -215,7 +215,7 @@ public class AdministratorsCommand extends AbstractCommand {
             }
             case "ls", "list", "listroles", "get", "getroles" -> {
                 return Flux.from(mongoCollection.find(Filters.eq("guildId", Long.parseLong(guildId))))
-                        .collectMap(document -> document.get("roleId", Long.class), document -> document.get("level", Integer.class))
+                        .collectMap(document -> document.getLong("roleId"), document -> document.getInteger("level"))
                         .map(MapUtil::sortByValue)
                         .flatMap(administratorRoles -> {
                             String roleNames = administratorRoles.keySet()
