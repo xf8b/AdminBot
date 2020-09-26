@@ -20,7 +20,7 @@ permalink: /docs/commands/
 `kick`: Kicks the specified member for the specified reason.  
 `ban`: Bans the specified member for the specified reason.  
 `unban`: Unbans the specified member.  
-`administrators`: Adds to, removes from, or gets all the roles that can do administrator only commands.  
+`administrators`: Adds to, removes from, or gets all the roles that can do administrator only commands. (Documentation: [https://xf8b.github.io/AdminBot/docs/commands/admins/](https://xf8b.github.io/AdminBot/docs/commands/admins/))  
 ## Bot Administrator Only  
 `eval`: Evaluates code. Bot administrators only!  
 `shutdown`: Shuts down the bot. Bot administrators only!  
