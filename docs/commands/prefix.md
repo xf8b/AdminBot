@@ -1,25 +1,22 @@
 ---
 layout: default
-title: Administrators Command
+title: Prefixes Command
 permalink: /docs/commands/prefix/
 ---
 # Prefix Command
-###Info
+## Info
 This prefix command sets the prefix for the server. 
 
-A prefix is what you put before you do a command, `>`, this is a example of a prefix.
+A prefix is what you put before you do a command, for example `>`.
 
 This is a level 4 command.
-
 ---
-### Usage
+## Usage
 
 * NOTE: Required Parameters = <> and Optional Parameters = []
 
 * Usage: `{prefix}prefix [newPrefix]`
-* Note: Leaving the `newPrefix` parameter blank will reset the prefix to `>`.
-
+* Note: Leaving the `newPrefix` parameter blank will reset the prefix to `>`, the default prefix.
 ---
 
-#### **Author: AG6**
-
+### **Author: AG6**
