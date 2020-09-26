@@ -6,7 +6,7 @@ permalink: /docs/commands/administrators/
 
 # Administrators Command
 ## Info
-The `admin` command allows you to set the permissions of different roles in your server. This command uses a level system which correlates to certain permissions - as seen below. 
+The `administrators` command allows you to set the permissions of different roles in your server. This command uses a level system which correlates to certain permissions - as seen below. 
 
 **This is a level four command.**
 
