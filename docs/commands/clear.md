@@ -1,11 +1,11 @@
 ---
 layout: default
-title: Administrators Command
-permalink: /docs/commands/administrators/
+title: Clear Command
+permalink: /docs/commands/clear/
 ---
 
 # Clear Command
-##Info
+## Info
 The `clear` command allows you to remove messages in a particular channel in bulk.
 
 The minimum amount of messages you can delete at once is 2. The maximum you can delete at once is 500.
