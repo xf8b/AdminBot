@@ -1,13 +1,13 @@
 ---
 layout: default
-title: AdminBot Commands
+title: xf8bot Commands
 permalink: /docs/commands/
 ---
-# AdminBot Commands
+# xf8bot Commands
 To see the documentation for the commands below, click on the command name.
 ## Non Administrator Only  
 `help`: Shows the commands available and gives information on them.  
-`info`: Shows some information about AdminBot.  
+`info`: Shows some information about xf8bot.  
 `memberinfo`: Shows information about the member.    
 `ping`: Shows the ping. Pretty useless.  
 ## Administrator Only  
@@ -20,8 +20,8 @@ To see the documentation for the commands below, click on the command name.
 `kick`: Kicks the specified member for the specified reason.  
 `ban`: Bans the specified member for the specified reason.  
 `unban`: Unbans the specified member.  
-[`prefix`](https://xf8b.github.io/AdminBot/docs/commands/prefix): Sets the prefix for AdminBot.  
-[`administrators`](https://xf8b.github.io/AdminBot/docs/commands/administrators/): Adds to, removes from, or gets all the roles that can do administrator only commands.  
+[`prefix`](https://xf8b.github.io/xf8bot/docs/commands/prefix): Sets the prefix for AdminBot.  
+[`administrators`](https://xf8b.github.io/xf8bot/docs/commands/administrators/): Adds to, removes from, or gets all the roles that can do administrator only commands.  
 ## Bot Administrator Only  
 `eval`: Evaluates code. Bot administrators only!  
 `shutdown`: Shuts down the bot. Bot administrators only!  
