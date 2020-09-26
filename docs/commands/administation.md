@@ -20,17 +20,17 @@ This is a level four command.
 ---
 ### Functions & Usage
 
-* NOTE: All flags will begin with a `-`.
+* NOTE: All flags will begin with a `-` if using the short name, and `--` if using the long name.
 * NOTE: Required Parameters = <> and Optional Parameters = []
 
 `addRole` - adds a role to the list of administrators.
-* Usage: `{prefix}administators addRole -role <@role/rolename/roleid> -level <1/2/3/4>` 
-* Flags: role - `-role` & `-r` , level - `-l` & `-level`
+* Usage: `{prefix}administators addRole -r <role mention/rolename/roleid> -l <1/2/3/4>` 
+* Flags: role - `--role` & `-r` , level - `-l` & `--level`
 * Aliases: `add`, `addRole`
 
 `removeRole` - removes a role from the list of administrators.
-* Usage: `{prefix}administrators removeRole -role <@role/rolename/roleId>`
-* Flags: role - `-role` & `-r`
+* Usage: `{prefix}administrators removeRole -r <role mention/rolename/roleId>`
+* Flags: role - `--role` & `-r`
 * Aliases `remove`, `removeRole`, `rm`
 
 `getRoles` - gets the roles from the list of administrators.
@@ -41,8 +41,7 @@ This is a level four command.
 ---
 ### Aliases
 
-* `administrators`, `admins`
-
+* `admins`
 
 ---
-#### *Author: AG6*
+#### **Author: AG6**
