@@ -1,24 +1,25 @@
 ---
 layout: default
 title: Administrators Command
-permalink: /docs/commands/admins/
+permalink: /docs/commands/administrators/
 ---
+
 # Administrators Command
-### Info
+## Info
 The `admin` command allows you to set the permissions of different roles in your server. This command uses a level system which correlates to certain permissions - as seen below. 
 
-This is a level four command.
+**This is a level four command.**
 
 ---
-### Permission Levels
+## Permission Levels
 
 * Level 4 Perms - Level Four allows you to preform all the commands for level three and below, alongside, `administrators`, and `prefix`. This is intended for admin/owner roles!
 * Level 3 Perms - Level Three allows you to perform all the commands for level two and below, alongside, `ban` and `unban`.   
 * Level 2 Perms - Level Two allows you to perform all the commands for level one, alongside, `kick` and `clear`.  
 * Level 1 Perms - Level One allows you to perform the commands `warn`, `removewarn`, `warns`, `mute` and `nickname`.
-
 ---
-### Functions & Usage
+
+## Functions & Usage
 
 * NOTE: All flags will begin with a `-` if using the short name, and `--` if using the long name.
 * NOTE: Required Parameters = <> and Optional Parameters = []
@@ -39,9 +40,8 @@ This is a level four command.
 * Aliases: `ls`, `list`, `listroles`, `get`, `getroles`
 
 ---
-### Aliases
-
+## Aliases
 * `admins`
-
 ---
-#### **Author: AG6**
+
+### **Author: AG6**
