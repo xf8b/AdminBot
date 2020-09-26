@@ -22,6 +22,9 @@ package io.github.xf8b.adminbot;
 import com.beust.jcommander.JCommander;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mongodb.reactivestreams.client.MongoClient;
+import com.mongodb.reactivestreams.client.MongoClients;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
@@ -31,15 +34,18 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
 import discord4j.rest.util.Color;
+import io.github.xf8b.adminbot.api.commands.CommandRegistry;
+import io.github.xf8b.adminbot.commands.SlapBrigadierCommand;
 import io.github.xf8b.adminbot.data.BotConfiguration;
-import io.github.xf8b.adminbot.handlers.SlapBrigadierCommand;
 import io.github.xf8b.adminbot.listeners.MessageListener;
 import io.github.xf8b.adminbot.listeners.ReadyListener;
-import io.github.xf8b.adminbot.util.*;
-import lombok.AccessLevel;
-import lombok.Getter;
+import io.github.xf8b.adminbot.util.FileUtil;
+import io.github.xf8b.adminbot.util.LogbackUtil;
+import io.github.xf8b.adminbot.util.ParsingUtil;
+import io.github.xf8b.adminbot.util.ShutdownHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -48,14 +54,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 
-@Getter
 @Slf4j
 public class AdminBot {
+    public static final String DEFAULT_PREFIX = ">";
     private final String version;
     private final CommandRegistry commandRegistry = new CommandRegistry();
     private final GatewayDiscordClient client;
-    @Getter(AccessLevel.NONE)
+    @NotNull
     private final BotConfiguration botConfiguration;
+    private final MongoDatabase mongoDatabase;
 
     private AdminBot(BotConfiguration botConfiguration) throws IOException, URISyntaxException {
         //TODO: subcommands
@@ -79,6 +86,11 @@ public class AdminBot {
                 })
                 .block();
         this.botConfiguration = botConfiguration;
+        MongoClient mongoClient = MongoClients.create(ParsingUtil.fixMongoConnectionUrl(
+                botConfiguration.getMongoConnectionUrl()
+        ));
+        ;
+        mongoDatabase = mongoClient.getDatabase("bot");
     }
 
     public static void main(String[] args) throws IOException, URISyntaxException {
@@ -99,8 +111,7 @@ public class AdminBot {
             client.logout().block();
         }));
         FileUtil.createFolders();
-        FileUtil.createFiles();
-        commandRegistry.slurpCommandHandlers("io.github.xf8b.adminbot.handlers");
+        commandRegistry.slurpCommandHandlers("io.github.xf8b.adminbot.commands");
         MessageListener messageListener = new MessageListener(this, commandRegistry);
         ReadyListener readyListener = new ReadyListener(
                 botConfiguration.getActivity(),
@@ -108,14 +119,14 @@ public class AdminBot {
                 version
         );
         //TODO: figure out why readyevent isnt being fired
-        client.on(ReadyEvent.class)
-                .subscribe(readyListener::onReadyEvent);
+        client.on(ReadyEvent.class).subscribe(readyListener::onReadyEvent);
         client.on(MessageCreateEvent.class)
                 .filter(event -> !event.getMessage().getContent().isEmpty())
                 .filter(event -> event.getMember().isPresent())
                 .filter(event -> event.getMessage().getAuthor().isPresent())
                 .filter(event -> !event.getMessage().getAuthor().get().isBot())
-                .subscribe(messageListener::onMessageCreateEvent);
+                .flatMap(messageListener::onMessageCreateEvent)
+                .subscribe();
         CommandDispatcher<MessageCreateEvent> commandDispatcher = new CommandDispatcher<>();
         SlapBrigadierCommand.register(commandDispatcher);
         client.on(MessageCreateEvent.class).subscribe(messageCreateEvent -> {
@@ -152,5 +163,21 @@ public class AdminBot {
 
     public boolean isBotAdministrator(Snowflake snowflake) {
         return botConfiguration.getBotAdministrators().contains(snowflake);
+    }
+
+    public MongoDatabase getMongoDatabase() {
+        return mongoDatabase;
+    }
+
+    public String getVersion() {
+        return this.version;
+    }
+
+    public CommandRegistry getCommandRegistry() {
+        return this.commandRegistry;
+    }
+
+    public GatewayDiscordClient getClient() {
+        return this.client;
     }
 }

@@ -1,5 +1,5 @@
 language: java
-jdk: openjdk14
+jdk: openjdk15
 os: linux
 dist: bionic
 script: ./gradlew build --stacktrace

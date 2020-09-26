@@ -21,13 +21,17 @@ package io.github.xf8b.adminbot.util;
 
 import discord4j.rest.http.client.ClientException;
 import discord4j.rest.json.response.ErrorResponse;
-import lombok.experimental.UtilityClass;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Predicate;
 
-@UtilityClass
-public class ClientExceptionUtil {
-    public Predicate<Throwable> isClientExceptionWithCode(int code) {
+public final class ClientExceptionUtil {
+    private ClientExceptionUtil() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
+    @NotNull
+    public static Predicate<Throwable> isClientExceptionWithCode(int code) {
         //todo fix error handling
         return throwable -> {
             if (throwable instanceof ClientException) {

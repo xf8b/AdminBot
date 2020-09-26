@@ -29,35 +29,12 @@ import java.nio.file.Files;
 @UtilityClass
 @Slf4j
 public class FileUtil {
-    private final File DATABASES = new File("databases");
     private final File SECRETS = new File("secrets");
-    private final File PREFIXES = new File("databases/prefixes.db");
-    private final File ADMINISTRATORS = new File("databases/administrators.db");
-    private final File WARNS = new File("databases/warns.db");
 
     public void createFolders() throws IOException {
-        if (!DATABASES.exists()) {
-            Files.createDirectory(DATABASES.toPath());
-            LOGGER.info("Databases folder did not exist, creating folder.");
-        }
         if (!SECRETS.exists()) {
             Files.createDirectory(SECRETS.toPath());
             LOGGER.info("Secrets folder did not exist, creating folder.");
-        }
-    }
-
-    public void createFiles() throws IOException {
-        if (!PREFIXES.exists()) {
-            Files.createFile(PREFIXES.toPath());
-            LOGGER.info("Prefixes file did not exist, creating file.");
-        }
-        if (!ADMINISTRATORS.exists()) {
-            Files.createFile(ADMINISTRATORS.toPath());
-            LOGGER.info("Administrators file did not exist, creating file.");
-        }
-        if (!WARNS.exists()) {
-            Files.createFile(WARNS.toPath());
-            LOGGER.info("Warns file did not exist, creating file.");
         }
     }
 }

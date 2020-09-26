@@ -21,10 +21,12 @@ package io.github.xf8b.adminbot.util;
 
 import com.beust.jcommander.IStringConverter;
 import discord4j.common.util.Snowflake;
+import org.jetbrains.annotations.NotNull;
 
 public class SnowflakeConverter implements IStringConverter<Snowflake> {
+    @NotNull
     @Override
-    public Snowflake convert(String value) {
+    public Snowflake convert(@NotNull String value) {
         return Snowflake.of(value);
     }
 }
