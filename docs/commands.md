@@ -20,7 +20,7 @@ To see the documentation for the commands below, click on the command name.
 `kick`: Kicks the specified member for the specified reason.  
 `ban`: Bans the specified member for the specified reason.  
 `unban`: Unbans the specified member.  
-[`prefix`](https://xf8b.github.io/xf8bot/docs/commands/prefix): Sets the prefix for AdminBot.  
+[`prefix`](https://xf8b.github.io/xf8bot/docs/commands/prefix): Sets the prefix for xf8bot.  
 [`administrators`](https://xf8b.github.io/xf8bot/docs/commands/administrators/): Adds to, removes from, or gets all the roles that can do administrator only commands.  
 ## Bot Administrator Only  
 `eval`: Evaluates code. Bot administrators only!  
