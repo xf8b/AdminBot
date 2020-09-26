@@ -20,6 +20,7 @@
 package io.github.xf8b.adminbot.util;
 
 import lombok.experimental.UtilityClass;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,7 +31,8 @@ import java.util.Map;
 public class MapUtil {
     //credit: https://stackoverflow.com/questions/109383/sort-a-mapkey-value-by-values
     //slightly modified
-    public <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
+    @NotNull
+    public <K, V extends Comparable<? super V>> Map<K, V> sortByValue(@NotNull Map<K, V> map) {
         List<Map.Entry<K, V>> list = new ArrayList<>(map.entrySet());
         list.sort(Map.Entry.comparingByValue());
 

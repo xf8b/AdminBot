@@ -23,6 +23,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,11 +31,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ReadyListener {
+    @NotNull
     private final String botActivity;
+    @NotNull
     private final List<Snowflake> botAdmins;
+    @NotNull
     private final String botVersion;
 
-    public void onReadyEvent(ReadyEvent event) {
+    public void onReadyEvent(@NotNull ReadyEvent event) {
         LOGGER.info("Successfully started AdminBot version {}!", botVersion);
         LOGGER.info("Logged in as {}#{}.", event.getSelf().getUsername(), event.getSelf().getDiscriminator());
         LOGGER.info("Logged into {} guilds.", event.getGuilds().size());

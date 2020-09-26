@@ -11,8 +11,10 @@ plugins {
     id("net.minecrell.licenser") version "0.4.1"
 }
 
-group = project.findProperty("mavenGroup")!!
-version = project.findProperty("currentVersion")!!
+group = property("mavenGroup")
+version = property("currentVersion")
+
+fun property(name: String): Any = project.findProperty(name)!!
 
 repositories {
     jcenter()
@@ -27,28 +29,29 @@ repositories {
 
 dependencies {
     //junit
-    testImplementation("junit:junit:${project.findProperty("junitVersion")}")
+    testImplementation("junit:junit:${property("junitVersion")}")
     //discord4j
-    implementation("com.discord4j:discord4j-core:${project.findProperty("discord4jVersion")}")
+    implementation("com.discord4j:discord4j-core:${property("discord4jVersion")}")
     //command libs
     //TODO: remove?
-    implementation("com.mojang:brigadier:${project.findProperty("brigaderVersion")}")
+    implementation("com.mojang:brigadier:${property("brigaderVersion")}")
     //parsing libs
-    implementation("com.beust:jcommander:${project.findProperty("jcommanderVersion")}")
+    implementation("com.beust:jcommander:${property("jcommanderVersion")}")
     //logging
-    implementation("ch.qos.logback:logback-classic:${project.findProperty("logbackClassicVersion")}")
-    implementation("com.github.napstr:logback-discord-appender:${project.findProperty("logbackDiscordAppenderVersion")}")
+    implementation("ch.qos.logback:logback-classic:${property("logbackClassicVersion")}")
+    implementation("com.github.napstr:logback-discord-appender:${property("logbackDiscordAppenderVersion")}")
     //config
-    implementation("com.electronwill.night-config:toml:${project.findProperty("nightConfigVersion")}")
+    implementation("com.electronwill.night-config:toml:${property("nightConfigVersion")}")
     //caching
-    implementation("com.github.ben-manes.caffeine:caffeine:${project.findProperty("caffeineVersion")}")
+    implementation("com.github.ben-manes.caffeine:caffeine:${property("caffeineVersion")}")
+    //drivers
+    implementation("org.mongodb:mongodb-driver-reactivestreams:4.1.0-beta2")
     //util
-    implementation("org.apache.commons:commons-text:${project.findProperty("commonsTextVersion")}")
-    implementation("net.jodah:typetools:${project.findProperty("typeToolsVersion")}")
-    implementation("org.reflections:reflections:${project.findProperty("reflectionsVersion")}")
-    implementation("org.xerial:sqlite-jdbc:${project.findProperty("sqliteJdbcVersion")}")
-    implementation("com.google.guava:guava:${project.findProperty("guavaVersion")}")
-    implementation("org.codehaus.groovy:groovy-all:${project.findProperty("groovyVersion")}")
+    implementation("org.apache.commons:commons-text:${property("commonsTextVersion")}")
+    implementation("net.jodah:typetools:${property("typeToolsVersion")}")
+    implementation("org.reflections:reflections:${property("reflectionsVersion")}")
+    implementation("com.google.guava:guava:${property("guavaVersion")}")
+    implementation("org.codehaus.groovy:groovy-all:${property("groovyVersion")}")
 }
 
 tasks {
@@ -61,7 +64,7 @@ tasks {
 }
 
 application {
-    mainClassName = project.findProperty("mainClass").toString()
+    mainClassName = property("mainClass").toString()
 }
 
 license {
@@ -72,15 +75,15 @@ license {
     ext {
         set("name", "xf8b")
         set("years", "2020")
-        set("projectName", project.findProperty("projectName"))
+        set("projectName", property("projectName"))
     }
     include("**/*.java")
     include("**/*.kt")
     ignoreFailures = true
 }
 java {
-    sourceCompatibility = JavaVersion.VERSION_14
-    targetCompatibility = JavaVersion.VERSION_14
+    sourceCompatibility = JavaVersion.VERSION_15
+    targetCompatibility = JavaVersion.VERSION_15
 }
 
 tasks.withType<JavaCompile> {

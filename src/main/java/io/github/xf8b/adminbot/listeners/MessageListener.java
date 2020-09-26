@@ -20,26 +20,32 @@
 package io.github.xf8b.adminbot.listeners;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import discord4j.common.util.Snowflake;
+import com.mongodb.MongoCommandException;
+import com.mongodb.client.model.Filters;
+import com.mongodb.reactivestreams.client.MongoCollection;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.rest.http.client.ClientException;
 import io.github.xf8b.adminbot.AdminBot;
-import io.github.xf8b.adminbot.api.commands.AbstractCommandHandler;
+import io.github.xf8b.adminbot.api.commands.AbstractCommand;
 import io.github.xf8b.adminbot.api.commands.CommandFiredEvent;
+import io.github.xf8b.adminbot.api.commands.CommandRegistry;
 import io.github.xf8b.adminbot.api.commands.arguments.Argument;
 import io.github.xf8b.adminbot.api.commands.flags.Flag;
-import io.github.xf8b.adminbot.handlers.InfoCommandHandler;
+import io.github.xf8b.adminbot.commands.InfoCommand;
+import io.github.xf8b.adminbot.exceptions.ThisShouldNotHaveBeenThrownException;
 import io.github.xf8b.adminbot.settings.CommandHandlerChecks;
 import io.github.xf8b.adminbot.settings.DisableChecks;
-import io.github.xf8b.adminbot.util.CommandRegistry;
 import io.github.xf8b.adminbot.util.PermissionUtil;
+import io.github.xf8b.adminbot.util.Result;
 import io.github.xf8b.adminbot.util.parser.ArgumentParser;
 import io.github.xf8b.adminbot.util.parser.FlagParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
+import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
@@ -51,7 +57,9 @@ import java.util.concurrent.Executors;
 @Slf4j
 @RequiredArgsConstructor
 public class MessageListener {
+    @NotNull
     private final AdminBot adminBot;
+    @NotNull
     private final CommandRegistry commandRegistry;
     private static final ExecutorService COMMAND_THREAD_POOL = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
             .setNameFormat("Command Pool Thread-%d")
@@ -63,121 +71,150 @@ public class MessageListener {
         COMMAND_THREAD_POOL.shutdown();
     }
 
-    public void onMessageCreateEvent(MessageCreateEvent event) {
+    public Mono<MessageCreateEvent> onMessageCreateEvent(@NotNull MessageCreateEvent event) {
         //TODO: reactify all the classes
         //TODO: make exception handler
         //TODO: add spam protection
         Message message = event.getMessage();
         String content = message.getContent();
-        MessageChannel channel = event.getMessage().getChannel().block();
-        String guildId = event.getGuild().map(Guild::getId)
-                .map(Snowflake::asString)
-                .block();
+        Guild guild = event.getGuild().block();
+        String guildId = guild.getId().asString();
         if (content.trim().equals("<@!" + event.getClient().getSelfId().asString() + "> help")) {
-            InfoCommandHandler commandHandler = commandRegistry.getCommandHandler(InfoCommandHandler.class);
-            Map<Flag<?>, Object> flagMap = FLAG_PARSER.parse(channel, commandHandler, content);
-            Map<Argument<?>, Object> argumentMap = ARGUMENT_PARSER.parse(channel, commandHandler, content);
-            if (flagMap != null && argumentMap != null) {
-                CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
-                commandHandler.onCommandFired(commandFiredEvent);
-            }
+            InfoCommand commandHandler = commandRegistry.getCommandHandler(InfoCommand.class);
+            return onCommandFired(event, commandHandler, guildId, content).thenReturn(event);
         }
+        MongoCollection<Document> mongoCollection = adminBot.getMongoDatabase().getCollection("prefixes");
+        Mono.from(mongoCollection.find(Filters.eq("guildId", Long.parseLong(guildId))))
+                .cast(Object.class)
+                .switchIfEmpty(Mono.from(mongoCollection.insertOne(new Document()
+                        .append("guildId", Long.parseLong(guildId))
+                        .append("prefix", AdminBot.DEFAULT_PREFIX))))
+                .block();
         String commandType = content.trim().split(" ")[0];
-        for (AbstractCommandHandler commandHandler : commandRegistry) {
-            String name = commandHandler.getNameWithPrefix(guildId);
-            List<String> aliases = commandHandler.getAliasesWithPrefixes(guildId);
+        for (AbstractCommand commandHandler : commandRegistry) {
+            String name = commandHandler.getNameWithPrefix(adminBot, guildId);
+            List<String> aliases = commandHandler.getAliasesWithPrefixes(adminBot, guildId);
             if (commandType.equalsIgnoreCase(name)) {
-                Map<Flag<?>, Object> flagMap = FLAG_PARSER.parse(channel, commandHandler, content);
-                Map<Argument<?>, Object> argumentMap = ARGUMENT_PARSER.parse(channel, commandHandler, content);
-                if (flagMap != null && argumentMap != null) {
-                    CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
-                    onCommandFired(commandFiredEvent, commandHandler, guildId, content);
-                }
+                return onCommandFired(event, commandHandler, guildId, content).thenReturn(event);
             } else if (!aliases.isEmpty()) {
                 for (String alias : aliases) {
                     if (commandType.equalsIgnoreCase(alias)) {
-                        Map<Flag<?>, Object> flagMap = FLAG_PARSER.parse(channel, commandHandler, content);
-                        Map<Argument<?>, Object> argumentMap = ARGUMENT_PARSER.parse(channel, commandHandler, content);
-                        if (flagMap != null && argumentMap != null) {
-                            CommandFiredEvent commandFiredEvent = new CommandFiredEvent(adminBot, flagMap, argumentMap, event);
-                            onCommandFired(commandFiredEvent, commandHandler, guildId, content);
-                        }
+                        return onCommandFired(event, commandHandler, guildId, content).thenReturn(event);
                     }
                 }
             }
         }
+        return Mono.just(event);
     }
 
-    private void onCommandFired(CommandFiredEvent event, AbstractCommandHandler commandHandler, String guildId, String content) {
-        event.getGuild()
-                .flatMap(Guild::getSelfMember)
-                .flatMap(Member::getBasePermissions)
-                .map(permissions -> permissions.containsAll(commandHandler.getBotRequiredPermissions()))
-                .flatMap(bool -> {
-                    if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
-                                .contains(CommandHandlerChecks.BOT_HAS_REQUIRED_PERMISSIONS)) {
-                            return Mono.just(bool);
+    private Mono<Void> onCommandFired(@NotNull MessageCreateEvent event, @NotNull AbstractCommand commandHandler, @NotNull String guildId, @NotNull String content) {
+        Result<Map<Flag<?>, Object>> flagParseResult = FLAG_PARSER.parse(commandHandler, content);
+        Result<Map<Argument<?>, Object>> argumentParseResult = ARGUMENT_PARSER.parse(commandHandler, content);
+        if (flagParseResult.getResultType() != Result.ResultType.FAILURE && argumentParseResult.getResultType() != Result.ResultType.FAILURE) {
+            CommandFiredEvent commandFiredEvent = new CommandFiredEvent(
+                    adminBot,
+                    flagParseResult.getResult(),
+                    argumentParseResult.getResult(),
+                    event
+            );
+            return commandFiredEvent.getGuild()
+                    .flatMap(Guild::getSelfMember)
+                    .flatMap(Member::getBasePermissions)
+                    .map(permissions -> permissions.containsAll(commandHandler.getBotRequiredPermissions()))
+                    .flatMap(bool -> {
+                        if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
+                            if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
+                                    .contains(CommandHandlerChecks.BOT_HAS_REQUIRED_PERMISSIONS)) {
+                                return Mono.just(bool);
+                            }
                         }
-                    }
-                    if (!bool) {
-                        event.getChannel()
-                                .flatMap(messageChannel -> messageChannel
-                                        .createMessage(String.format("Could not execute command \"%s\" because of insufficient permissions!", commandHandler.getNameWithPrefix(guildId))))
-                                .subscribe();
-                        return Mono.empty();
-                    } else {
-                        return Mono.just(true);
-                    }
-                })
-                .flatMap(bool -> {
-                    if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
-                                .contains(CommandHandlerChecks.IS_ADMINISTRATOR)) {
-                            return Mono.just(bool);
-                        }
-                    }
-                    if (commandHandler.requiresAdministrator()) {
-                        if (!PermissionUtil.canMemberUseCommand(event.getGuild().block(), event.getMember().get(), commandHandler)) {
-                            event.getChannel().flatMap(messageChannel -> messageChannel.createMessage("Sorry, you don't have high enough permissions.")).subscribe();
-                            return Mono.empty();
-                        }
-                    }
-                    return Mono.just(bool);
-                })
-                .flatMap(bool -> {
-                    if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
-                                .contains(CommandHandlerChecks.IS_BOT_ADMINISTRATOR)) {
-                            return Mono.just(bool);
-                        }
-                    }
-                    if (commandHandler.isBotAdministratorOnly()) {
-                        if (!event.getAdminBot().isBotAdministrator(event.getMember().get().getId())) {
-                            event.getChannel()
-                                    .flatMap(messageChannel -> messageChannel.createMessage("Sorry, you aren't a administrator of AdminBot."))
+                        if (!bool) {
+                            commandFiredEvent.getChannel()
+                                    .flatMap(messageChannel -> messageChannel
+                                            .createMessage(String.format("Could not execute command \"%s\" because of insufficient permissions!", commandHandler.getNameWithPrefix(adminBot, guildId))))
                                     .subscribe();
                             return Mono.empty();
+                        } else {
+                            return Mono.just(true);
                         }
-                    }
-                    return Mono.just(bool);
-                })
-                .flatMap(bool -> {
-                    if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
-                        if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
-                                .contains(CommandHandlerChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS)) {
+                    })
+                    .flatMap(bool -> {
+                        if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
+                            if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
+                                    .contains(CommandHandlerChecks.IS_ADMINISTRATOR)) {
+                                return Mono.just(bool);
+                            }
+                        }
+                        if (commandHandler.requiresAdministrator()) {
+                            if (!PermissionUtil.canMemberUseCommand(adminBot, commandFiredEvent.getGuild().block(), commandFiredEvent.getMember().get(), commandHandler)) {
+                                commandFiredEvent.getChannel()
+                                        .flatMap(messageChannel -> messageChannel.createMessage("Sorry, you don't have high enough permissions.")).subscribe();
+                                return Mono.empty();
+                            }
+                        }
+                        return Mono.just(bool);
+                    })
+                    .flatMap(bool -> {
+                        if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
+                            if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
+                                    .contains(CommandHandlerChecks.IS_BOT_ADMINISTRATOR)) {
+                                return Mono.just(bool);
+                            }
+                        }
+                        if (commandHandler.isBotAdministratorOnly()) {
+                            if (!commandFiredEvent.getAdminBot().isBotAdministrator(commandFiredEvent.getMember().get().getId())) {
+                                commandFiredEvent.getChannel()
+                                        .flatMap(messageChannel -> messageChannel.createMessage("Sorry, you aren't a administrator of AdminBot."))
+                                        .subscribe();
+                                return Mono.empty();
+                            }
+                        }
+                        return Mono.just(bool);
+                    })
+                    .flatMap(bool -> {
+                        if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
+                            if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())
+                                    .contains(CommandHandlerChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS)) {
+                                return Mono.just(bool);
+                            }
+                        }
+                        if (content.trim().split(" ").length < commandHandler.getMinimumAmountOfArgs() + 1) {
+                            commandFiredEvent.getMessage().getChannel()
+                                    .flatMap(messageChannel -> messageChannel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + commandHandler.getUsageWithPrefix(adminBot, guildId) + "`."))
+                                    .subscribe();
+                            return Mono.empty();
+                        } else {
                             return Mono.just(bool);
                         }
-                    }
-                    if (content.trim().split(" ").length < commandHandler.getMinimumAmountOfArgs() + 1) {
-                        event.getMessage().getChannel()
-                                .flatMap(messageChannel -> messageChannel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + commandHandler.getUsageWithPrefix(guildId) + "`."))
-                                .subscribe();
-                        return Mono.empty();
-                    } else {
-                        return Mono.just(bool);
-                    }
-                })
-                .subscribe($ -> COMMAND_THREAD_POOL.submit(() -> commandHandler.onCommandFired(event)));
+                    })
+                    .flatMap($ -> commandHandler.onCommandFired(commandFiredEvent))
+                    .doOnError(throwable -> LOGGER.error("An error happened while handling commands!", throwable))
+                    .onErrorResume(ClientException.class, t -> commandFiredEvent.getChannel()
+                            .flatMap(messageChannel -> messageChannel.createMessage("Client exception happened while handling command: " + t.getErrorResponse().get().getFields()))
+                            .then())
+                    .onErrorResume(MongoCommandException.class, t -> commandFiredEvent.getChannel()
+                            .flatMap(messageChannel -> messageChannel.createMessage("Database error happened while handling command: " + t.getErrorCodeName()))
+                            .then())
+                    .onErrorResume(ThisShouldNotHaveBeenThrownException.class, t -> commandFiredEvent.getChannel()
+                            .flatMap(messageChannel -> messageChannel.createMessage("Something has horribly gone wrong. Please report this to the bot developer with the log."))
+                            .then())
+                    .onErrorResume(t -> commandFiredEvent.getChannel()
+                            .flatMap(messageChannel -> messageChannel.createMessage("Exception happened while handling command: " + t.getMessage()))
+                            .then());
+        } else {
+            if (flagParseResult.getResultType() == Result.ResultType.FAILURE) {
+                return event.getMessage()
+                        .getChannel()
+                        .flatMap(channel -> channel.createMessage(flagParseResult.getErrorMessage()))
+                        .then();
+            } else if (argumentParseResult.getResultType() == Result.ResultType.FAILURE) {
+                return event.getMessage()
+                        .getChannel()
+                        .flatMap(channel -> channel.createMessage(argumentParseResult.getErrorMessage()))
+                        .then();
+            } else {
+                throw new ThisShouldNotHaveBeenThrownException();
+            }
+        }
     }
 }

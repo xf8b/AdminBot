@@ -19,10 +19,12 @@
 
 package io.github.xf8b.adminbot.settings;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DisableChecks {
-    CommandHandlerChecks[] value() default {};
+    @NotNull CommandHandlerChecks[] value() default {};
 }
