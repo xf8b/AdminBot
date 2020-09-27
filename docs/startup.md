@@ -18,12 +18,14 @@ You must go to `config.toml` and fill out the fields that are under `required`.
 5. Invite the bot to your server (See [How To Get The Invite](#how-to-get-the-invite)).  
 6. You're done.  
 
+<br />
 
 ---
 ## Optional
 * You can add `-t token` to the command run in step 3, and you don't have to do step 4.  
 ---
 
+<br />
 
 ## Config
 You must setup (if you use the config file):
@@ -35,6 +37,7 @@ You must setup (if you use the config file):
 You can remove the log dump webhook field by putting a # before it.
 ---
 
+<br />
 
 ## How To Get A Token
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
