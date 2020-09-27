@@ -20,10 +20,8 @@ You must go to `config.toml` and fill out the fields that are under `required`.
 
 <br />
 
----
 ## Optional
 * You can add `-t token` to the command run in step 3, and you don't have to do step 4.  
----
 
 <br />
 
@@ -35,7 +33,6 @@ You must setup (if you use the config file):
 * The bot administrators (Copy paste your user ID into the brackets (See [Discord Support](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-)))
 * The sharding strategy (I recommend to keep it at `RECOMMENDED`)
 You can remove the log dump webhook field by putting a # before it.
----
 
 <br />
 
