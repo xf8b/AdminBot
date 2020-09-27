@@ -11,8 +11,8 @@ To see the documentation for the commands below, click on the command name.
 `memberinfo`: Shows information about the member.    
 `ping`: Shows the ping. Pretty useless.  
 ## Administrator Only  
-`nickname`: Sets or resets the specified member's nickname.  
-`clear`: Clears the specified amount of messages from the current text channel.  
+[`nickname`](https://xf8b.github.io/xf8bot/docs/commands/nickname/): Sets or resets the specified member's nickname.  
+[`clear`](https://xf8b.github.io/xf8bot/docs/commands/clear/): Clears the specified amount of messages from the current text channel.  
 `mute`: Mutes the specified member for the amount of time specified.  
 `warn`: Warns the specified member for the specified reason.  
 `removewarn`: Removes warns with the specified warn id and reason for the specified member.  
@@ -20,7 +20,7 @@ To see the documentation for the commands below, click on the command name.
 `kick`: Kicks the specified member for the specified reason.  
 `ban`: Bans the specified member for the specified reason.  
 `unban`: Unbans the specified member.  
-[`prefix`](https://xf8b.github.io/xf8bot/docs/commands/prefix): Sets the prefix for xf8bot.  
+[`prefix`](https://xf8b.github.io/xf8bot/docs/commands/prefix/): Sets the prefix for xf8bot.  
 [`administrators`](https://xf8b.github.io/xf8bot/docs/commands/administrators/): Adds to, removes from, or gets all the roles that can do administrator only commands.  
 ## Bot Administrator Only  
 `eval`: Evaluates code. Bot administrators only!  
