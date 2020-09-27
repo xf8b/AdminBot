@@ -18,6 +18,5 @@ The minimum amount of messages you can delete at once is 2. The maximum you can 
 * Usage: `{prefix}clear <messagesToDelete>`
 
 ## Aliases
->>>>>>> upstream/gh-pages
 
 ### **Author: AG6**
