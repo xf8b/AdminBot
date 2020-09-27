@@ -16,8 +16,12 @@ You need:
 You must go to `config.toml` and fill out the fields that are under `required`.  
 5. Invite the bot to your server (See [How To Get The Invite](#how-to-get-the-invite)).  
 6. You're done.  
+
+---
 ## Optional
 * You can add `-t token` to the command run in step 3, and you don't have to do step 4.  
+---
+
 ## Config
 You must setup (if you use the config file):
 * The MongoDB connection URL (See [The MongoDB Documentation](https://docs.mongodb.com/manual/reference/connection-string/))
@@ -26,6 +30,8 @@ You must setup (if you use the config file):
 * The bot administrators (Copy paste your user ID into the brackets (See [Discord Support](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-)))
 * The sharding strategy (I recommend to keep it at `RECOMMENDED`)
 You can remove the log dump webhook field by putting a # before it.
+---
+
 ## How To Get A Token
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
 2. Login with your Discord account if you need to.
