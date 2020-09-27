@@ -3,7 +3,9 @@ package io.github.xf8b.xf8bot.util
 import ch.qos.logback.core.filter.Filter
 import ch.qos.logback.core.spi.FilterReply
 
-@FunctionalInterface
+/**
+ * anonymous class :irritatered:
+ */
 class Filter<T>(private val decideClosure: (T) -> FilterReply) : Filter<T>() {
     /**
      * If the decision is `[FilterReply.DENY]`, then the event will be
