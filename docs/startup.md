@@ -4,6 +4,7 @@ title: Startup Guide
 permalink: /docs/startup/
 ---
 
+
 # Startup Guide
 You need:  
 * A bot token (See [How To Get A Token](#how-to-get-a-token))
@@ -17,10 +18,12 @@ You must go to `config.toml` and fill out the fields that are under `required`.
 5. Invite the bot to your server (See [How To Get The Invite](#how-to-get-the-invite)).  
 6. You're done.  
 
+
 ---
 ## Optional
 * You can add `-t token` to the command run in step 3, and you don't have to do step 4.  
 ---
+
 
 ## Config
 You must setup (if you use the config file):
@@ -31,6 +34,7 @@ You must setup (if you use the config file):
 * The sharding strategy (I recommend to keep it at `RECOMMENDED`)
 You can remove the log dump webhook field by putting a # before it.
 ---
+
 
 ## How To Get A Token
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
