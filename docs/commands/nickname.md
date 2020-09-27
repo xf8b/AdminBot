@@ -20,6 +20,6 @@ Usage: `{prefix}nickname -m <@member/memberId/memberName> -n [newNick]`
 
 ---
 ## Aliases
-`nick`, `nickname`
+`nick`
 
 ### **Author: AG6**
