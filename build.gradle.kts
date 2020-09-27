@@ -34,9 +34,9 @@ dependencies {
     implementation("com.discord4j:discord4j-core:${property("discord4jVersion")}")
     //command libs
     //TODO: remove?
-    implementation("com.mojang:brigadier:${property("brigaderVersion")}")
+    implementation("com.mojang:brigadier:${property("brigadierVersion")}")
     //parsing libs
-    implementation("com.beust:jcommander:${property("jcommanderVersion")}")
+    implementation("com.beust:jcommander:${property("jCommanderVersion")}")
     //logging
     implementation("ch.qos.logback:logback-classic:${property("logbackClassicVersion")}")
     implementation("com.github.napstr:logback-discord-appender:${property("logbackDiscordAppenderVersion")}")

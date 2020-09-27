@@ -27,6 +27,7 @@ import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.rest.http.client.ClientException;
+import discord4j.rest.util.Permission;
 import io.github.xf8b.xf8bot.Xf8bot;
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand;
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent;
@@ -111,7 +112,7 @@ public class MessageListener {
             return commandFiredEvent.getGuild()
                     .flatMap(Guild::getSelfMember)
                     .flatMap(Member::getBasePermissions)
-                    .map(permissions -> permissions.containsAll(commandHandler.getBotRequiredPermissions()))
+                    .map(permissions -> permissions.containsAll(commandHandler.getBotRequiredPermissions()) || permissions.contains(Permission.ADMINISTRATOR))
                     .flatMap(bool -> {
                         if (commandHandler.getClass().getAnnotation(DisableChecks.class) != null) {
                             if (Arrays.asList(commandHandler.getClass().getAnnotation(DisableChecks.class).value())

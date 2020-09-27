@@ -121,15 +121,16 @@ public final class ParsingUtil {
 
     @NotNull
     public static String fixMongoConnectionUrl(@NotNull String connectionUrl) {
-        Pattern pattern = Pattern.compile("mongodb\\+srv://(.+):(.+)@(.+)");
+        Pattern pattern = Pattern.compile("mongodb(\\+srv)?://(.+):(.+)@(.+)");
         Matcher matcher = pattern.matcher(connectionUrl);
         if (!matcher.find()) {
             throw new IllegalArgumentException("Invalid connection URL!");
         } else {
-            String username = matcher.group(1);
-            String password = URLEncoder.encode(matcher.group(2), StandardCharsets.UTF_8);
-            String serverUrl = matcher.group(3);
-            return "mongodb+srv://" + username + ":" + password + "@" + serverUrl;
+            String srv = matcher.group(1);
+            String username = matcher.group(2);
+            String password = URLEncoder.encode(matcher.group(3), StandardCharsets.UTF_8);
+            String serverUrl = matcher.group(4);
+            return "mongodb" + srv + "://" + username + ":" + password + "@" + serverUrl;
         }
     }
 }
