@@ -31,42 +31,47 @@ import kotlin.collections.HashMap
 
 class ArgumentParser : Parser<Argument<*>> {
     override fun parse(command: AbstractCommand, stringToParse: String): Result<Map<Argument<*>, Any>> {
-        val flagMap: MutableMap<Argument<*>, Any> = HashMap()
+        val argumentMap: MutableMap<Argument<*>, Any> = HashMap()
         val invalidValues: MutableMap<Argument<*>, Any> = HashMap()
         val missingArguments: MutableList<Argument<*>> = ArrayList()
         val strings = stringToParse.replace(Flag.REGEX, "")
                 .split(" ")
                 .toTypedArray()
         val arguments = command.arguments
-        arguments.forEach { argument: Argument<*> ->
+        arguments.forEach {
             try {
+                //find string at the index of the argument
                 val stringAtIndexOfArgument = StringBuilder()
-                //should be fixed
-                //todo fix if it breaks
-                if (!argument.index.hasUpperBound()) {
+                //if argument is Range#atLeast(Int) then take all the stuff after the lower bound
+                if (!it.index.hasUpperBound()) {
                     stringAtIndexOfArgument.append(Arrays.stream(strings)
-                            .skip(argument.index.lowerEndpoint().toLong())
+                            .skip(it.index.lowerEndpoint().toLong())
                             .collect(Collectors.joining(" ")))
                             .append(" ")
                 } else {
-                    var i = argument.index.lowerEndpoint()
-                    while (argument.index.contains(i)) {
+                    //take the stuff in the range of the argument
+                    var i = it.index.lowerEndpoint()
+                    while (it.index.contains(i)) {
                         stringAtIndexOfArgument.append(strings[i]).append(" ")
                         i++
                     }
                 }
-                if (argument.isValidValue(stringAtIndexOfArgument.toString().trim())) {
-                    flagMap[argument] = argument.parse(stringAtIndexOfArgument.toString().trim())
+                //if value is valid, add to argument map
+                //else add to invalid values
+                if (it.isValidValue(stringAtIndexOfArgument.toString().trim())) {
+                    argumentMap[it] = it.parse(stringAtIndexOfArgument.toString().trim())
                 } else {
-                    invalidValues[argument] = stringAtIndexOfArgument.toString().trim()
+                    invalidValues[it] = stringAtIndexOfArgument.toString().trim()
                 }
             } catch (exception: IndexOutOfBoundsException) {
-                if (argument.required) {
-                    missingArguments.add(argument)
+                //if stuff in argument range is out of bounds and it is required, add to missing arguments
+                if (it.required) {
+                    missingArguments.add(it)
                 }
             }
         }
         return when {
+            //send failure when there are missing arguments
             missingArguments.isNotEmpty() -> {
                 val missingArgumentsIndexes = missingArguments.stream()
                         .map { it.index }
@@ -74,16 +79,17 @@ class ArgumentParser : Parser<Argument<*>> {
                         .collect(Collectors.toUnmodifiableList())
                 Result.failure("Missing argument(s) at indexes ${missingArgumentsIndexes.joinToString()}!")
             }
+            //send failure when there are invalid values
             invalidValues.isNotEmpty() -> {
                 val invalidValuesFormatted = StringBuilder()
-                invalidValues.forEach { (argument: Argument<*>, invalidValue: Any?) ->
+                invalidValues.forEach { (argument: Argument<*>, invalidValue: Any) ->
                     val clazz = TypeResolver.resolveRawArgument(Argument::class.java, argument.javaClass)
                     invalidValuesFormatted.append("Argument at index ")
                             .append(argument.index.toString())
                             .append(", Error message: ")
                             .append(String.format(
                                     argument.getInvalidValueErrorMessage(invalidValue as String),
-                                    invalidValue.trim { it <= ' ' },
+                                    invalidValue.trim(),
                                     argument.index,
                                     clazz.simpleName
                             ))
@@ -91,7 +97,8 @@ class ArgumentParser : Parser<Argument<*>> {
                 }
                 Result.failure("Invalid value(s): $invalidValuesFormatted")
             }
-            else -> Result.success(ImmutableMap.copyOf(flagMap))
+            //send success when everything has successfully parsed
+            else -> Result.success(ImmutableMap.copyOf(argumentMap))
         }
     }
 }

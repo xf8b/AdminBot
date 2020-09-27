@@ -21,8 +21,6 @@ package io.github.xf8b.xf8bot.util;
 
 import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
 import com.github.napstr.logback.DiscordAppender;
 import lombok.experimental.UtilityClass;
@@ -39,16 +37,13 @@ public class LogbackUtil {
         discordAppender.setUsername(username);
         discordAppender.setAvatarUrl(avatarUrl);
         if (!webhookUrl.trim().isBlank()) discordAppender.setWebhookUri(webhookUrl);
-        discordAppender.addFilter(new Filter<>() {
-            @NotNull
-            @Override
-            public FilterReply decide(ILoggingEvent event) {
-                if (webhookUrl.trim().isBlank()) {
-                    return FilterReply.DENY;
-                } else {
-                    return FilterReply.NEUTRAL;
-                }
+        //anonymous class :irritatered:
+        discordAppender.addFilter(new Filter<>(event -> {
+            if (webhookUrl.trim().isBlank()) {
+                return FilterReply.DENY;
+            } else {
+                return FilterReply.NEUTRAL;
             }
-        });
+        }));
     }
 }

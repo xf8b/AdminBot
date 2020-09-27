@@ -24,5 +24,14 @@ import io.github.xf8b.xf8bot.util.Result
 
 @FunctionalInterface
 interface Parser<E> {
+    /**
+     * Parses the string and returns a [Result] that contains the [Map] of [E]s to their values.
+     *
+     * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
+     *
+     * @param command the command to parse [E]s for
+     * @param stringToParse the string to parse for [E]s
+     * @return the [Result] of parsing the [E]s from [stringToParse]
+     */
     fun parse(command: AbstractCommand, stringToParse: String): Result<Map<E, Any>>
 }

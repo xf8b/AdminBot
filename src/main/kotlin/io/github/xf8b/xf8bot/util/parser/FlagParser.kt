@@ -40,50 +40,57 @@ class FlagParser : Parser<Flag<*>> {
         val matcher = Flag.REGEX.toPattern().matcher(stringToParse)
         while (matcher.find()) {
             val flagName = matcher.group(2)
+            //find the flag that matches the name
             val flag: Flag<*>? = if (matcher.group(1) == "--") {
-                command.flags
-                        .stream()
+                command.flags.stream()
                         .filter { it.longName == flagName }
                         .findFirst()
                         .orElse(null)
             } else {
-                command.flags
-                        .stream()
+                command.flags.stream()
                         .filter { it.shortName == flagName }
                         .findFirst()
                         .orElse(null)
             }
+            //if no flag is found, add to invalid flags and continue
             if (flag == null) {
                 invalidFlags.add(flagName)
-                break
+                continue
             }
-            val tempValue = matcher.group(3).trim { it <= ' ' }
+            val tempValue = matcher.group(3).trim()
             var value: Any
-            if (tempValue.matches(Regex("\"[\\w ]+\""))) {
+            //if value of flag is a string
+            if (tempValue.matches("\"[\\w ]+\"".toRegex())) {
+                //if flag does not take in a string, add to invalid values and continue
                 if (TypeResolver.resolveRawArgument(Flag::class.java, flag.javaClass) == String::class.java) {
                     value = tempValue.substring(1, tempValue.length - 1)
                 } else {
                     invalidValues[flag] = tempValue
-                    break
+                    continue
                 }
             } else {
+                //if value is valid, parse it
+                //else add to invalid values and continue
                 if (flag.isValidValue(tempValue)) {
                     value = flag.parse(tempValue)
                 } else {
                     invalidValues[flag] = tempValue
-                    break
+                    continue
                 }
             }
+            //add to flag map the flag and the value
             flagMap[flag] = value
         }
-        command.flags.forEach { flag: Flag<*> ->
-            if (!flagMap.containsKey(flag)) {
-                if (flag.required) {
-                    missingFlags.add(flag)
+        //if flag has not been parsed and is required, add to missing flags
+        command.flags.forEach {
+            if (!flagMap.containsKey(it)) {
+                if (it.required) {
+                    missingFlags.add(it)
                 }
             }
         }
         return when {
+            //send failure when there are missing flags
             missingFlags.isNotEmpty() -> {
                 val invalidFlagsNames = StringBuilder()
                 missingFlags.forEach(Consumer { flag: Flag<*> ->
@@ -94,7 +101,9 @@ class FlagParser : Parser<Flag<*>> {
                 })
                 Result.failure("Missing flag(s) ${invalidFlagsNames.toString().trim()}!")
             }
+            //send failure when flags are invalid
             invalidFlags.isNotEmpty() -> Result.failure("Invalid flag(s) `${invalidFlags.joinToString()}`!")
+            //send failure when flag values are invalid
             invalidValues.isNotEmpty() -> {
                 val invalidValuesFormatted = StringBuilder()
                 invalidValues.forEach { (flag: Flag<*>, invalidValue: Any) ->
@@ -113,6 +122,7 @@ class FlagParser : Parser<Flag<*>> {
                 }
                 Result.failure("Invalid value(s): $invalidValuesFormatted")
             }
+            //send success when there are no errors and when everything is parsed
             else -> Result.success(ImmutableMap.copyOf(flagMap))
         }
     }
