@@ -8,7 +8,7 @@ permalink: /docs/commands/ping/
 
 The `ping` command tells you about xf8b websocket and ping to discord server.
 
-**This is a level zero (no administrator needed) command.**
+**Anyone can use this command.**
 
 ---
 ## Usage
