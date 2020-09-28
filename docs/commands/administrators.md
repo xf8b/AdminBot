@@ -13,10 +13,11 @@ The `administrators` command allows you to set the permissions of different role
 ---
 ## Permission Levels
 
-* Level 4 Perms - Level Four allows you to preform all the commands for level three and below, alongside, `administrators`, and `prefix`. This is intended for admin/owner roles!
-* Level 3 Perms - Level Three allows you to perform all the commands for level two and below, alongside, `ban` and `unban`.   
-* Level 2 Perms - Level Two allows you to perform all the commands for level one, alongside, `kick` and `clear`.  
+* Level 4 Perms - Level Four allows you to preform all the commands for level three and below, alongside `administrators`, and `prefix`. This is intended for admin/owner roles!
+* Level 3 Perms - Level Three allows you to perform all the commands for level two and below, alongside `ban` and `unban`.   
+* Level 2 Perms - Level Two allows you to perform all the commands for level one, alongside `kick` and `clear`.  
 * Level 1 Perms - Level One allows you to perform the commands `warn`, `removewarn`, `warns`, `mute` and `nickname`.
+* Level 0 Perms - Level Zero allows you use to all the commands that do not require permissions, such as `info` or `ping`.
 ---
 
 ## Functions & Usage

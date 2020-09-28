@@ -42,7 +42,8 @@ You can remove the log dump webhook field by putting a # before it.
 3. Click **New Application**.
 4. Type the name that you want the bot to be named.
 5. Click **Bot** on the side, and then click **Add Bot**. Press **Confirm**.
-6. You now have the token. Do not share this token, as it is basically the key to the bot. If you ever accidentally leak it, press the **Regenerate** button.
+6. You must go down and enable the **Server Members Intent**.
+7. You now have the token. Do not share this token, as it is basically the key to the bot. If you ever accidentally leak it, press the **Regenerate** button.
 ## How To Get The Invite
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
 2. Login with your Discord account if you need to.
