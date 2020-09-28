@@ -10,7 +10,8 @@ The Info command send you a information about xf8bot, GitHub Repository, Documen
 
 **This is a level one Command.**
 
-**Usage**: `{prefix}info`
+## Usage
+* `{prefix}info`
 
 GitHub Repository: https://github.com/xf8b/xf8bot/
 
