@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Ping Command
-permalink: /docs/commands/ping/
+permalink: /docs/commands/info/ping/
 ---
 
 # Ping command
