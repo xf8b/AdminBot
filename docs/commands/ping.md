@@ -6,7 +6,7 @@ permalink: /docs/commands/ping/
 
 # Ping command
 
-The `ping` command tells you about xf8b websocket and ping to discord server.
+The `ping` command tells you about the latency to the websocket and the latency to the Discord servers.
 
 **Anyone can use this command.**
 
