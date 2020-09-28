@@ -47,6 +47,11 @@ class CommandRegistry : AbstractList<AbstractCommand>() {
      */
     private fun registerCommandHandler(command: AbstractCommand) {
         if (locked) throw UnsupportedOperationException("Registry is currently locked!")
+        commandHandlers.forEach {
+            if (it.name == command.name) {
+                throw IllegalArgumentException("Cannot register 2 commands with the same name!")
+            }
+        }
         commandHandlers.add(command)
     }
 
@@ -76,9 +81,9 @@ class CommandRegistry : AbstractList<AbstractCommand>() {
         return commandHandlers.iterator()
     }
 
-    fun <T : AbstractCommand> getCommandHandler(clazz: Class<out T>): T {
-        return clazz.cast(commandHandlers.stream()
-                .filter { it.javaClass == clazz }
+    fun <T : AbstractCommand> getCommandHandler(klass: Class<out T>): T {
+        return klass.cast(commandHandlers.stream()
+                .filter { it.javaClass == klass }
                 .findFirst()
                 .orElseThrow { IllegalArgumentException("No command matches the class inputted!") })
     }

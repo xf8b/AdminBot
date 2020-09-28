@@ -24,6 +24,7 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.spec.EmbedCreateSpec
+import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
 import discord4j.rest.util.PermissionSet
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
@@ -34,6 +35,7 @@ import io.github.xf8b.xf8bot.util.ParsingUtil
 import io.github.xf8b.xf8bot.util.getTagWithDisplayName
 import org.apache.commons.lang3.StringUtils
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -79,24 +81,27 @@ class MemberInfoCommand : AbstractCommand(
                     val color = member.color.block()!!
                     val status = member.presence
                             .map { it.status }
-                            .block()!!
+                            .block()
                     val activity = member.presence
                             .map { it.activity }
-                            .block()!!
-                            .map { it.name }
-                            .orElse("No activity.")
+                            .block()
+                            ?.map { it.name }
+                            ?.orElse("No activity.")
+                            ?: "No activity."
                     val isOwner = member.id == guild.ownerId
-                    val roleMentions = member.roles.map { it.mention }
+                    val roleMentions = OrderUtil.orderRoles(member.roles)
+                            .map { it.mention }
                             .collectList()
                             .map { it.joinToString(separator = " ") }
-                            .block()!!
+                            .block() ?: "No roles"
                     channel.createEmbed { embedCreateSpec: EmbedCreateSpec ->
                         embedCreateSpec.setTitle("Info For Member `" + member.getTagWithDisplayName() + "`")
                                 .setAuthor(displayName, null, avatarUrl)
                                 .addField("Is Owner:", isOwner.toString(), true)
                                 .addField("Is Bot:", member.isBot.toString(), true)
                                 .addField("Roles:", roleMentions, true)
-                                .addField("Status:", StringUtils.capitalize(status.name.toLowerCase().replace("_", " ")), true)
+                                .addField("Status:", StringUtils.capitalize(status?.name?.toLowerCase()?.replace("_", " ")
+                                        ?: "None"), true)
                                 .addField("Activity:", activity, true)
                                 .addField("Joined Discord:", formatter.format(memberJoinDiscordTime), true)
                                 .addField("Joined Server:", formatter.format(memberJoinServerTime), true)
@@ -109,6 +114,7 @@ class MemberInfoCommand : AbstractCommand(
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007)) {
                     Mono.from(channel.createMessage("The member is not in the guild!"))
                 } //unknown member
+                .subscribeOn(Schedulers.boundedElastic())
                 .then()
     }
 }

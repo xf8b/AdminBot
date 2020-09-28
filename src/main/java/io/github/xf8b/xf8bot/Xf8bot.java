@@ -25,6 +25,10 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoDatabase;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
+import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
@@ -33,6 +37,8 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
+import discord4j.gateway.intent.Intent;
+import discord4j.gateway.intent.IntentSet;
 import discord4j.rest.util.Color;
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry;
 import io.github.xf8b.xf8bot.commands.SlapBrigadierCommand;
@@ -61,8 +67,12 @@ public class Xf8bot {
     @NotNull
     private final BotConfiguration botConfiguration;
     private final MongoDatabase mongoDatabase;
+    private final AudioPlayerManager audioPlayerManager;
 
     private Xf8bot(BotConfiguration botConfiguration) throws IOException, URISyntaxException {
+        audioPlayerManager = new DefaultAudioPlayerManager();
+        audioPlayerManager.getConfiguration().setFrameBufferFactory(NonAllocatingAudioFrameBuffer::new);
+        AudioSourceManagers.registerRemoteSources(audioPlayerManager);
         //TODO: subcommands
         //TODO: member verifying system
         //TODO: use optional instead of null?
@@ -77,6 +87,7 @@ public class Xf8bot {
                         "%s | Shard ID: %d",
                         botConfiguration.getActivity(), shardInfo.getIndex()
                 ))))
+                .setEnabledIntents(IntentSet.nonPrivileged().or(IntentSet.of(Intent.GUILD_MEMBERS)))
                 .login()
                 .doOnError(throwable -> {
                     LOGGER.error("Could not login!", throwable);
@@ -177,5 +188,9 @@ public class Xf8bot {
 
     public GatewayDiscordClient getClient() {
         return this.client;
+    }
+
+    public AudioPlayerManager getAudioPlayerManager() {
+        return audioPlayerManager;
     }
 }

@@ -53,7 +53,7 @@ public final class ParsingUtil {
                 //after this point we know its a user mention
                 return Optional.of(Long.parseLong(stringToParse.replaceAll("[<@!>]", "")));
             } catch (NumberFormatException exception1) {
-                Flux<Long> memberUsernameMatchesMono = guild.getMembers()
+                Flux<Long> memberUsernameMatchesMono = guild.requestMembers()
                         .filter(member -> member.getUsername().trim().equalsIgnoreCase(stringToParse))
                         .map(Member::getId)
                         .map(Snowflake::asLong);

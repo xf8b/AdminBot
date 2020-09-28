@@ -146,6 +146,7 @@ abstract class AbstractCommand {
     enum class CommandType(val description: String) {
         ADMINISTRATION("Commands related with administration."),
         BOT_ADMINISTRATOR("Commands only for bot administrators."),
-        OTHER("Other commands which do not fit in any of the above categories.");
+        MUSIC("Commands related with playing music."),
+        OTHER("Other commands which do not fit in any of the above categories.")
     }
 }

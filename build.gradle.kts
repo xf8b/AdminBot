@@ -32,6 +32,11 @@ dependencies {
     testImplementation("junit:junit:${property("junitVersion")}")
     //discord4j
     implementation("com.discord4j:discord4j-core:${property("discord4jVersion")}")
+    //music
+    //implementation("com.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
+    //see https://github.com/sedmelluq/lavaplayer/issues/517 for why this is here
+    //TODO remove when new release
+    implementation("com.github.sedmelluq:lavaplayer:bec3995")
     //command libs
     //TODO: remove?
     implementation("com.mojang:brigadier:${property("brigadierVersion")}")

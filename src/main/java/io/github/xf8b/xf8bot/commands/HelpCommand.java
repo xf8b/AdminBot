@@ -159,7 +159,7 @@ public class HelpCommand extends AbstractCommand {
     private void generateCommandTypeEmbed(@NotNull CommandFiredEvent event, @NotNull CommandRegistry commandRegistry, @NotNull EmbedCreateSpec embedCreateSpec, CommandType commandType, @NotNull String guildId, int pageNumber) {
         Xf8bot xf8bot = event.getXf8bot();
         embedCreateSpec.setTitle("Help Page #" + (pageNumber + 1))
-                .setDescription("Actions are not listed on this page. To see them, do `" + event.getPrefix().block() + "help <section> <command>`.\n" +
+                .setDescription("Actions are not listed on this page. To see them, do `" + event.getPrefix().block() + "help <command>`.\n" +
                                 "To go to a different page, use `" + event.getPrefix().block() + "help <section> <page>`.")
                 .setColor(Color.BLUE);
         List<AbstractCommand> commandHandlersWithCurrentCommandType = commandRegistry

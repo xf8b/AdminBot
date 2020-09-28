@@ -56,12 +56,12 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 public class MessageListener {
+    private static final ArgumentParser ARGUMENT_PARSER = new ArgumentParser();
+    private static final FlagParser FLAG_PARSER = new FlagParser();
     @NotNull
     private final Xf8bot xf8bot;
     @NotNull
     private final CommandRegistry commandRegistry;
-    private static final ArgumentParser ARGUMENT_PARSER = new ArgumentParser();
-    private static final FlagParser FLAG_PARSER = new FlagParser();
 
     public Mono<MessageCreateEvent> onMessageCreateEvent(@NotNull MessageCreateEvent event) {
         //TODO: reactify all the classes

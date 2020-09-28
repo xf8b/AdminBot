@@ -71,7 +71,7 @@ class TimeFlag(
                     "m", "min", "mins", "minutes" -> TimeUnit.MINUTES
                     "s", "sec", "secs", "second", "seconds" -> TimeUnit.SECONDS
                     else -> error("The validity check should have run by now!")
-                };
+                }
                 time to timeUnit
             }
             private var validityPredicate = Predicate { value: String ->

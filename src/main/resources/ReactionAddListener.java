@@ -49,7 +49,7 @@ public class ReactionAddListener {
                 .block();
         event.getMessage().subscribe(message -> message.getReactors(ReactionEmoji.unicode("⬅")).subscribe(user -> {
             if (!user.getId().equals(event.getClient().getSelf().map(User::getId).block())
-                    && message.getId().equals(HelpCommand.currentMessage.getId())) {
+                && message.getId().equals(HelpCommand.currentMessage.getId())) {
                 message.removeReaction(ReactionEmoji.unicode("⬅"), user.getId()).block();
                 if (currentPage < 0) return;
                 currentPage--;
@@ -88,7 +88,7 @@ public class ReactionAddListener {
         }));
         event.getMessage().subscribe(message -> message.getReactors(ReactionEmoji.unicode("➡")).subscribe(user -> {
             if (!user.getId().equals(event.getClient().getSelf().map(User::getId).block())
-                    && message.getId().equals(HelpCommand.currentMessage.getId())) {
+                && message.getId().equals(HelpCommand.currentMessage.getId())) {
                 message.removeReaction(ReactionEmoji.unicode("➡"), user.getId()).block();
                 currentPage++;
                 if (HelpCommand.commandsShown.size() == xf8bot.getCommandRegistry().size()) return;

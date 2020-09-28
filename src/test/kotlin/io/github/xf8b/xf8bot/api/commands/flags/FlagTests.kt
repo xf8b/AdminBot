@@ -42,7 +42,7 @@ class IntegerFlagTest {
         val integerFlag = IntegerFlag.builder()
                 .setShortName("i")
                 .setLongName("integer")
-                .build();
+                .build()
         assertFalse(integerFlag.isValidValue("beans"))
         assertFalse(integerFlag.isValidValue("\"2\""))
     }
