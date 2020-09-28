@@ -6,7 +6,7 @@ permalink: /docs/commands/info/
 
 ## Information Command
 
-This command send you a information about xf8bot, GitHub Repository, Documentation and the current prefix 
+The Info command send you a information about xf8bot, GitHub Repository, Documentation and the current prefix 
 
 **This is a level one Command.**
 
