@@ -13,7 +13,7 @@ To see the documentation for the commands below, click on the command name.
 ## Music
 * `join`: Joins your current VC.  
 * `leave`: Leaves the current VC.
-* `play`: Plays audio in the current VC.
+* [`play`](https://xf8b.github.io/xf8bot/docs/commands/music/play/): Plays audio in the current VC.
 * `skip`: Skips the current audio playing.
 * `pause`: Pauses the current audio playing.
 * `volume`: Changes the volume of the audio in the current VC.  
