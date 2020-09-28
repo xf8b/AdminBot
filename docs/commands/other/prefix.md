@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Prefixes Command
-permalink: /docs/commands/prefix/
+permalink: /docs/commands/other/prefix/
 ---
 
 # Prefix Command
