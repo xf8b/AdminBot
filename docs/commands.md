@@ -7,9 +7,10 @@ permalink: /docs/commands/
 To see the documentation for the commands below, click on the command name.
 ## Non Administrator Only  
 `help`: Shows the commands available and gives information on them.  
-`info`: Shows some information about xf8bot.  
+[`info`](https://xf8b.github.io/xf8bot/docs/commands/info/): Shows some information about xf8bot.  
 `memberinfo`: Shows information about the member.    
-`ping`: Shows the ping. Pretty useless.  
+[`ping`](https://xf8b.github.io/xf8bot/docs/commands/ping/): Shows the ping. Pretty useless.  
+`slap`: Slaps the person.
 ## Administrator Only  
 [`nickname`](https://xf8b.github.io/xf8bot/docs/commands/nickname/): Sets or resets the specified member's nickname.  
 [`clear`](https://xf8b.github.io/xf8bot/docs/commands/clear/): Clears the specified amount of messages from the current text channel.  
@@ -25,3 +26,4 @@ To see the documentation for the commands below, click on the command name.
 ## Bot Administrator Only  
 `eval`: Evaluates code. Bot administrators only!  
 `shutdown`: Shuts down the bot. Bot administrators only!  
+`say`: Sends the passed in content to the current channel.  
