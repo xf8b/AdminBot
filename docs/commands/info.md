@@ -6,7 +6,7 @@ permalink: /docs/commands/info/
 
 # Information Command
 
-The `info` sends you a information about the bot, such as the GitHub Repository, Documentation and the current prefix.
+The `info` command sends you the information about the bot, such as the GitHub Repository, documentation and the current prefix.
 
 **This is a level zero (no administrator needed) command.**
 
