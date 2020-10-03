@@ -56,11 +56,14 @@ object PermissionUtil {
         if (member.id == guild.ownerId) return 4
         val guildId = guild.id.asString()
         val mongoCollection = xf8bot.mongoDatabase.getCollection("administratorRoles")
-        return member.roles.map(Role::getId).map { roleId: Snowflake ->
-            Mono.from(mongoCollection.find(and(eq("roleId", roleId.asLong()), eq("guildId", guildId.toLong()))))
-                    .map { it.getInteger("level") }
-                    .defaultIfEmpty(0)
-                    .block()!!
-        }.sort().blockLast()!!
+        return member.roles.map(Role::getId)
+                .map { roleId: Snowflake ->
+                    Mono.from(mongoCollection.find(and(eq("roleId", roleId.asLong()), eq("guildId", guildId.toLong()))))
+                            .map { it.getInteger("level") }
+                            .defaultIfEmpty(0)
+                            .block()!!
+                }
+                .sort()
+                .blockLast()!!
     }
 }

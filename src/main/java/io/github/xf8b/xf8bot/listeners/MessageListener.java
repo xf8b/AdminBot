@@ -42,7 +42,6 @@ import io.github.xf8b.xf8bot.util.PermissionUtil;
 import io.github.xf8b.xf8bot.util.Result;
 import io.github.xf8b.xf8bot.util.parser.ArgumentParser;
 import io.github.xf8b.xf8bot.util.parser.FlagParser;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
@@ -54,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-@RequiredArgsConstructor
 public class MessageListener {
     private static final ArgumentParser ARGUMENT_PARSER = new ArgumentParser();
     private static final FlagParser FLAG_PARSER = new FlagParser();
@@ -62,6 +60,11 @@ public class MessageListener {
     private final Xf8bot xf8bot;
     @NotNull
     private final CommandRegistry commandRegistry;
+
+    public MessageListener(@NotNull Xf8bot xf8bot, @NotNull CommandRegistry commandRegistry) {
+        this.xf8bot = xf8bot;
+        this.commandRegistry = commandRegistry;
+    }
 
     public Mono<MessageCreateEvent> onMessageCreateEvent(@NotNull MessageCreateEvent event) {
         //TODO: reactify all the classes

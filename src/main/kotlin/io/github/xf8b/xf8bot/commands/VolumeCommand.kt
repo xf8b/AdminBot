@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono
 
 class VolumeCommand : AbstractCommand(
         name = "\${prefix}volume",
-        description = "Changes the volume of the audio in the current VC.",
+        description = "Changes the volume of the music in the current VC.",
         commandType = CommandType.MUSIC,
         minimumAmountOfArgs = 1,
         arguments = ImmutableList.of(VOLUME)
@@ -45,7 +45,7 @@ class VolumeCommand : AbstractCommand(
                 .setValidityPredicate { value ->
                     try {
                         val level = value.toInt()
-                        level in 0..200
+                        level in 0..400
                     } catch (exception: NumberFormatException) {
                         false
                     }
@@ -54,7 +54,7 @@ class VolumeCommand : AbstractCommand(
                     try {
                         val level = invalidValue.toInt()
                         when {
-                            level > 200 -> "The maximum volume is 200!"
+                            level > 400 -> "The maximum volume is 400!"
                             level < 0 -> "The minimum volume is 1!"
                             else -> throw ThisShouldNotHaveBeenThrownException()
                         }
@@ -75,9 +75,7 @@ class VolumeCommand : AbstractCommand(
         val volume = event.getValueOfArgument(VOLUME).get()
         event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
                 .flatMap {
-                    Mono.fromRunnable<Void> {
-                        guildMusicHandler.setVolume(volume)
-                    }.then(event.channel.flatMap {
+                    guildMusicHandler.setVolume(volume).then(event.channel.flatMap {
                         it.createMessage("Successfully set volume to $volume!")
                     })
                 }

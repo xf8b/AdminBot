@@ -34,7 +34,7 @@ class IntegerArgument(
     override val index: Range<Int>
     override val name: String
     override val required: Boolean
-    override val parseFunction: Function<String, Int>
+    override val parseFunction: Function<String, out Int>
     override val validityPredicate: Predicate<String>
     override val invalidValueErrorMessageFunction: Function<String, String>
 

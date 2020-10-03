@@ -20,6 +20,12 @@
 package io.github.xf8b.xf8bot.util
 
 import discord4j.core.`object`.entity.Member
+import discord4j.core.spec.EmbedCreateSpec
+import java.time.Instant
 
 //member extensions
 fun Member.getTagWithDisplayName(): String = this.displayName + "#" + this.discriminator
+
+fun EmbedCreateSpec.setTimestampAsNow() {
+    this.setTimestamp(Instant.now())
+}

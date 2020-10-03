@@ -19,14 +19,16 @@
 
 package io.github.xf8b.xf8bot.commands
 
+import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.audio.GuildMusicHandler
+import io.github.xf8b.xf8bot.util.setTimestampAsNow
 import reactor.core.publisher.Mono
 
-class PauseCommand : AbstractCommand(
-        name = "\${prefix}pause",
-        description = "Pauses the current audio playing.",
+class QueueCommand : AbstractCommand(
+        name = "\${prefix}queue",
+        description = "Gets the music queue.",
         commandType = CommandType.MUSIC
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
@@ -37,14 +39,21 @@ class PauseCommand : AbstractCommand(
                 event.channel.block()!!
         )
         return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
-                .flatMap {
-                    guildMusicHandler.setPaused(!guildMusicHandler.isPaused()).then(event.channel.flatMap {
-                        it.createMessage(if (guildMusicHandler.isPaused()) {
-                            "Successfully paused the current video!"
-                        } else {
-                            "Successfully unpaused the current video!"
-                        })
-                    })
+                .flatMap { _ ->
+                    event.channel.flatMap { channel ->
+                        channel.createEmbed { spec ->
+                            spec.setTitle("Queue")
+                                    .setColor(Color.BLUE)
+                                    .setTimestampAsNow()
+                            if (guildMusicHandler.musicTrackScheduler.queue.isEmpty()) {
+                                spec.addField("Songs", "No songs", true)
+                            } else {
+                                spec.addField("Songs", guildMusicHandler.musicTrackScheduler.queue.take(6).joinToString(separator = "\n", limit = 6) {
+                                    "- " + it.info.title
+                                }, true)
+                            }
+                        }
+                    }
                 }
                 .switchIfEmpty(event.channel.flatMap { it.createMessage("I am not connected to a VC!") })
                 .then()

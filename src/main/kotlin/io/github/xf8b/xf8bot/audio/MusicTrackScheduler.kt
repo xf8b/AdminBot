@@ -24,15 +24,19 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.LinkedBlockingDeque
+import discord4j.core.`object`.entity.channel.MessageChannel
+import reactor.core.publisher.Mono
+import java.util.*
+import java.util.concurrent.ConcurrentLinkedDeque
+import kotlin.reflect.KMutableProperty0
 
 
-class TrackScheduler(
+class MusicTrackScheduler(
         private val player: AudioPlayer,
-        private val errorCallback: (String) -> Unit
+        private val messageChannelProperty: KMutableProperty0<MessageChannel>,
+        private val messageCallback: (Mono<*>) -> Unit
 ) : AudioLoadResultHandler {
-    val queue: BlockingQueue<AudioTrack> = LinkedBlockingDeque()
+    val queue: Queue<AudioTrack> = ConcurrentLinkedDeque()
 
     override fun trackLoaded(track: AudioTrack) {
         player.playTrack(track)
@@ -40,20 +44,35 @@ class TrackScheduler(
 
     override fun playlistLoaded(playlist: AudioPlaylist) {
         if (playlist.isSearchResult) {
-            val tracks = mutableListOf(*playlist.tracks.toTypedArray())
-            player.playTrack(tracks[0])
-            tracks.removeAt(0)
-            tracks.forEach { queue.put(it) }
+            playlist.tracks.forEach { queue.add(it) }
+            if (player.playingTrack == null) {
+                val track = queue.poll()
+                if (track != null) player.playTrack(track)
+            }
+        }
+    }
+
+    fun playNextAudioTrack(amountToGoForward: Int) {
+        for (i in 1..amountToGoForward) {
+            val track = queue.poll()
+            if (i == amountToGoForward) {
+                if (track != null) {
+                    player.playTrack(track)
+                }
+            }
         }
     }
 
     override fun noMatches() {
-        errorCallback.invoke("No results found!")
+        messageCallback.invoke(messageChannelProperty.get()
+                .createMessage("No results found!"))
     }
 
     override fun loadFailed(exception: FriendlyException) {
-        errorCallback.invoke("Could not parse audio: ${exception.severity} - ${exception.message}!")
+        messageCallback.invoke(messageChannelProperty.get()
+                .createMessage("Could not parse audio: ${exception.severity} - ${exception.message}!"))
     }
 
-    fun createListener(): MusicAudioPlayerListener = MusicAudioPlayerListener(this, errorCallback)
+    fun createListener(): MusicAudioPlayerListener =
+            MusicAudioPlayerListener(this, messageChannelProperty, messageCallback)
 }

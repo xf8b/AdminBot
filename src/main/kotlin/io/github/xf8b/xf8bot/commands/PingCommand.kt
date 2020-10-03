@@ -28,7 +28,7 @@ import java.time.temporal.ChronoUnit
 class PingCommand : AbstractCommand(
         name = "\${prefix}ping",
         description = "Gets the ping. Pretty useless.",
-        commandType = CommandType.OTHER
+        commandType = CommandType.INFO
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel
             .flatMap { it.createMessage("Getting ping...") }

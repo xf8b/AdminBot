@@ -25,6 +25,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.channel.MessageChannel
 import io.github.xf8b.xf8bot.util.and
+import reactor.core.publisher.Mono
 import java.util.concurrent.TimeUnit
 
 class GuildMusicHandler(
@@ -34,12 +35,12 @@ class GuildMusicHandler(
 ) {
     private val audioPlayer: AudioPlayer = audioPlayerManager.createPlayer()
     val lavaPlayerAudioProvider: LavaPlayerAudioProvider = LavaPlayerAudioProvider(audioPlayer)
-    private val scheduler: TrackScheduler = TrackScheduler(audioPlayer) {
-        messageChannel.createMessage(it).subscribe()
+    val musicTrackScheduler: MusicTrackScheduler = MusicTrackScheduler(audioPlayer, ::messageChannel) {
+        it.subscribe()
     }
 
     init {
-        audioPlayer.addListener(scheduler.createListener())
+        audioPlayer.addListener(musicTrackScheduler.createListener())
     }
 
     companion object {
@@ -51,30 +52,25 @@ class GuildMusicHandler(
 
         @JvmStatic
         fun getMusicHandler(guildId: Snowflake, audioPlayerManager: AudioPlayerManager, messageChannel: MessageChannel): GuildMusicHandler =
-                CACHE.get(guildId to audioPlayerManager and messageChannel)!!
+                CACHE.get(guildId and audioPlayerManager and messageChannel)!!
                         .also { it.messageChannel = messageChannel }
     }
 
-    /**
-     * **Must be connected to a channel to use.**
-     *
-     * Plays the specified youtube video in the current voice channel.
-     */
-    fun playYoutubeVideo(identifier: String) {
-        audioPlayerManager.loadItemOrdered(guildId, identifier, scheduler)
+    fun playYoutubeVideo(identifier: String): Mono<Void> = Mono.fromRunnable {
+        audioPlayerManager.loadItemOrdered(guildId, identifier, musicTrackScheduler)
     }
 
-    fun setVolume(volume: Int) {
+    fun setVolume(volume: Int): Mono<Void> = Mono.fromRunnable {
         audioPlayer.volume = volume
     }
 
     fun isPaused() = audioPlayer.isPaused
 
-    fun setPaused(paused: Boolean) {
+    fun setPaused(paused: Boolean): Mono<Void> = Mono.fromRunnable {
         audioPlayer.isPaused = paused
     }
 
-    fun stop() {
-        audioPlayer.stopTrack()
+    fun skip(amountToGoForward: Int): Mono<Void> = Mono.fromRunnable {
+        musicTrackScheduler.playNextAudioTrack(amountToGoForward)
     }
 }

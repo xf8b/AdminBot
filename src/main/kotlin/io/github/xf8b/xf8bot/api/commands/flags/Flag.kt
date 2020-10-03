@@ -23,13 +23,13 @@ import io.github.xf8b.xf8bot.api.commands.arguments.Argument.Companion.DEFAULT_I
 import java.util.function.Function
 import java.util.function.Predicate
 
-interface Flag<T : Any> {
+interface Flag<out T : Any> {
     val required: Boolean
     val requiresValue: Boolean
     val validityPredicate: Predicate<String>
     val shortName: String
     val longName: String
-    val parseFunction: Function<String, T>
+    val parseFunction: Function<String, out T>
     val invalidValueErrorMessageFunction: Function<String, String>
 
     companion object {

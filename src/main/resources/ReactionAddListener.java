@@ -25,7 +25,6 @@ import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.rest.util.Color;
-import io.github.xf8b.xf8bot.Xf8bot;
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand;
 import io.github.xf8b.xf8bot.commands.HelpCommand;
 import io.github.xf8b.xf8bot.data.GuildData;

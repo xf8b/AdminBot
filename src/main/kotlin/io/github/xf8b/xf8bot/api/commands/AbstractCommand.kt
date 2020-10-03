@@ -147,6 +147,7 @@ abstract class AbstractCommand {
         ADMINISTRATION("Commands related with administration."),
         BOT_ADMINISTRATOR("Commands only for bot administrators."),
         MUSIC("Commands related with playing music."),
+        INFO("Commands which give information."),
         OTHER("Other commands which do not fit in any of the above categories.")
     }
 }

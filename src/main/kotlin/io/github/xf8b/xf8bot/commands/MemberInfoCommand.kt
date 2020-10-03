@@ -45,7 +45,7 @@ import java.util.*
 class MemberInfoCommand : AbstractCommand(
         name = "\${prefix}memberinfo",
         description = "Shows information about the member.",
-        commandType = CommandType.OTHER,
+        commandType = CommandType.INFO,
         aliases = ImmutableList.of("\${prefix}userinfo"),
         arguments = ImmutableList.of(MEMBER),
         minimumAmountOfArgs = 1,

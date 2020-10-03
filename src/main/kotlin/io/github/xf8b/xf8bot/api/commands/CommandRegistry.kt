@@ -73,24 +73,17 @@ class CommandRegistry : AbstractList<AbstractCommand>() {
         locked = true
     }
 
-    override fun get(index: Int): AbstractCommand {
-        return commandHandlers[index]
-    }
+    override fun get(index: Int): AbstractCommand = commandHandlers[index]
 
-    override fun iterator(): MutableIterator<AbstractCommand> {
-        return commandHandlers.iterator()
-    }
+    override fun iterator(): MutableIterator<AbstractCommand> = commandHandlers.iterator()
 
-    fun <T : AbstractCommand> getCommandHandler(klass: Class<out T>): T {
-        return klass.cast(commandHandlers.stream()
-                .filter { it.javaClass == klass }
-                .findFirst()
-                .orElseThrow { IllegalArgumentException("No command matches the class inputted!") })
-    }
+    fun <T : AbstractCommand> getCommandHandler(klass: Class<out T>): T = klass.cast(commandHandlers.stream()
+            .filter { it.javaClass == klass }
+            .findFirst()
+            .orElseThrow { IllegalArgumentException("No command matches the class inputted!") })
 
-    fun getCommandHandlersWithCommandType(commandType: CommandType): List<AbstractCommand> {
-        return LinkedList(commandHandlers.stream()
-                .filter { it.commandType === commandType }
-                .collect(Collectors.toUnmodifiableList()))
-    }
+    fun getCommandHandlersWithCommandType(commandType: CommandType): List<AbstractCommand> =
+            LinkedList(commandHandlers.stream()
+                    .filter { it.commandType === commandType }
+                    .collect(Collectors.toUnmodifiableList()))
 }

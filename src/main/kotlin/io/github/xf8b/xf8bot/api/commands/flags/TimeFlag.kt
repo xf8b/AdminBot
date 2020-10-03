@@ -37,7 +37,7 @@ class TimeFlag(
     override val validityPredicate: Predicate<String>
     override val shortName: String
     override val longName: String
-    override val parseFunction: Function<String, Pair<Long, TimeUnit>>
+    override val parseFunction: Function<String, out Pair<Long, TimeUnit>>
     override val invalidValueErrorMessageFunction: Function<String, String>
 
     init {

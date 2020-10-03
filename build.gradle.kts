@@ -9,6 +9,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "6.0.0"
     id("io.freefair.lombok") version "5.1.1"
     id("net.minecrell.licenser") version "0.4.1"
+    id("com.github.ben-manes.versions") version "0.33.0"
 }
 
 group = property("mavenGroup")
@@ -36,7 +37,7 @@ dependencies {
     //implementation("com.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
     //see https://github.com/sedmelluq/lavaplayer/issues/517 for why this is here
     //TODO remove when new release
-    implementation("com.github.sedmelluq:lavaplayer:bec3995")
+    implementation("com.github.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
     //command libs
     //TODO: remove?
     implementation("com.mojang:brigadier:${property("brigadierVersion")}")
@@ -50,7 +51,10 @@ dependencies {
     //caching
     implementation("com.github.ben-manes.caffeine:caffeine:${property("caffeineVersion")}")
     //drivers
-    implementation("org.mongodb:mongodb-driver-reactivestreams:4.1.0-beta2")
+    implementation("org.mongodb:mongodb-driver-reactivestreams:${property("mongoDbDriverVersion")}")
+    //coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${property("coroutinesVersion")}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${property("coroutinesVersion")}")
     //util
     implementation("org.apache.commons:commons-text:${property("commonsTextVersion")}")
     implementation("net.jodah:typetools:${property("typeToolsVersion")}")

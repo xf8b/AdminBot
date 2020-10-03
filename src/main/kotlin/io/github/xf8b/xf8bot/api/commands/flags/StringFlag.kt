@@ -36,7 +36,7 @@ class StringFlag(
     override val validityPredicate: Predicate<String>
     override val shortName: String
     override val longName: String
-    override val parseFunction: Function<String, String>
+    override val parseFunction: Function<String, out String>
     override val invalidValueErrorMessageFunction: Function<String, String>
 
     init {

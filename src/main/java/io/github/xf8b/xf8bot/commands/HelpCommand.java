@@ -58,10 +58,12 @@ public class HelpCommand extends AbstractCommand {
     public HelpCommand() {
         super(AbstractCommand.builder()
                 .setName("${prefix}help")
-                .setDescription("Shows the command's description, usage, aliases, and actions. \n" +
-                                "If no command was specified, all the commands in the section will be shown. \n" +
-                                "If no section was specified, all the commands will be shown.")
-                .setCommandType(CommandType.OTHER)
+                .setDescription("""
+                        Shows the command's description, usage, aliases, and actions.\s
+                        If no command was specified, all the commands in the section will be shown.\s
+                        If no section was specified, all the commands will be shown.
+                        """)
+                .setCommandType(CommandType.INFO)
                 .setArguments(SECTION_OR_COMMAND, PAGE)
                 .setBotRequiredPermissions(Permission.EMBED_LINKS));
     }
@@ -97,8 +99,10 @@ public class HelpCommand extends AbstractCommand {
                     Integer pageNumber = event.getValueOfArgument(PAGE).orElse(0);
                     List<AbstractCommand> commandHandlersWithCurrentCommandType = event.getXf8bot().getCommandRegistry()
                             .getCommandHandlersWithCommandType(commandType);
-                    if (!Range.closedOpen(0, commandHandlersWithCurrentCommandType.size() % 6).contains(pageNumber)) {
-                        return channel.createMessage("No page with the index " + (pageNumber + 1) + " exists!").then();
+                    if (commandHandlersWithCurrentCommandType.size() > 6) {
+                        if (!Range.closedOpen(0, commandHandlersWithCurrentCommandType.size() % 6).contains(pageNumber)) {
+                            return channel.createMessage("No page with the index " + (pageNumber + 1) + " exists!").then();
+                        }
                     }
                     //commandsShown.clear();
                     //currentCommandType = commandType;

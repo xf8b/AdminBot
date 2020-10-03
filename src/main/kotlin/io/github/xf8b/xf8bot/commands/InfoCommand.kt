@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono
 class InfoCommand : AbstractCommand(
         name = "\${prefix}information",
         description = "Shows some information about me.",
-        commandType = CommandType.OTHER,
+        commandType = CommandType.INFO,
         aliases = ImmutableList.of("\${prefix}info"),
         botRequiredPermissions = PermissionSet.of(Permission.EMBED_LINKS)
 ) {

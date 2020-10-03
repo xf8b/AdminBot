@@ -53,7 +53,7 @@ public class KickCommand extends AbstractCommand {
         super(AbstractCommand.builder()
                 .setName("${prefix}kick")
                 .setDescription("Kicks the specified member with the reason provided, or `No kick reason was provided` if there was none.")
-                .setCommandType(CommandType.OTHER)
+                .setCommandType(CommandType.ADMINISTRATION)
                 .setMinimumAmountOfArgs(1)
                 .setFlags(MEMBER, REASON)
                 .setBotRequiredPermissions(Permission.KICK_MEMBERS)

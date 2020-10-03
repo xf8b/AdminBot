@@ -21,7 +21,6 @@ package io.github.xf8b.xf8bot.listeners;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
@@ -29,7 +28,6 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 @Slf4j
 public class ReadyListener {
     @NotNull
@@ -38,6 +36,12 @@ public class ReadyListener {
     private final List<Snowflake> botAdmins;
     @NotNull
     private final String botVersion;
+
+    public ReadyListener(@NotNull String botActivity, @NotNull List<Snowflake> botAdmins, @NotNull String botVersion) {
+        this.botActivity = botActivity;
+        this.botAdmins = botAdmins;
+        this.botVersion = botVersion;
+    }
 
     public Mono<ReadyEvent> onReadyEvent(@NotNull ReadyEvent event) {
         return Mono.fromRunnable(() -> {

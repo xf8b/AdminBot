@@ -23,18 +23,38 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
+import discord4j.core.`object`.entity.channel.MessageChannel
+import discord4j.rest.util.Color
+import reactor.core.publisher.Mono
+import java.time.Instant
+import kotlin.reflect.KMutableProperty0
 
 class MusicAudioPlayerListener(
-        private val trackScheduler: TrackScheduler,
-        private val errorCallback: (String) -> Unit
+        private val musicTrackScheduler: MusicTrackScheduler,
+        private val messageChannelProperty: KMutableProperty0<MessageChannel>,
+        private val messageCallback: (Mono<*>) -> Unit
 ) : AudioEventAdapter() {
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
         if (endReason == AudioTrackEndReason.FINISHED) {
-            player.playTrack(trackScheduler.queue.take())
+            val queueTrack = musicTrackScheduler.queue.poll()
+            if (queueTrack != null) player.playTrack(queueTrack)
         }
     }
 
+    override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
+        messageCallback.invoke(messageChannelProperty.get().createEmbed {
+            it.setTitle("Now Playing")
+                    .addField("Title", track.info.title, true)
+                    .addField("Length", "${track.info.length}", true)
+                    .addField("Author", track.info.author, true)
+                    .setUrl(track.info.uri)
+                    .setColor(Color.BLUE)
+                    .setTimestamp(Instant.now())
+        })
+    }
+
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
-        errorCallback.invoke("Track ${track.info.title} got stuck!")
+        messageCallback.invoke(messageChannelProperty.get()
+                .createMessage("Track ${track.info.title} got stuck!"))
     }
 }

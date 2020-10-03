@@ -60,19 +60,10 @@ public class AdministratorsCommand extends AbstractCommand {
             .setIndex(Range.singleton(1))
             .setName("action")
             .setValidityPredicate(value -> switch (value) {
-                case "add",
-                        "addrole",
-                        "rm",
-                        "remove",
-                        "removerole",
-                        "rdr",
-                        "rmdel",
-                        "removedeletedroles",
-                        "ls",
-                        "list",
-                        "listroles",
-                        "get",
-                        "getroles" -> true;
+                case "add", "addrole",
+                        "rm", "remove", "removerole",
+                        "rdr", "rmdel", "removedeletedroles",
+                        "ls", "list", "listroles", "get", "getroles" -> true;
                 default -> false;
             })
             .setInvalidValueErrorMessageFunction(invalidValue -> "Invalid action `%s`! The actions are `addrole`, `removerole`, `removedeletedroles`, and `getroles`!")
@@ -149,19 +140,19 @@ public class AdministratorsCommand extends AbstractCommand {
         MongoCollection<Document> mongoCollection = xf8bot.getMongoDatabase()
                 .getCollection("administratorRoles");
         boolean isAdministrator = PermissionUtil.canMemberUseCommand(xf8bot, guild, member, this);
-        switch (action) {
+        return switch (action) {
             case "add", "addrole" -> {
                 if (isAdministrator) {
                     if (event.getValueOfFlag(ROLE).isEmpty() || event.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty()) {
-                        return channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(xf8bot, guildId) + "`.").then();
+                        yield channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(xf8bot, guildId) + "`.").then();
                     }
                     Optional<Snowflake> roleId = ParsingUtil.parseRoleIdAsSnowflake(guild, event.getValueOfFlag(ROLE).get());
                     if (roleId.isEmpty()) {
-                        return channel.createMessage("The role does not exist!").then();
+                        yield channel.createMessage("The role does not exist!").then();
                     }
                     String roleName = guild.getRoleById(roleId.get()).map(Role::getName).block();
                     int level = event.getValueOfFlag(ADMINISTRATOR_LEVEL).get();
-                    return Mono.from(mongoCollection.find(Filters.and(
+                    yield Mono.from(mongoCollection.find(Filters.and(
                             Filters.eq("roleId", roleId.get().asLong()),
                             Filters.eq("guildId", Long.parseLong(guildId))
                     ))).cast(Object.class)
@@ -173,20 +164,20 @@ public class AdministratorsCommand extends AbstractCommand {
                                     .then(channel.createMessage("Successfully added " + roleName + " to the list of administrator roles.")))
                             .then();
                 } else {
-                    return channel.createMessage("Sorry, you don't have high enough permissions.").then();
+                    yield channel.createMessage("Sorry, you don't have high enough permissions.").then();
                 }
             }
             case "rm", "remove", "removerole" -> {
                 if (isAdministrator) {
                     if (event.getValueOfFlag(ROLE).isEmpty()) {
-                        return channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(xf8bot, guildId) + "`.").then();
+                        yield channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(xf8bot, guildId) + "`.").then();
                     }
                     Optional<Snowflake> roleId = ParsingUtil.parseRoleIdAsSnowflake(guild, event.getValueOfFlag(ROLE).get());
                     if (roleId.isEmpty()) {
-                        return channel.createMessage("The role does not exist!").then();
+                        yield channel.createMessage("The role does not exist!").then();
                     }
                     String roleName = guild.getRoleById(roleId.get()).map(Role::getName).block();
-                    return Mono.from(mongoCollection.findOneAndDelete(Filters.and(
+                    yield Mono.from(mongoCollection.findOneAndDelete(Filters.and(
                             Filters.eq("roleId", roleId.get().asLong()),
                             Filters.eq("guildId", Long.parseLong(guildId))
                     ))).cast(Object.class)
@@ -194,7 +185,7 @@ public class AdministratorsCommand extends AbstractCommand {
                             .switchIfEmpty(channel.createMessage("The role has not been added as an administrator role!"))
                             .then();
                 } else {
-                    return channel.createMessage("Sorry, you don't have high enough permissions.").then();
+                    yield channel.createMessage("Sorry, you don't have high enough permissions.").then();
                 }
             }
             case "rdr", "rmdel", "removedeletedroles" -> {
@@ -206,37 +197,35 @@ public class AdministratorsCommand extends AbstractCommand {
                     long amountOfRemovedRoles = documentFlux.count()
                             .blockOptional()
                             .orElseThrow(ThisShouldNotHaveBeenThrownException::new);
-                    return documentFlux.flatMap(mongoCollection::deleteOne)
+                    yield documentFlux.flatMap(mongoCollection::deleteOne)
                             .then(channel.createMessage("Successfully removed " + amountOfRemovedRoles + " deleted roles from the list of administrator roles."))
                             .then();
                 } else {
-                    return channel.createMessage("Sorry, you don't have high enough permissions.").then();
+                    yield channel.createMessage("Sorry, you don't have high enough permissions.").then();
                 }
             }
-            case "ls", "list", "listroles", "get", "getroles" -> {
-                return Flux.from(mongoCollection.find(Filters.eq("guildId", Long.parseLong(guildId))))
-                        .collectMap(document -> document.getLong("roleId"), document -> document.getInteger("level"))
-                        .map(MapUtil::sortByValue)
-                        .flatMap(administratorRoles -> {
-                            String roleNames = administratorRoles.keySet()
-                                    .stream()
-                                    .map(roleId -> "<@&" + roleId + ">")
-                                    .collect(Collectors.joining("\n"))
-                                    .replaceAll("\n$", "");
-                            String roleLevels = administratorRoles.values()
-                                    .stream()
-                                    .map(Object::toString)
-                                    .collect(Collectors.joining("\n"))
-                                    .replaceAll("\n$", "");
-                            return channel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("Administrator Roles")
-                                    .addField("Role", roleNames, true)
-                                    .addField("Level", roleLevels, true)
-                                    .setColor(Color.BLUE));
-                        })
-                        .switchIfEmpty(channel.createMessage("The only administrator is the owner."))
-                        .then();
-            }
+            case "ls", "list", "listroles", "get", "getroles" -> Flux.from(mongoCollection.find(Filters.eq("guildId", Long.parseLong(guildId))))
+                    .collectMap(document -> document.getLong("roleId"), document -> document.getInteger("level"))
+                    .map(MapUtil::sortByValue)
+                    .flatMap(administratorRoles -> {
+                        String roleNames = administratorRoles.keySet()
+                                .stream()
+                                .map(roleId -> "<@&" + roleId + ">")
+                                .collect(Collectors.joining("\n"))
+                                .replaceAll("\n$", "");
+                        String roleLevels = administratorRoles.values()
+                                .stream()
+                                .map(Object::toString)
+                                .collect(Collectors.joining("\n"))
+                                .replaceAll("\n$", "");
+                        return channel.createEmbed(embedCreateSpec -> embedCreateSpec.setTitle("Administrator Roles")
+                                .addField("Role", roleNames, true)
+                                .addField("Level", roleLevels, true)
+                                .setColor(Color.BLUE));
+                    })
+                    .switchIfEmpty(channel.createMessage("The only administrator is the owner."))
+                    .then();
             default -> throw new ThisShouldNotHaveBeenThrownException();
-        }
+        };
     }
 }

@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono
 
 class PlayCommand : AbstractCommand(
         name = "\${prefix}play",
-        description = "Plays audio in the current VC.",
+        description = "Plays the specified music in the current VC.",
         commandType = CommandType.MUSIC,
         minimumAmountOfArgs = 1,
         arguments = ImmutableList.of(YOUTUBE_VIDEO_NAME_OR_LINK)
@@ -45,7 +45,7 @@ class PlayCommand : AbstractCommand(
         private const val OTHER_YOUTUBE_URL_REGEX = "https://(www\\.)?youtu\\.be/watch\\?v=.+"
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = Mono.defer {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val guildId = event.guild.map { it.id }.block()!!
         val guildMusicHandler = GuildMusicHandler.getMusicHandler(
                 guildId,
@@ -53,24 +53,13 @@ class PlayCommand : AbstractCommand(
                 event.channel.block()!!
         )
         val temp = event.getValueOfArgument(YOUTUBE_VIDEO_NAME_OR_LINK).get()
-        val videoIdOrSearch: String = when {
+        val videoUrlOrSearch: String = when {
             temp.matches(YOUTUBE_URL_REGEX.toRegex()) -> temp
-                    .replace("https://(www\\.)?youtube\\.com/watch\\?v=".toRegex(), "")
             temp.matches(OTHER_YOUTUBE_URL_REGEX.toRegex()) -> temp
-                    .replace("https://(www\\.)?youtu\\.be/watch\\?v=".toRegex(), "")
             else -> "ytsearch: $temp"
         }
-        val playMono: Mono<Void> = Mono.fromRunnable<Void> {
-            guildMusicHandler.playYoutubeVideo(videoIdOrSearch)
-        }.then(event.channel.flatMap {
-            it.createMessage("Now playing: " + if (temp.matches(YOUTUBE_URL_REGEX.toRegex()) ||
-                    temp.matches(OTHER_YOUTUBE_URL_REGEX.toRegex())) {
-                temp
-            } else {
-                "`$temp`"
-            })
-        }).then()
-        event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+        val playMono: Mono<Void> = guildMusicHandler.playYoutubeVideo(videoUrlOrSearch)
+        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
                 .flatMap { playMono }
                 .switchIfEmpty(Mono.justOrEmpty(event.member)
                         .flatMap(Member::getVoiceState)
@@ -80,9 +69,9 @@ class PlayCommand : AbstractCommand(
                                 spec.setProvider(guildMusicHandler.lavaPlayerAudioProvider)
                             }.then(event.channel.flatMap {
                                 it.createMessage("Successfully connected to your VC!")
-                            }).then(playMono)
+                            }).flatMap { playMono }
                         }.switchIfEmpty(event.channel.flatMap {
                             it.createMessage("You are not in a VC!")
                         }.then()))
-    }.then()
+    }
 }

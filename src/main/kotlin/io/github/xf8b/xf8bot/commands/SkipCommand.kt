@@ -20,17 +20,28 @@
 package io.github.xf8b.xf8bot.commands
 
 import com.google.common.collect.ImmutableList
+import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.audio.GuildMusicHandler
 import reactor.core.publisher.Mono
 
 class SkipCommand : AbstractCommand(
         name = "\${prefix}skip",
-        description = "Skips the current audio playing.",
+        description = "Skips the current music playing.",
         commandType = CommandType.MUSIC,
-        aliases = ImmutableList.of("\${prefix}stop")
+        aliases = ImmutableList.of("\${prefix}stop"),
+        arguments = ImmutableList.of(AMOUNT_TO_SKIP)
 ) {
+    companion object {
+        private val AMOUNT_TO_SKIP = IntegerArgument.builder()
+                .setName("amount to skip")
+                .setIndex(Range.singleton(1))
+                .setRequired(false)
+                .build()
+    }
+
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val guildId = event.guild.map { it.id }.block()!!
         val guildMusicHandler = GuildMusicHandler.getMusicHandler(
@@ -38,11 +49,10 @@ class SkipCommand : AbstractCommand(
                 event.xf8bot.audioPlayerManager,
                 event.channel.block()!!
         )
+        val amountToSkip = event.getValueOfArgument(AMOUNT_TO_SKIP).orElse(1)
         return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
                 .flatMap {
-                    Mono.fromRunnable<Void> {
-                        guildMusicHandler.stop()
-                    }.then(event.channel.flatMap {
+                    guildMusicHandler.skip(amountToSkip).then(event.channel.flatMap {
                         it.createMessage("Successfully skipped the current video!")
                     })
                 }

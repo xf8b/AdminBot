@@ -23,12 +23,12 @@ import com.google.common.collect.Range
 import java.util.function.Function
 import java.util.function.Predicate
 
-interface Argument<T : Any> {
+interface Argument<out T : Any> {
     val required: Boolean
     val index: Range<Int>
     val name: String
     val validityPredicate: Predicate<String>
-    val parseFunction: Function<String, T>
+    val parseFunction: Function<String, out T>
     val invalidValueErrorMessageFunction: Function<String, String>
 
     companion object {

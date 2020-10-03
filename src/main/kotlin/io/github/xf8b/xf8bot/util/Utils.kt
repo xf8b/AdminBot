@@ -21,3 +21,5 @@ package io.github.xf8b.xf8bot.util
 
 //infix functions
 infix fun <A, B, C> Pair<A, B>.and(that: C): Triple<A, B, C> = Triple(first, second, that)
+
+infix fun <A, B> A.and(that: B): Pair<A, B> = this to that
