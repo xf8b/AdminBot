@@ -1,4 +1,4 @@
-FROM gradle:6.6.1-jre14 as BUILD
+FROM gradle:6.6.1 as BUILD
 COPY . .
 RUN gradle build
 
