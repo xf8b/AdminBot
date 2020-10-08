@@ -1,7 +1,6 @@
 FROM gradle:latest as BUILD
 COPY . .
 RUN gradle -v
-RUN kotlin -version
 RUN gradle build
 
 FROM openjdk:15-jdk-slim
