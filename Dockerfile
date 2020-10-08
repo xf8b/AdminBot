@@ -1,4 +1,4 @@
-FROM gradle:latest as BUILD
+FROM gradle:jdk as BUILD
 COPY . .
 RUN gradle -v
 RUN gradle build
