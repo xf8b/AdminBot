@@ -21,6 +21,7 @@ package io.github.xf8b.xf8bot.api.commands
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand.CommandType
 import io.github.xf8b.xf8bot.util.LoggerDelegate
+import io.github.xf8b.xf8bot.util.getSubTypesOf
 import org.reflections.Reflections
 import org.reflections.scanners.SubTypesScanner
 import org.slf4j.Logger
@@ -57,7 +58,7 @@ class CommandRegistry : AbstractList<AbstractCommand>() {
 
     fun slurpCommandHandlers(packagePrefix: String) {
         val reflections = Reflections(packagePrefix, SubTypesScanner())
-        reflections.getSubTypesOf(AbstractCommand::class.java).forEach {
+        reflections.getSubTypesOf<AbstractCommand>().forEach {
             try {
                 registerCommandHandler(it.getConstructor().newInstance())
             } catch (exception: InstantiationException) {

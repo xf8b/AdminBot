@@ -43,12 +43,12 @@ class InfoCommand : AbstractCommand(
         return event.channel.flatMap {
             it.createEmbed { embedCreateSpec: EmbedCreateSpec ->
                 embedCreateSpec.setTitle("Information")
-                        .setAuthor(username, null, avatarUrl)
+                        .setAuthor(username, "https://github.com/xf8b/xf8bot/", avatarUrl)
                         .setDescription("xf8bot is a general purpose bot. Originally known as AdminBot.")
                         .addField("Current Version", event.xf8bot.version, true)
                         .addField("Current Prefix", "`$prefix`", true)
                         .addField("Total Amount of Commands", totalCommands.toString(), true)
-                        .addField("Documentation", "https://xf8b.github.io/xf8bot/docs/", true)
+                        .addField("Documentation", "https://xf8b.github.io/documentation/xf8bot/", true)
                         .addField("GitHub Repository", "https://github.com/xf8b/xf8bot/", true)
                         .setFooter("Made by xf8b#9420 and open source contributors", "https://cdn.discordapp.com/avatars/332600665412993045/d1de6c46d40fcb4c6200f86cb5a073af.png")
                         .setColor(Color.BLUE)

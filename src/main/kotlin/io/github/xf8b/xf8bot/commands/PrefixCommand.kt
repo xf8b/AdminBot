@@ -21,13 +21,12 @@ package io.github.xf8b.xf8bot.commands
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
-import com.mongodb.client.model.Filters
-import com.mongodb.client.model.Updates
 import discord4j.core.`object`.entity.channel.MessageChannel
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
+import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import reactor.core.publisher.Mono
 
 class PrefixCommand : AbstractCommand(
@@ -42,34 +41,26 @@ class PrefixCommand : AbstractCommand(
         private val NEW_PREFIX = StringArgument.builder()
                 .setIndex(Range.atLeast(1))
                 .setName("prefix")
-                .setRequired(false)
+                .setNotRequired()
                 .build()
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val channelMono: Mono<MessageChannel> = event.channel
-        val guildId = event.guild.map { it.id }.block()!!
+        val guildId = event.guildId.orElseThrow { ThisShouldNotHaveBeenThrownException() }
         val previousPrefix = event.prefix.block()!!
         val newPrefix = event.getValueOfArgument(NEW_PREFIX)
-        val collection = event.xf8bot
-                .mongoDatabase
-                .getCollection("prefixes")
+        val xf8bot = event.xf8bot
         return when {
             //reset prefix
-            newPrefix.isEmpty -> Mono.from(collection.findOneAndUpdate(
-                    Filters.eq("guildId", guildId.asLong()),
-                    Updates.set("prefix", Xf8bot.DEFAULT_PREFIX)
-            )).then(channelMono.flatMap {
+            newPrefix.isEmpty -> xf8bot.prefixCache.setPrefix(guildId, Xf8bot.DEFAULT_PREFIX).then(channelMono.flatMap {
                 it.createMessage("Successfully reset prefix.")
             }).then()
             previousPrefix == newPrefix.get() -> channelMono.flatMap {
                 it.createMessage("You can't set the prefix to the same thing, silly.")
             }.then()
             //set prefix
-            else -> Mono.from(collection.findOneAndUpdate(
-                    Filters.eq("guildId", guildId.asLong()),
-                    Updates.set("prefix", newPrefix.get())
-            )).then(channelMono.flatMap {
+            else -> xf8bot.prefixCache.setPrefix(guildId, newPrefix.get()).then(channelMono.flatMap {
                 it.createMessage("Successfully set prefix from " + previousPrefix + " to " + newPrefix.get() + ".")
             }).then()
         }

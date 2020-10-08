@@ -47,12 +47,12 @@ public class HelpCommand extends AbstractCommand {
     private static final StringArgument SECTION_OR_COMMAND = StringArgument.builder()
             .setIndex(Range.singleton(1))
             .setName("section or command")
-            .setRequired(false)
+            .setNotRequired()
             .build();
     private static final IntegerArgument PAGE = IntegerArgument.builder()
             .setIndex(Range.singleton(2))
             .setName("page")
-            .setRequired(false)
+            .setNotRequired()
             .build();
 
     public HelpCommand() {

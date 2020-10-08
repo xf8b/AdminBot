@@ -71,7 +71,9 @@ class StringArgument(
             this.name = name
         }
 
-        fun setRequired(required: Boolean): StringArgumentBuilder = apply {
+        fun setNotRequired(): StringArgumentBuilder = setRequired(false)
+
+        private fun setRequired(required: Boolean): StringArgumentBuilder = apply {
             this.required = required
         }
 

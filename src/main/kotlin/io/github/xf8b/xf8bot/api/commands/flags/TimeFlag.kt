@@ -96,7 +96,9 @@ class TimeFlag(
                 this.longName = longName
             }
 
-            fun setRequired(required: Boolean): TimeFlagBuilder = apply {
+            fun setNotRequired(): TimeFlagBuilder = setRequired(false)
+
+            private fun setRequired(required: Boolean): TimeFlagBuilder = apply {
                 this.required = required
             }
 

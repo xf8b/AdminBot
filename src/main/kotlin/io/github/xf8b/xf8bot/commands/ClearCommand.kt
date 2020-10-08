@@ -31,9 +31,10 @@ import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.ClientExceptionUtil
+import kotlinx.coroutines.reactive.awaitFirstOrNull
+import kotlinx.coroutines.reactor.mono
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.core.scheduler.Schedulers
 import java.time.Duration
 import java.time.Instant
 
@@ -82,18 +83,19 @@ class ClearCommand : AbstractCommand(
         }.take(amountToClear.toLong()).count().blockOptional().orElseThrow {
             ThisShouldNotHaveBeenThrownException()
         }
-        return event.channel.flux().flatMap { it.getMessagesBefore(Snowflake.of(Instant.now())) }
-                .take(amountToClear.toLong())
-                .transform { (event.channel.block() as TextChannel).bulkDeleteMessages(it) }
-                .flatMap { it.delete() }
-                .doOnComplete {
-                    event.channel.flatMap { it.createMessage("Successfully purged $amountOfMessagesPurged message(s).") }
-                            .delayElement(Duration.ofSeconds(3))
-                            .flatMap { it.delete() }
-                            .subscribe()
-                }
-                .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10008)) { Flux.empty() } //unknown message
-                .subscribeOn(Schedulers.boundedElastic())
-                .then()
+        return mono {
+            event.channel.flux().flatMap { it.getMessagesBefore(Snowflake.of(Instant.now())) }
+                    .take(amountToClear.toLong())
+                    .transform { (event.channel.block() as TextChannel).bulkDeleteMessages(it) }
+                    .flatMap { it.delete() }
+                    .doOnComplete {
+                        event.channel.flatMap { it.createMessage("Successfully purged $amountOfMessagesPurged message(s).") }
+                                .delayElement(Duration.ofSeconds(3))
+                                .flatMap { it.delete() }
+                                .subscribe()
+                    }
+                    .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10008)) { Flux.empty() } //unknown message
+                    .awaitFirstOrNull()
+        }
     }
 }

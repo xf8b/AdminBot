@@ -19,7 +19,6 @@
 
 package io.github.xf8b.xf8bot.api.commands
 
-import com.mongodb.client.model.Filters
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
@@ -42,10 +41,11 @@ class CommandFiredEvent(
         event.guildId.map(Snowflake::asLong).orElse(null),
         event.member.orElse(null)
 ) {
-    val prefix: Mono<String> = Mono.from(xf8bot.mongoDatabase
-            .getCollection("prefixes")
-            .find(Filters.eq("guildId", guildId.map(Snowflake::asLong).orElse(null))))
-            .map { it.get("prefix", String::class.java) }
+    val prefix: Mono<String> = if (guildId.isEmpty) {
+        Mono.empty()
+    } else {
+        xf8bot.prefixCache.getPrefix(guildId.get())
+    }
     val channel: Mono<MessageChannel>
         get() = message.channel
     val author: Optional<User>

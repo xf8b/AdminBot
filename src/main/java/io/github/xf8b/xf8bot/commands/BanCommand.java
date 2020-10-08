@@ -46,7 +46,7 @@ public class BanCommand extends AbstractCommand {
     private static final StringFlag REASON = StringFlag.builder()
             .setShortName("r")
             .setLongName("reason")
-            .setRequired(false)
+            .setNotRequired()
             .build();
 
     public BanCommand() {
@@ -99,14 +99,12 @@ public class BanCommand extends AbstractCommand {
                                 return Mono.empty();
                             }
                         })))
-                        .flatMap(member -> {
-                            if (!PermissionUtil.isMemberHigher(xf8bot, guild, event.getMember().get(), member)) {
-                                channel.createMessage("Cannot ban member because the member is equal to or higher than you!").block();
-                                return Mono.empty();
-                            } else {
-                                return Mono.just(member);
-                            }
-                        })
+                        .filterWhen(member -> PermissionUtil.isMemberHigher(xf8bot, guild, event.getMember().get(), member)
+                                .doOnNext(bool -> {
+                                    if (!bool) {
+                                        channel.createMessage("Cannot ban member because the member is equal to or higher than you!").block();
+                                    }
+                                }))
                         .flatMap(member -> {
                             String username = member.getDisplayName();
                             return member.getPrivateChannel().flatMap(privateChannel -> {

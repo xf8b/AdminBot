@@ -38,7 +38,7 @@ class SkipCommand : AbstractCommand(
         private val AMOUNT_TO_SKIP = IntegerArgument.builder()
                 .setName("amount to skip")
                 .setIndex(Range.singleton(1))
-                .setRequired(false)
+                .setNotRequired()
                 .build()
     }
 

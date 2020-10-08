@@ -37,10 +37,8 @@ import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBu
 import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
 import discord4j.core.GatewayDiscordClient
-import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.Webhook
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
 import discord4j.core.event.domain.lifecycle.ReadyEvent
@@ -51,16 +49,14 @@ import discord4j.gateway.ShardInfo
 import discord4j.gateway.intent.Intent
 import discord4j.gateway.intent.IntentSet
 import discord4j.rest.util.Color
+import discord4j.store.caffeine.CaffeineStoreService
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.commands.SlapBrigadierCommand
 import io.github.xf8b.xf8bot.data.BotConfiguration
+import io.github.xf8b.xf8bot.data.PrefixCache
 import io.github.xf8b.xf8bot.listeners.MessageListener
 import io.github.xf8b.xf8bot.listeners.ReadyListener
-import io.github.xf8b.xf8bot.util.FunctionalLoggingFilter
-import io.github.xf8b.xf8bot.util.LoggerDelegate
-import io.github.xf8b.xf8bot.util.ParsingUtil
-import kotlinx.coroutines.reactive.awaitSingle
-import kotlinx.coroutines.reactor.mono
+import io.github.xf8b.xf8bot.util.*
 import org.reactivestreams.Publisher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -79,6 +75,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
     val client: GatewayDiscordClient
     private val botConfiguration: BotConfiguration
     val mongoDatabase: MongoDatabase
+    val prefixCache: PrefixCache
     val audioPlayerManager: AudioPlayerManager
 
     init {
@@ -98,11 +95,9 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         client = DiscordClient.create(botConfiguration.token)
                 .gateway()
                 .setSharding(botConfiguration.shardingStrategy)
+                .setStoreService(CaffeineStoreService())
                 .setInitialStatus { shardInfo: ShardInfo ->
-                    Presence.online(Activity.playing(String.format(
-                            "%s | Shard ID: %d",
-                            botConfiguration.activity, shardInfo.index
-                    )))
+                    Presence.online(Activity.playing("${botConfiguration.activity} | Shard ID: ${shardInfo.index}"))
                 }
                 .setEnabledIntents(IntentSet.nonPrivileged().or(IntentSet.of(Intent.GUILD_MEMBERS)))
                 .login()
@@ -116,6 +111,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
                 botConfiguration.mongoConnectionUrl
         ))
         mongoDatabase = mongoClient.getDatabase(botConfiguration.mongoDatabaseName)
+        prefixCache = PrefixCache(mongoDatabase.getCollection("prefixes"))
     }
 
     companion object {
@@ -150,31 +146,31 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
                 version
         )
         //TODO: figure out why readyevent isnt being fired
-        val readyPublisher: Publisher<*> = client.on(ReadyEvent::class.java)
-                .flatMap { readyListener.onReadyEvent(it) }
-        val messageCreateEventPublisher: Publisher<*> = client.on(MessageCreateEvent::class.java)
-                .filter { !it.message.content.isEmpty }
+        val readyPublisher: Publisher<*> = client.on<ReadyEvent>()
+                .flatMap { readyListener.onEventFired(it) }
+        val messageCreateEventPublisher: Publisher<*> = client.on<MessageCreateEvent>()
+                .filter { it.message.content.isNotEmpty() }
                 .filter { it.member.isPresent }
                 .filter { it.message.author.isPresent }
-                .filter { !it.message.author.get().isBot }
-                .flatMap { messageListener.onMessageCreateEvent(it) }
+                .filter { it.message.author.get().isNotBot() }
+                .flatMap { messageListener.onEventFired(it) }
         val commandDispatcher = CommandDispatcher<MessageCreateEvent>()
         SlapBrigadierCommand.register(commandDispatcher)
-        val brigadierMessageCreatePublisher: Publisher<*> = client.on(MessageCreateEvent::class.java)
+        val brigadierMessageCreatePublisher: Publisher<*> = client.on<MessageCreateEvent>()
+                .filter { it.message.content.isNotEmpty() }
                 .filter { it.member.isPresent }
-                .filter { !it.member.get().isBot }
+                .filter { it.message.author.isPresent }
+                .filter { it.message.author.get().isNotBot() }
                 .filter { it.message.content.startsWith(">slap") }
                 .flatMap {
                     Mono.defer {
                         try {
                             commandDispatcher.execute(it.message.content, it)
-                            return@defer Mono.empty<Message>()
+                            Mono.empty()
                         } catch (exception: CommandSyntaxException) {
-                            return@defer it.message
-                                    .channel
-                                    .flatMap { messageChannel: MessageChannel ->
-                                        messageChannel.createMessage("CommandSyntaxException: $exception")
-                                    }
+                            it.message.channel.flatMap {
+                                it.createMessage("CommandSyntaxException: $exception")
+                            }
                         }
                     }
                 }
@@ -187,7 +183,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
             discordAppender.avatarUrl = self.avatarUrl
             val webhookUrl = botConfiguration.logDumpWebhook
             discordAppender.addFilter(FunctionalLoggingFilter {
-                if (webhookUrl.trim { it <= ' ' }.isBlank()) {
+                if (webhookUrl.trim().isBlank()) {
                     FilterReply.DENY
                 } else {
                     FilterReply.NEUTRAL
@@ -216,15 +212,13 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         }
         val disconnectPublisher: Publisher<*> = client.onDisconnect()
                 .doOnSuccess { LOGGER.info("Successfully disconnected!") }
-        return mono {
-            Mono.`when`(
-                    readyPublisher,
-                    messageCreateEventPublisher,
-                    brigadierMessageCreatePublisher,
-                    webhookPublisher,
-                    disconnectPublisher
-            ).awaitSingle()
-        }
+        return Mono.`when`(
+                readyPublisher,
+                messageCreateEventPublisher,
+                brigadierMessageCreatePublisher,
+                webhookPublisher,
+                disconnectPublisher
+        )
     }
 
     fun isBotAdministrator(snowflake: Snowflake): Boolean =

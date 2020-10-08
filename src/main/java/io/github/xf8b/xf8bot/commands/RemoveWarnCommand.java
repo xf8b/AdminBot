@@ -26,12 +26,11 @@ import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.MessageChannel;
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand;
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent;
-import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag;
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag;
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException;
 import io.github.xf8b.xf8bot.util.ParsingUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,29 +42,34 @@ public class RemoveWarnCommand extends AbstractCommand {
     private static final StringFlag MEMBER = StringFlag.builder()
             .setShortName("m")
             .setLongName("member")
+            .setNotRequired()
             .build();
     private static final StringFlag MEMBER_WHO_WARNED = StringFlag.builder()
             .setShortName("mww")
-            .setLongName("memberwhowarned")
-            .setRequired(false)
+            .setLongName("memberWhoWarned")
+            .setNotRequired()
             .build();
     private static final StringFlag REASON = StringFlag.builder()
             .setShortName("r")
             .setLongName("reason")
+            .setNotRequired()
             .build();
-    private static final IntegerFlag WARN_ID = IntegerFlag.builder()
-            .setShortName("w")
-            .setLongName("warnid")
-            .setRequired(false)
+    private static final StringFlag WARN_ID = StringFlag.builder()
+            .setShortName("i")
+            .setLongName("warnId")
+            //TODO: fix
+            .setValidityPredicate(s -> s.matches("\\b[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b"))
+            .setInvalidValueErrorMessageFunction($ -> "The warn ID must be a UUID!")
+            .setNotRequired()
             .build();
 
     public RemoveWarnCommand() {
         super(AbstractCommand.builder()
                 .setName("${prefix}removewarn")
                 .setDescription("""
-                        Removes the specified member's warns with the warnId and reason provided.\s
+                        Removes the specified member's warns with the warnId and reason provided.
                         If the reason is all, all warns will be removed. The warnId is not needed.
-                        If the warnId is all, all warns with the same reason will be removed.\s
+                        If the warnId is all, all warns with the same reason will be removed.
                         """)
                 .setCommandType(CommandType.ADMINISTRATION)
                 .setAliases("${prefix}removewarns", "${prefix}rmwarn", "${prefix}rmwarns")
@@ -79,10 +83,16 @@ public class RemoveWarnCommand extends AbstractCommand {
     public Mono<Void> onCommandFired(@NotNull CommandFiredEvent event) {
         MessageChannel channel = event.getChannel().block();
         Guild guild = event.getGuild().block();
-        Optional<Snowflake> userId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfFlag(MEMBER)
-                .orElseThrow(ThisShouldNotHaveBeenThrownException::new));
-        if (userId.isEmpty()) {
-            return channel.createMessage("The member does not exist!").then();
+        Snowflake userId;
+        if (event.getValueOfFlag(MEMBER).isPresent()) {
+            Optional<Snowflake> tempUserId = ParsingUtil.parseUserIdAsSnowflake(guild, event.getValueOfFlag(MEMBER).get());
+            if (tempUserId.isEmpty()) {
+                return channel.createMessage("The member does not exist!").then();
+            } else {
+                userId = tempUserId.get();
+            }
+        } else {
+            userId = null;
         }
         Snowflake memberWhoWarnedId;
         if (event.getValueOfFlag(MEMBER_WHO_WARNED).isPresent()) {
@@ -95,40 +105,60 @@ public class RemoveWarnCommand extends AbstractCommand {
         } else {
             memberWhoWarnedId = null;
         }
-        String reason = event.getValueOfFlag(REASON)
-                .orElseThrow(ThisShouldNotHaveBeenThrownException::new);
-        int warnId = event.getValueOfFlag(WARN_ID).orElse(-1);
+        String reason = event.getValueOfFlag(REASON).orElse(null);
+        String warnId = event.getValueOfFlag(WARN_ID).orElse(null);
         MongoCollection<Document> mongoCollection = event.getXf8bot()
                 .getMongoDatabase()
                 .getCollection("warns");
-        Flux<Document> warnDocuments = Flux.from(mongoCollection.find(Filters.and(
-                Filters.eq("guildId", guild.getId().asLong()),
-                Filters.eq("userId", userId.get().asLong())
-        )));
-        if (reason.equalsIgnoreCase("all")) {
+        Bson filter;
+        if (userId == null) {
+            filter = Filters.eq("guildId", guild.getId().asLong());
+        } else {
+            filter = Filters.and(
+                    Filters.eq("guildId", guild.getId().asLong()),
+                    Filters.eq("userId", userId.asLong())
+            );
+        }
+        Flux<Document> warnDocuments = Flux.from(mongoCollection.find(filter));
+        if (warnId == null && memberWhoWarnedId == null && userId == null && reason == null) {
+            return channel.createMessage("You must have at least 1 search query!").then();
+        }
+        if (reason != null && reason.equalsIgnoreCase("all")) {
+            if (userId == null) {
+                return channel.createMessage("Cannot remove all warns without a user!").then();
+            }
             return warnDocuments.flatMap(document -> Mono.from(mongoCollection.deleteOne(document)))
-                    .flatMap($ -> guild.getMemberById(userId.get()))
-                    .then(guild.getMemberById(userId.get()).flatMap(member -> channel.createMessage("Successfully removed warn(s) for " + member.getDisplayName() + ".")))
+                    .flatMap($ -> guild.getMemberById(userId))
+                    .flatMap(member -> channel.createMessage("Successfully removed warn(s) for " + member.getDisplayName() + "."))
                     .then();
         } else {
-            return warnDocuments.filter(document -> document.getString("reason").equals(reason))
-                    .filter(document -> {
-                        if (warnId != -1) {
-                            return document.getInteger("warnId").equals(warnId);
-                        } else {
-                            return true;
-                        }
-                    })
-                    .filter(document -> {
-                        if (memberWhoWarnedId != null) {
-                            return document.getLong("memberWhoWarnedId").equals(memberWhoWarnedId.asLong());
-                        } else {
-                            return true;
-                        }
-                    })
-                    .flatMap(mongoCollection::deleteOne)
+            return warnDocuments.filter(document -> {
+                if (warnId != null) {
+                    return document.getString("warnId").equals(warnId);
+                } else {
+                    return true;
+                }
+            }).filter(document -> {
+                if (memberWhoWarnedId != null) {
+                    return document.getLong("memberWhoWarnedId").equals(memberWhoWarnedId.asLong());
+                } else {
+                    return true;
+                }
+            }).filter(document -> {
+                if (userId != null) {
+                    return document.getLong("userId").equals(userId.asLong());
+                } else {
+                    return true;
+                }
+            }).filter(document -> {
+                if (reason != null) {
+                    return document.getString("reason").equals(reason);
+                } else {
+                    return true;
+                }
+            }).flatMap(mongoCollection::deleteOne)
                     .cast(Object.class)
-                    .doOnComplete(() -> guild.getMemberById(userId.get()).flatMap(member -> channel.createMessage("Successfully removed warn(s) for " + member.getDisplayName() + ".")).subscribe())
+                    .doOnComplete(() -> /*guild.getMemberById(userId).flatMap(member -> */channel.createMessage("Successfully removed warn(s)!" /*"Successfully removed warn(s) for " + member.getDisplayName() + ".")*/).subscribe())
                     .switchIfEmpty(channel.createMessage("The user does not have a warn with that reason!"))
                     .then();
 

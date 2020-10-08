@@ -19,13 +19,29 @@
 
 package io.github.xf8b.xf8bot.util
 
+import discord4j.common.util.Snowflake
+import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.entity.Member
+import discord4j.core.`object`.entity.User
+import discord4j.core.event.domain.Event
 import discord4j.core.spec.EmbedCreateSpec
+import org.reflections.Reflections
+import reactor.core.publisher.Flux
 import java.time.Instant
 
-//member extensions
 fun Member.getTagWithDisplayName(): String = this.displayName + "#" + this.discriminator
 
-fun EmbedCreateSpec.setTimestampAsNow() {
-    this.setTimestamp(Instant.now())
-}
+fun User.isNotBot() = !isBot
+
+fun EmbedCreateSpec.setTimestampAsNow(): EmbedCreateSpec = this.setTimestamp(Instant.now())
+
+inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTypesOf(T::class.java)
+
+inline fun <reified E : Event> GatewayDiscordClient.on(): Flux<E> = on(E::class.java)
+
+fun String.toSnowflake(): Snowflake = Snowflake.of(this)
+
+fun Long.toSnowflake(): Snowflake = Snowflake.of(this)
+
+fun Instant.toSnowflake(): Snowflake = Snowflake.of(this)
+

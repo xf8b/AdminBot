@@ -73,4 +73,8 @@ class GuildMusicHandler(
     fun skip(amountToGoForward: Int): Mono<Void> = Mono.fromRunnable {
         musicTrackScheduler.playNextAudioTrack(amountToGoForward)
     }
+
+    fun stop(): Mono<Void> = Mono.fromRunnable {
+        audioPlayer.stopTrack()
+    }
 }

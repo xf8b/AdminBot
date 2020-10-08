@@ -32,12 +32,16 @@ class JoinCommand : AbstractCommand(
         commandType = CommandType.MUSIC
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val guildId = event.guild.map { it.id }.block()!!
+        val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.getMusicHandler(
                 guildId,
                 event.xf8bot.audioPlayerManager,
                 event.channel.block()!!
         )
+        event.guild.flatMap<Void> {
+            it.voiceStates
+            Mono.empty()
+        }
         return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
                 .flatMap {
                     event.channel.flatMap { it.createMessage("I am already connected to a VC!") }

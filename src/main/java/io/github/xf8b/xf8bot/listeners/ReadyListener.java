@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class ReadyListener {
+public class ReadyListener implements EventListener<ReadyEvent> {
     @NotNull
     private final String botActivity;
     @NotNull
@@ -43,7 +43,9 @@ public class ReadyListener {
         this.botVersion = botVersion;
     }
 
-    public Mono<ReadyEvent> onReadyEvent(@NotNull ReadyEvent event) {
+    @NotNull
+    @Override
+    public Mono<ReadyEvent> onEventFired(@NotNull ReadyEvent event) {
         return Mono.fromRunnable(() -> {
             LOGGER.info("Successfully started xf8bot version {}!", botVersion);
             LOGGER.info("Logged in as {}#{}.", event.getSelf().getUsername(), event.getSelf().getDiscriminator());

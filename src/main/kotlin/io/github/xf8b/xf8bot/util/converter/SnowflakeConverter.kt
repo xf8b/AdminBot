@@ -21,7 +21,8 @@ package io.github.xf8b.xf8bot.util.converter
 
 import com.beust.jcommander.IStringConverter
 import discord4j.common.util.Snowflake
+import io.github.xf8b.xf8bot.util.toSnowflake
 
 class SnowflakeConverter : IStringConverter<Snowflake> {
-    override fun convert(value: String): Snowflake = Snowflake.of(value)
+    override fun convert(value: String): Snowflake = value.toSnowflake()
 }

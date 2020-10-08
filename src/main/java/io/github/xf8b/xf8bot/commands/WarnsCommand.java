@@ -39,8 +39,9 @@ import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class WarnsCommand extends AbstractCommand {
@@ -69,33 +70,34 @@ public class WarnsCommand extends AbstractCommand {
         if (userId.isEmpty()) {
             return channel.createMessage("The member does not exist!").then();
         }
-        AtomicReference<String> username = new AtomicReference<>("");
-        guild.getMemberById(userId.get())
+        String username = guild.getMemberById(userId.get())
                 .map(Member::getDisplayName)
-                .subscribe(username::set);
+                .block();
         MongoCollection<Document> mongoCollection = event.getXf8bot()
                 .getMongoDatabase()
                 .getCollection("warns");
-        Flux<WarnContext> warnsFlux = Flux.from(mongoCollection.find(Filters.eq("userId", userId.get().asLong())))
-                .map(document -> new WarnContext(
-                        Snowflake.of(document.getLong("memberWhoWarnedId")),
-                        document.getString("reason"),
-                        document.getInteger("warnId")
-                ));
-        if (warnsFlux.count().block().equals(0L)) {
+        Flux<WarnContext> warnsFlux = Flux.from(mongoCollection.find(Filters.and(
+                Filters.eq("guildId", guild.getId().asLong()),
+                Filters.eq("userId", userId.get().asLong())
+        ))).map(document -> new WarnContext(
+                Snowflake.of(document.getLong("memberWhoWarnedId")),
+                document.getString("reason"),
+                document.getString("warnId")
+        ));
+        if (Objects.equals(warnsFlux.count().block(), 0L)) {
             return channel.createMessage("The user has no warnings.").then();
         } else {
             return channel.createEmbed(embedCreateSpec -> {
-                warnsFlux.collectSortedList().subscribe(warnContexts -> warnContexts.forEach(warnContext -> embedCreateSpec.addField(
+                embedCreateSpec.setTitle("Warnings For `" + username + "`").setColor(Color.BLUE);
+                List<WarnContext> warns = warnsFlux.collectList().block();
+                warns.forEach(warnContext -> embedCreateSpec.addField(
                         "`" + warnContext.getReason() + "`",
                         "Warn ID: " + warnContext.getWarnId() + "\n" +
                         "Member Who Warned: " + guild.getMemberById(warnContext.getMemberWhoWarnedId())
                                 .map(Member::getNicknameMention)
                                 .block(),
                         true
-                )));
-                embedCreateSpec.setTitle("Warnings For `" + username.get() + "`");
-                embedCreateSpec.setColor(Color.BLUE);
+                ));
             }).then();
         }
     }

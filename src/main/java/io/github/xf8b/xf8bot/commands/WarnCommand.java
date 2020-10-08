@@ -41,8 +41,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 public class WarnCommand extends AbstractCommand {
@@ -61,7 +61,7 @@ public class WarnCommand extends AbstractCommand {
                     return Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE;
                 }
             })
-            .setRequired(false)
+            .setNotRequired()
             .build();
 
     public WarnCommand() {
@@ -84,7 +84,6 @@ public class WarnCommand extends AbstractCommand {
         if (userId.isEmpty()) {
             return channel.createMessage("The member does not exist!").then();
         }
-        channel.createMessage("User ID: " + userId.get().asLong()).subscribe();
         Snowflake memberWhoWarnedId = event.getMember().orElseThrow().getId();
         String reason = event.getValueOfFlag(REASON).orElse("No warn reason was provided.");
         if (reason.equals("all")) {
@@ -95,14 +94,12 @@ public class WarnCommand extends AbstractCommand {
                 .getCollection("warns");
         return guild.getMemberById(userId.get())
                 .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10007), throwable1 -> Mono.fromRunnable(() -> channel.createMessage("The member is not in the guild!").block())) //unknown member
-                .flatMap(member -> {
-                    if (!PermissionUtil.isMemberHigher(xf8bot, guild, event.getMember().get(), member)) {
-                        channel.createMessage("Cannot warn member because the member is equal to or higher than you!").block();
-                        return Mono.empty();
-                    } else {
-                        return Mono.just(member);
-                    }
-                })
+                .filterWhen(member -> PermissionUtil.isMemberHigher(xf8bot, guild, event.getMember().get(), member)
+                        .doOnNext(bool -> {
+                            if (!bool) {
+                                channel.createMessage("Cannot warn member because the member is equal to or higher than you!").block();
+                            }
+                        }))
                 .flatMap(member -> {
                     Mono<?> privateChannelMono = member.getPrivateChannel()
                             .flatMap(privateChannel -> {
@@ -123,18 +120,17 @@ public class WarnCommand extends AbstractCommand {
                                             .setColor(Color.RED)))
                             .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(50007), throwable -> Mono.empty()); //cannot send to user
                     return Flux.from(mongoCollection.find(Filters.eq("userId", userId.get().asLong())))
-                            .sort(Comparator.comparing(o -> o.get("warnId", Integer.TYPE)))
-                            .take(1)
-                            .flatMap(document -> {
-                                int warnId = document.getInteger("warnId") + 1;
-                                return Mono.from(mongoCollection.insertOne(new Document()
-                                        .append("memberWhoWarnedId", memberWhoWarnedId.asLong())
-                                        .append("warnId", warnId)
-                                        .append("reason", reason)));
-                            })
-                            .switchIfEmpty(Mono.from(mongoCollection.insertOne(new Document()
+                            .flatMap(document -> Mono.from(mongoCollection.insertOne(new Document()
+                                    .append("guildId", guild.getId().asLong())
+                                    .append("userId", userId.get().asLong())
                                     .append("memberWhoWarnedId", memberWhoWarnedId.asLong())
-                                    .append("warnId", 0)
+                                    .append("warnId", UUID.randomUUID().toString())
+                                    .append("reason", reason))))
+                            .switchIfEmpty(Mono.from(mongoCollection.insertOne(new Document()
+                                    .append("guildId", guild.getId().asLong())
+                                    .append("userId", userId.get().asLong())
+                                    .append("memberWhoWarnedId", memberWhoWarnedId.asLong())
+                                    .append("warnId", UUID.randomUUID().toString())
                                     .append("reason", reason))))
                             .then(privateChannelMono)
                             .then(channel.createMessage("Successfully warned " + member.getDisplayName() + "."))

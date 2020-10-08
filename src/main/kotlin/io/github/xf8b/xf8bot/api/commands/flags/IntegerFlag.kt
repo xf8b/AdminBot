@@ -73,7 +73,9 @@ class IntegerFlag(
                 this.longName = longName
             }
 
-            fun setRequired(required: Boolean): IntegerFlagBuilder = apply {
+            fun setNotRequired(): IntegerFlagBuilder = setRequired(false)
+
+            private fun setRequired(required: Boolean): IntegerFlagBuilder = apply {
                 this.required = required
             }
 

@@ -73,7 +73,9 @@ class StringFlag(
                 this.longName = longName
             }
 
-            fun setRequired(required: Boolean): StringFlagBuilder = apply {
+            fun setNotRequired(): StringFlagBuilder = setRequired(false)
+
+            private fun setRequired(required: Boolean): StringFlagBuilder = apply {
                 this.required = required
             }
 

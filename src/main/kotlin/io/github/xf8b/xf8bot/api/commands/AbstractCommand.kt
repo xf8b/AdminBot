@@ -21,11 +21,11 @@ package io.github.xf8b.xf8bot.api.commands
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.ImmutableMap
-import com.mongodb.client.model.Filters
 import discord4j.rest.util.PermissionSet
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
+import io.github.xf8b.xf8bot.util.toSnowflake
 import reactor.core.publisher.Mono
 
 abstract class AbstractCommand {
@@ -89,11 +89,6 @@ abstract class AbstractCommand {
         @JvmStatic
         fun builder(): AbstractCommandBuilder = AbstractCommandBuilder()
 
-        private fun getPrefix(xf8bot: Xf8bot, guildId: String) = Mono.from(xf8bot.mongoDatabase.getCollection("prefixes")
-                .find(Filters.eq("guildId", guildId.toLong())))
-                .map { it.get("prefix", String::class.java) }
-                .block()!!
-
         private fun generateUsage(commandName: String, flags: List<Flag<*>>, arguments: List<Argument<*>>): String {
             val tempUsage = StringBuilder(commandName).append(" ")
             for (argument in arguments) {
@@ -132,13 +127,13 @@ abstract class AbstractCommand {
     abstract fun onCommandFired(event: CommandFiredEvent): Mono<Void>
 
     fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): String =
-            name.replace("\${prefix}", getPrefix(xf8bot, guildId))
+            name.replace("\${prefix}", xf8bot.prefixCache.getPrefix(guildId.toSnowflake()).block()!!)
 
     fun getUsageWithPrefix(xf8bot: Xf8bot, guildId: String): String =
-            usage.replace("\${prefix}", getPrefix(xf8bot, guildId))
+            usage.replace("\${prefix}", xf8bot.prefixCache.getPrefix(guildId.toSnowflake()).block()!!)
 
     fun getAliasesWithPrefixes(xf8bot: Xf8bot, guildId: String): List<String> = aliases.map {
-        it.replace("\${prefix}", getPrefix(xf8bot, guildId))
+        it.replace("\${prefix}", xf8bot.prefixCache.getPrefix(guildId.toSnowflake()).block()!!)
     }
 
     fun requiresAdministrator(): Boolean = administratorLevelRequired > 0

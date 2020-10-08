@@ -16,12 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
+package io.github.xf8b.xf8bot.settings
 
-package io.github.xf8b.xf8bot.settings;
-
-public enum CommandHandlerChecks {
-    IS_ADMINISTRATOR,
-    IS_BOT_ADMINISTRATOR,
-    SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS,
-    BOT_HAS_REQUIRED_PERMISSIONS
-}
+@Retention(AnnotationRetention.RUNTIME)
+annotation class DisableChecks(vararg val value: CommandHandlerChecks = [])

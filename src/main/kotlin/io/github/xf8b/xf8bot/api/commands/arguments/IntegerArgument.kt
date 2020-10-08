@@ -71,7 +71,9 @@ class IntegerArgument(
             this.name = name
         }
 
-        fun setRequired(required: Boolean): IntegerArgumentBuilder = apply {
+        fun setNotRequired(): IntegerArgumentBuilder = setRequired(false)
+
+        private fun setRequired(required: Boolean): IntegerArgumentBuilder = apply {
             this.required = required
         }
 

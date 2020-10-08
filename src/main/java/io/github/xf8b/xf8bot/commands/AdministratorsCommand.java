@@ -71,12 +71,12 @@ public class AdministratorsCommand extends AbstractCommand {
     private static final StringFlag ROLE = StringFlag.builder()
             .setShortName("r")
             .setLongName("role")
-            .setRequired(false)
+            .setNotRequired()
             .build();
     private static final IntegerFlag ADMINISTRATOR_LEVEL = IntegerFlag.builder()
             .setShortName("l")
             .setLongName("level")
-            .setRequired(false)
+            .setNotRequired()
             .setValidityPredicate(value -> {
                 try {
                     int level = Integer.parseInt(value);
@@ -139,71 +139,59 @@ public class AdministratorsCommand extends AbstractCommand {
         Xf8bot xf8bot = event.getXf8bot();
         MongoCollection<Document> mongoCollection = xf8bot.getMongoDatabase()
                 .getCollection("administratorRoles");
-        boolean isAdministrator = PermissionUtil.canMemberUseCommand(xf8bot, guild, member, this);
+        Mono<Boolean> isAdministrator = PermissionUtil.canMemberUseCommand(xf8bot, guild, member, this);
         return switch (action) {
-            case "add", "addrole" -> {
-                if (isAdministrator) {
-                    if (event.getValueOfFlag(ROLE).isEmpty() || event.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty()) {
-                        yield channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(xf8bot, guildId) + "`.").then();
-                    }
-                    Optional<Snowflake> roleId = ParsingUtil.parseRoleIdAsSnowflake(guild, event.getValueOfFlag(ROLE).get());
-                    if (roleId.isEmpty()) {
-                        yield channel.createMessage("The role does not exist!").then();
-                    }
-                    String roleName = guild.getRoleById(roleId.get()).map(Role::getName).block();
-                    int level = event.getValueOfFlag(ADMINISTRATOR_LEVEL).get();
-                    yield Mono.from(mongoCollection.find(Filters.and(
-                            Filters.eq("roleId", roleId.get().asLong()),
-                            Filters.eq("guildId", Long.parseLong(guildId))
-                    ))).cast(Object.class)
-                            .flatMap($ -> channel.createMessage("The role already has been added as an administrator role."))
-                            .switchIfEmpty(Mono.from(mongoCollection.insertOne(new Document()
-                                    .append("guildId", Long.parseLong(guildId))
-                                    .append("roleId", roleId.get().asLong())
-                                    .append("level", level)))
-                                    .then(channel.createMessage("Successfully added " + roleName + " to the list of administrator roles.")))
-                            .then();
-                } else {
-                    yield channel.createMessage("Sorry, you don't have high enough permissions.").then();
+            case "add", "addrole" -> isAdministrator.filter(administrator -> administrator).flatMap($ -> {
+                if (event.getValueOfFlag(ROLE).isEmpty() || event.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty()) {
+                    return channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(xf8bot, guildId) + "`.").then();
                 }
-            }
-            case "rm", "remove", "removerole" -> {
-                if (isAdministrator) {
-                    if (event.getValueOfFlag(ROLE).isEmpty()) {
-                        yield channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(xf8bot, guildId) + "`.").then();
-                    }
-                    Optional<Snowflake> roleId = ParsingUtil.parseRoleIdAsSnowflake(guild, event.getValueOfFlag(ROLE).get());
-                    if (roleId.isEmpty()) {
-                        yield channel.createMessage("The role does not exist!").then();
-                    }
-                    String roleName = guild.getRoleById(roleId.get()).map(Role::getName).block();
-                    yield Mono.from(mongoCollection.findOneAndDelete(Filters.and(
-                            Filters.eq("roleId", roleId.get().asLong()),
-                            Filters.eq("guildId", Long.parseLong(guildId))
-                    ))).cast(Object.class)
-                            .flatMap($ -> channel.createMessage("Successfully removed " + roleName + " from the list of administrator roles."))
-                            .switchIfEmpty(channel.createMessage("The role has not been added as an administrator role!"))
-                            .then();
-                } else {
-                    yield channel.createMessage("Sorry, you don't have high enough permissions.").then();
+                Optional<Snowflake> roleId = ParsingUtil.parseRoleIdAsSnowflake(guild, event.getValueOfFlag(ROLE).get());
+                if (roleId.isEmpty()) {
+                    return channel.createMessage("The role does not exist!").then();
                 }
-            }
-            case "rdr", "rmdel", "removedeletedroles" -> {
-                if (isAdministrator) {
-                    Flux<Document> documentFlux = Flux.from(mongoCollection.find(Filters.eq("guildId", Long.parseLong(guildId))))
-                            .filter(document -> guild.getRoleById(Snowflake.of(document.getLong("roleId")))
-                                    .blockOptional()
-                                    .isEmpty());
-                    long amountOfRemovedRoles = documentFlux.count()
-                            .blockOptional()
-                            .orElseThrow(ThisShouldNotHaveBeenThrownException::new);
-                    yield documentFlux.flatMap(mongoCollection::deleteOne)
-                            .then(channel.createMessage("Successfully removed " + amountOfRemovedRoles + " deleted roles from the list of administrator roles."))
-                            .then();
-                } else {
-                    yield channel.createMessage("Sorry, you don't have high enough permissions.").then();
+                String roleName = guild.getRoleById(roleId.get()).map(Role::getName).block();
+                int level = event.getValueOfFlag(ADMINISTRATOR_LEVEL).get();
+                return Mono.from(mongoCollection.find(Filters.and(
+                        Filters.eq("roleId", roleId.get().asLong()),
+                        Filters.eq("guildId", Long.parseLong(guildId))
+                ))).cast(Object.class)
+                        .flatMap($1 -> channel.createMessage("The role already has been added as an administrator role."))
+                        .switchIfEmpty(Mono.from(mongoCollection.insertOne(new Document()
+                                .append("guildId", Long.parseLong(guildId))
+                                .append("roleId", roleId.get().asLong())
+                                .append("level", level)))
+                                .then(channel.createMessage("Successfully added " + roleName + " to the list of administrator roles.")))
+                        .then();
+            }).switchIfEmpty(channel.createMessage("Sorry, you don't have high enough permissions.").then());
+            case "rm", "remove", "removerole" -> isAdministrator.filter(administrator -> administrator).flatMap($ -> {
+                if (event.getValueOfFlag(ROLE).isEmpty()) {
+                    return channel.createMessage("Huh? Could you repeat that? The usage of this command is: `" + this.getUsageWithPrefix(xf8bot, guildId) + "`.").then();
                 }
-            }
+                Optional<Snowflake> roleId = ParsingUtil.parseRoleIdAsSnowflake(guild, event.getValueOfFlag(ROLE).get());
+                if (roleId.isEmpty()) {
+                    return channel.createMessage("The role does not exist!").then();
+                }
+                String roleName = guild.getRoleById(roleId.get()).map(Role::getName).block();
+                return Mono.from(mongoCollection.findOneAndDelete(Filters.and(
+                        Filters.eq("roleId", roleId.get().asLong()),
+                        Filters.eq("guildId", Long.parseLong(guildId))
+                ))).cast(Object.class)
+                        .flatMap($1 -> channel.createMessage("Successfully removed " + roleName + " from the list of administrator roles."))
+                        .switchIfEmpty(channel.createMessage("The role has not been added as an administrator role!"))
+                        .then();
+            }).switchIfEmpty(channel.createMessage("Sorry, you don't have high enough permissions.").then());
+            case "rdr", "rmdel", "removedeletedroles" -> isAdministrator.filter(administrator -> administrator).flatMap($ -> {
+                Flux<Document> documentFlux = Flux.from(mongoCollection.find(Filters.eq("guildId", Long.parseLong(guildId))))
+                        .filter(document -> guild.getRoleById(Snowflake.of(document.getLong("roleId")))
+                                .blockOptional()
+                                .isEmpty());
+                long amountOfRemovedRoles = documentFlux.count()
+                        .blockOptional()
+                        .orElseThrow(ThisShouldNotHaveBeenThrownException::new);
+                return documentFlux.flatMap(mongoCollection::deleteOne)
+                        .then(channel.createMessage("Successfully removed " + amountOfRemovedRoles + " deleted roles from the list of administrator roles."))
+                        .then();
+            }).switchIfEmpty(channel.createMessage("Sorry, you don't have high enough permissions.").then());
             case "ls", "list", "listroles", "get", "getroles" -> Flux.from(mongoCollection.find(Filters.eq("guildId", Long.parseLong(guildId))))
                     .collectMap(document -> document.getLong("roleId"), document -> document.getInteger("level"))
                     .map(MapUtil::sortByValue)

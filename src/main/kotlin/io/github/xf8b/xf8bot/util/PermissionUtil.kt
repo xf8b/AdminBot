@@ -31,12 +31,18 @@ import reactor.core.publisher.Mono
 
 object PermissionUtil {
     @JvmStatic
-    fun isMemberHigher(xf8bot: Xf8bot, guild: Guild, member: Member, otherMember: Member): Boolean =
-            getAdministratorLevel(xf8bot, guild, member) > getAdministratorLevel(xf8bot, guild, otherMember)
+    fun isMemberHigher(xf8bot: Xf8bot, guild: Guild, member: Member, otherMember: Member): Mono<Boolean> =
+            getAdministratorLevel(xf8bot, guild, member).flatMap { memberAdministratorLevel ->
+                getAdministratorLevel(xf8bot, guild, otherMember).map { otherMemberAdministratorLevel ->
+                    memberAdministratorLevel >= otherMemberAdministratorLevel
+                }
+            }
 
     @JvmStatic
-    fun canMemberUseCommand(xf8bot: Xf8bot, guild: Guild, member: Member, command: AbstractCommand): Boolean =
-            getAdministratorLevel(xf8bot, guild, member) >= command.administratorLevelRequired
+    fun canMemberUseCommand(xf8bot: Xf8bot, guild: Guild, member: Member, command: AbstractCommand): Mono<Boolean> =
+            getAdministratorLevel(xf8bot, guild, member).map {
+                it >= command.administratorLevelRequired
+            }
 
     @JvmStatic
     fun isAdministrator(xf8bot: Xf8bot, guild: Guild, member: Member): Boolean {
@@ -52,8 +58,8 @@ object PermissionUtil {
     }
 
     @JvmStatic
-    fun getAdministratorLevel(xf8bot: Xf8bot, guild: Guild, member: Member): Int {
-        if (member.id == guild.ownerId) return 4
+    fun getAdministratorLevel(xf8bot: Xf8bot, guild: Guild, member: Member): Mono<Int> {
+        if (member.id == guild.ownerId) return Mono.just(4)
         val guildId = guild.id.asString()
         val mongoCollection = xf8bot.mongoDatabase.getCollection("administratorRoles")
         return member.roles.map(Role::getId)
@@ -64,6 +70,6 @@ object PermissionUtil {
                             .block()!!
                 }
                 .sort()
-                .blockLast()!!
+                .last()
     }
 }

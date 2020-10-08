@@ -1,13 +1,12 @@
 import net.minecrell.gradle.licenser.LicenseProperties
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     application
     java
     idea
-    kotlin("jvm") version "1.4.0"
-    id("com.github.johnrengelman.shadow") version "6.0.0"
-    id("io.freefair.lombok") version "5.1.1"
+    kotlin("jvm") version "1.4.10"
+    id("com.github.johnrengelman.shadow") version "6.1.0"
+    id("io.freefair.lombok") version "5.2.1"
     id("net.minecrell.licenser") version "0.4.1"
     id("com.github.ben-manes.versions") version "0.33.0"
 }
@@ -33,6 +32,7 @@ dependencies {
     testImplementation("junit:junit:${property("junitVersion")}")
     //discord4j
     implementation("com.discord4j:discord4j-core:${property("discord4jVersion")}")
+    implementation("com.discord4j:stores-caffeine:${property("discord4jStoresVersion")}")
     //music
     //implementation("com.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
     //see https://github.com/sedmelluq/lavaplayer/issues/517 for why this is here
@@ -64,11 +64,23 @@ dependencies {
 }
 
 tasks {
+    compileJava {
+        options.encoding = "UTF-8"
+    }
+
+    compileKotlin {
+        kotlinOptions.jvmTarget = "14"
+    }
+
     processResources {
         inputs.property("version", project.version)
         filesMatching("version.txt") {
             expand("version" to project.version)
         }
+    }
+
+    dependencyUpdates {
+        gradleReleaseChannel = "current"
     }
 }
 
@@ -76,28 +88,24 @@ application {
     mainClassName = property("mainClass").toString()
 }
 
-license {
-    matching("**/PingCommandHandler.java", delegateClosureOf<LicenseProperties> {
-        header = rootProject.file("headers/PING_COMMAND_HANDLER_LICENSE_HEADER.txt")
-    })
-    header = rootProject.file("headers/LICENSE_HEADER.txt")
-    ext {
-        set("name", "xf8b")
-        set("years", "2020")
-        set("projectName", property("projectName"))
-    }
-    include("**/*.java")
-    include("**/*.kt")
-}
 java {
     sourceCompatibility = JavaVersion.VERSION_15
     targetCompatibility = JavaVersion.VERSION_15
 }
 
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-}
+license {
+    matching("**/PingCommandHandler.java", delegateClosureOf<LicenseProperties> {
+        header = rootProject.file("headers/PING_COMMAND_HANDLER_LICENSE_HEADER.txt")
+    })
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "14"
+    header = rootProject.file("headers/LICENSE_HEADER.txt")
+
+    ext {
+        set("name", "xf8b")
+        set("years", "2020")
+        set("projectName", property("projectName"))
+    }
+
+    include("**/*.java")
+    include("**/*.kt")
 }
