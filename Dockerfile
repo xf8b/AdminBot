@@ -1,4 +1,4 @@
-FROM gradle:6.6.1 as BUILD
+FROM gradle:latest as BUILD
 COPY . .
 RUN gradle -v
 RUN kotlin -version
