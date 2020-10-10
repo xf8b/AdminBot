@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 package io.github.xf8b.xf8bot.commands
 
 import com.google.common.collect.ImmutableList.of
