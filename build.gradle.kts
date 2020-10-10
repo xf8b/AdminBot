@@ -86,7 +86,8 @@ tasks {
 }
 
 application {
-    mainClass.set(property("mainClass").toString())
+    @Suppress("DEPRECATION") //apparently shadow needs this
+    mainClassName = property("mainClass").toString()
 }
 
 java {
