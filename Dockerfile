@@ -6,6 +6,6 @@ RUN ./gradlew -v
 RUN ./gradlew build
 
 FROM openjdk:15-jdk-slim
-COPY --from=BUILD /build/libs/*.jar /usr/app/bot.jar
+COPY --from=BUILD /build/libs/xf8bot-*-all.jar /usr/app/bot.jar
 WORKDIR /usr/app/
 ENTRYPOINT ["java", "-jar", "bot.jar"]
