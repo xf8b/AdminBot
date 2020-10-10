@@ -75,7 +75,7 @@ class ClearCommand : AbstractCommand(
                 .build()
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
         val amountToClear = event.getValueOfArgument(AMOUNT)
                 .orElseThrow { ThisShouldNotHaveBeenThrownException() }
         val amountOfMessagesPurged: Long = event.channel.flux().flatMap {
@@ -83,19 +83,17 @@ class ClearCommand : AbstractCommand(
         }.take(amountToClear.toLong()).count().blockOptional().orElseThrow {
             ThisShouldNotHaveBeenThrownException()
         }
-        return mono {
-            event.channel.flux().flatMap { it.getMessagesBefore(Snowflake.of(Instant.now())) }
-                    .take(amountToClear.toLong())
-                    .transform { (event.channel.block() as TextChannel).bulkDeleteMessages(it) }
-                    .flatMap { it.delete() }
-                    .doOnComplete {
-                        event.channel.flatMap { it.createMessage("Successfully purged $amountOfMessagesPurged message(s).") }
-                                .delayElement(Duration.ofSeconds(3))
-                                .flatMap { it.delete() }
-                                .subscribe()
-                    }
-                    .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10008)) { Flux.empty() } //unknown message
-                    .awaitFirstOrNull()
-        }
+        event.channel.flux().flatMap { it.getMessagesBefore(Snowflake.of(Instant.now())) }
+                .take(amountToClear.toLong())
+                .transform { (event.channel.block() as TextChannel).bulkDeleteMessages(it) }
+                .flatMap { it.delete() }
+                .doOnComplete {
+                    event.channel.flatMap { it.createMessage("Successfully purged $amountOfMessagesPurged message(s).") }
+                            .delayElement(Duration.ofSeconds(3))
+                            .flatMap { it.delete() }
+                            .subscribe()
+                }
+                .onErrorResume(ClientExceptionUtil.isClientExceptionWithCode(10008)) { Flux.empty() } //unknown message
+                .awaitFirstOrNull()
     }
 }
