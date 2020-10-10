@@ -2,6 +2,7 @@
 FROM openjdk:15-jdk-slim as BUILD
 COPY . .
 RUN chmod +x gradlew
+RUN whoami
 RUN ./gradlew -v
 RUN ./gradlew build
 
