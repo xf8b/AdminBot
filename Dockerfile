@@ -3,7 +3,7 @@ FROM openjdk:15-jdk-slim as BUILD
 COPY . .
 RUN chmod +x gradlew
 RUN ./gradlew -v
-RUN ./gradlew build
+RUN ./gradlew build --stacktrace
 
 FROM openjdk:15-jdk-slim
 COPY --from=BUILD /build/libs/xf8bot-*-all.jar /usr/app/bot.jar

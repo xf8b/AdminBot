@@ -74,6 +74,7 @@ tasks {
 
     processResources {
         inputs.property("version", project.version)
+
         filesMatching("version.txt") {
             expand("version" to project.version)
         }
@@ -85,7 +86,7 @@ tasks {
 }
 
 application {
-    mainClassName = property("mainClass").toString()
+    mainClass.set(property("mainClass").toString())
 }
 
 java {
