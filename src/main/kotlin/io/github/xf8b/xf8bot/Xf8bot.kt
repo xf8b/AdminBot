@@ -121,9 +121,12 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         @Throws(IOException::class, URISyntaxException::class)
         @JvmStatic
         fun main(args: Array<String>) {
+            val classLoader = Thread.currentThread().contextClassLoader
+            val url = classLoader.getResource("baseConfig.toml")
+                    ?: throw NullPointerException("The base config file does not exist!")
             val botConfiguration = BotConfiguration(
-                    "baseConfig.toml",
-                    "config.toml"
+                    url,
+                    Path.of(System.getProperty("user.dir")).resolve("config.toml")
             )
             JCommander.newBuilder()
                     .addObject(botConfiguration)

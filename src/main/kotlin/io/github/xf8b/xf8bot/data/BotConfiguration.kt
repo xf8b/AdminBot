@@ -26,10 +26,10 @@ import discord4j.common.util.Snowflake
 import discord4j.core.shard.ShardingStrategy
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.util.converter.ShardingStrategyConverter
-import io.github.xf8b.xf8bot.util.converter.SnowflakeConverter
-import java.io.File
+import java.net.URL
+import java.nio.file.Path
 
-class BotConfiguration(baseConfigFilePath: String, configFilePath: String) : Configuration {
+class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configuration {
     @Parameter(names = ["-t", "--token"], description = "The token for xf8bot to login with", password = true)
     var token: String
 
@@ -52,7 +52,7 @@ class BotConfiguration(baseConfigFilePath: String, configFilePath: String) : Con
     var mongoDatabaseName: String
 
     private val config: CommentedFileConfig = CommentedFileConfig.builder(configFilePath)
-            .onFileNotFound(FileNotFoundAction.copyData(File(baseConfigFilePath)))
+            .onFileNotFound(FileNotFoundAction.copyData(baseConfigFilePath))
             .autosave()
             .build()
 
