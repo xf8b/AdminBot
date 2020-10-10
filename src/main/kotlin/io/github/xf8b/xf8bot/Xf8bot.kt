@@ -63,9 +63,9 @@ import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import java.io.IOException
 import java.net.URISyntaxException
-import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.system.exitProcess
 
@@ -89,9 +89,11 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         //TODO: member verifying system
         //TODO: use optional instead of null?
         val classLoader = Thread.currentThread().contextClassLoader
-        val url = classLoader.getResource("version.txt")
+        val inputStream = classLoader.getResourceAsStream("version.txt")
                 ?: throw NullPointerException("The version file does not exist!")
-        version = Files.readAllLines(Path.of(url.toURI()))[0]
+        Scanner(inputStream).use { scanner ->
+            version = scanner.nextLine()
+        }
         client = DiscordClient.create(botConfiguration.token)
                 .gateway()
                 .setSharding(botConfiguration.shardingStrategy)
