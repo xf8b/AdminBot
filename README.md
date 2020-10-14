@@ -1,5 +1,6 @@
 # xf8bot   
-[![Build Status](https://travis-ci.com/xf8b/xf8bot.svg?branch=production)](https://travis-ci.com/xf8b/xf8bot)  
+[![Build Status](https://travis-ci.com/xf8b/xf8bot.svg?branch=production)](https://travis-ci.com/xf8b/xf8bot)
+[![CodeFactor](https://www.codefactor.io/repository/github/xf8b/xf8bot/badge)](https://www.codefactor.io/repository/github/xf8b/xf8bot)  
 A general purpose bot that helps you.
 ## Startup Guide
 **A more detailed startup guide is available in [the documentation](https://xf8b.github.io/documentation/xf8bot/startup/).**  
