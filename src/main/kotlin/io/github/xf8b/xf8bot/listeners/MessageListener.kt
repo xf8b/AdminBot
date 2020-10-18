@@ -145,22 +145,21 @@ class MessageListener(
                                 Mono.just(true)
                             }
                         }
-                        .flatMap { bool: Boolean ->
+                        .filterWhen {
                             if (disableChecksAnnotation != null) {
                                 if (disableChecksAnnotation.value.asList()
                                                 .contains(CommandHandlerChecks.IS_BOT_ADMINISTRATOR)) {
-                                    Mono.just(bool)
+                                    return@filterWhen Mono.just(true)
                                 }
                             }
                             if (commandHandler.isBotAdministratorOnly) {
                                 if (!commandFiredEvent.xf8bot.isBotAdministrator(commandFiredEvent.member.get().id)) {
-                                    commandFiredEvent.channel
+                                    return@filterWhen commandFiredEvent.channel
                                             .flatMap { it.createMessage("Sorry, you aren't a administrator of xf8bot.") }
-                                            .subscribe()
-                                    Mono.empty<Boolean>()
+                                            .thenReturn(false)
                                 }
                             }
-                            Mono.just(bool)
+                            return@filterWhen Mono.just(true)
                         }
                         .flatMap { bool: Boolean ->
                             if (disableChecksAnnotation != null) {
