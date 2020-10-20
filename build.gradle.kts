@@ -97,8 +97,8 @@ java {
 }
 
 license {
-    matching("**/PingCommandHandler.java", delegateClosureOf<LicenseProperties> {
-        header = rootProject.file("headers/PING_COMMAND_HANDLER_LICENSE_HEADER.txt")
+    matching("**/PingCommand.kt", delegateClosureOf<LicenseProperties> {
+        header = rootProject.file("headers/PING_COMMAND_LICENSE_HEADER.txt")
     })
 
     header = rootProject.file("headers/LICENSE_HEADER.txt")
