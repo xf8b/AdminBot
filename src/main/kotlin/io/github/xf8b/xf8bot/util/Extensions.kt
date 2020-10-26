@@ -19,29 +19,53 @@
 
 package io.github.xf8b.xf8bot.util
 
+import com.google.common.collect.ImmutableList
 import discord4j.common.util.Snowflake
 import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.Event
 import discord4j.core.spec.EmbedCreateSpec
+import discord4j.rest.util.Permission
+import discord4j.rest.util.PermissionSet
+import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import org.reflections.Reflections
 import reactor.core.publisher.Flux
 import java.time.Instant
 
-fun Member.getTagWithDisplayName(): String = this.displayName + "#" + this.discriminator
+//extension fields
+val Member.tagWithDisplayName: String
+    get() = "${this.displayName}#${this.discriminator}"
 
-fun User.isNotBot() = !isBot
+val User.isNotBot: Boolean
+    get() = !isBot
 
-fun EmbedCreateSpec.setTimestampAsNow(): EmbedCreateSpec = this.setTimestamp(Instant.now())
+//extension functions
+fun EmbedCreateSpec.setTimestampToNow(): EmbedCreateSpec = this.setTimestamp(Instant.now())
 
-inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTypesOf(T::class.java)
-
-inline fun <reified E : Event> GatewayDiscordClient.on(): Flux<E> = on(E::class.java)
-
+//to functions
+//to snowflake
 fun String.toSnowflake(): Snowflake = Snowflake.of(this)
 
 fun Long.toSnowflake(): Snowflake = Snowflake.of(this)
 
 fun Instant.toSnowflake(): Snowflake = Snowflake.of(this)
+
+//to collection
+fun Permission.toSingletonPermissionSet(): PermissionSet = PermissionSet.of(this)
+
+fun <T> T.toSingletonImmutableList(): ImmutableList<T> = ImmutableList.of(this)
+
+fun <T> Pair<T, T>.toImmutableList(): ImmutableList<T> = ImmutableList.of(first, second)
+
+fun <T> Triple<T, T, T>.toImmutableList(): ImmutableList<T> = ImmutableList.of(first, second, third)
+
+//functions purely for using reified type parameters
+inline fun <reified T : AbstractCommand> CommandRegistry.getCommandWithType(): T =
+    getCommand(T::class.java)
+
+inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTypesOf(T::class.java)
+
+inline fun <reified E : Event> GatewayDiscordClient.on(): Flux<E> = on(E::class.java)
 

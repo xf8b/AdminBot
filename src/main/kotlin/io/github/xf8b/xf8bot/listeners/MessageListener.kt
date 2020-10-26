@@ -24,33 +24,30 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.http.client.ClientException
 import discord4j.rest.util.Permission
+import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
-import io.github.xf8b.xf8bot.commands.InfoCommand
+import io.github.xf8b.xf8bot.api.commands.DisableChecks
+import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
-import io.github.xf8b.xf8bot.settings.CommandHandlerChecks
-import io.github.xf8b.xf8bot.settings.DisableChecks
 import io.github.xf8b.xf8bot.util.LoggerDelegate
 import io.github.xf8b.xf8bot.util.PermissionUtil.canMemberUseCommand
-import io.github.xf8b.xf8bot.util.Result
-import io.github.xf8b.xf8bot.util.parser.ArgumentParser
-import io.github.xf8b.xf8bot.util.parser.FlagParser
-import io.github.xf8b.xf8bot.util.toSnowflake
-import kotlinx.coroutines.reactive.awaitFirstOrNull
-import kotlinx.coroutines.reactor.mono
-import org.bson.Document
+import io.github.xf8b.xf8bot.api.commands.parser.ArgumentCommandParser
+import io.github.xf8b.xf8bot.api.commands.parser.FlagCommandParser
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.onErrorResume
+import reactor.kotlin.core.publisher.toMono
 
 class MessageListener(
-        private val xf8bot: Xf8bot,
-        private val commandRegistry: CommandRegistry
+    private val xf8bot: Xf8bot,
+    private val commandRegistry: CommandRegistry
 ) : EventListener<MessageCreateEvent> {
     companion object {
-        private val ARGUMENT_PARSER = ArgumentParser()
-        private val FLAG_PARSER = FlagParser()
+        private val ARGUMENT_PARSER = ArgumentCommandParser()
+        private val FLAG_PARSER = FlagCommandParser()
         private val LOGGER: Logger by LoggerDelegate()
     }
 
@@ -63,153 +60,157 @@ class MessageListener(
         val guild = event.guild.block()!!
         val guildId = guild.id.asString()
         if (content.trim() == "<@!${event.client.selfId.asString()}> help") {
-            val commandHandler = commandRegistry.getCommandHandler(InfoCommand::class.java)
-            return onCommandFired(event, commandHandler, guildId, content).thenReturn(event)
+            val infoCommand: InfoCommand = commandRegistry.findRegisteredWithType()
+            return onCommandFired(event, infoCommand, guildId, content).thenReturn(event)
         }
-        val mongoCollection = xf8bot.mongoDatabase.getCollection("prefixes")
-        xf8bot.prefixCache.getPrefix(guildId.toSnowflake())
-                .switchIfEmpty(Mono.from(mongoCollection.insertOne(Document()
-                        .append("guildId", guildId.toLong())
-                        .append("prefix", Xf8bot.DEFAULT_PREFIX)))
-                        .thenReturn(Xf8bot.DEFAULT_PREFIX))
-                .block()
-        val commandType = content.trim().split(" ").toTypedArray()[0]
-        for (commandHandler in commandRegistry) {
-            val name = commandHandler.getNameWithPrefix(xf8bot, guildId)
-            val aliases = commandHandler.getAliasesWithPrefixes(xf8bot, guildId)
-            if (commandType.equals(name, ignoreCase = true)) {
-                return onCommandFired(event, commandHandler, guildId, content).thenReturn(event)
+        val commandRequested = content.trim().split(" ").toTypedArray()[0]
+        for (command in commandRegistry) {
+            val name = command.getNameWithPrefix(xf8bot, guildId)
+            val aliases = command.getAliasesWithPrefixes(xf8bot, guildId)
+            if (commandRequested.equals(name, ignoreCase = true)) {
+                return onCommandFired(event, command, guildId, content).thenReturn(event)
             } else if (aliases.isNotEmpty()) {
                 for (alias in aliases) {
-                    if (commandType.equals(alias, ignoreCase = true)) {
-                        return onCommandFired(event, commandHandler, guildId, content).thenReturn(event)
+                    if (commandRequested.equals(alias, ignoreCase = true)) {
+                        return onCommandFired(event, command, guildId, content).thenReturn(event)
                     }
                 }
             }
         }
-        return Mono.just(event)
+        return event.toMono()
     }
 
-    private fun onCommandFired(event: MessageCreateEvent, commandHandler: AbstractCommand, guildId: String, content: String): Mono<Void> {
-        val flagParseResult = FLAG_PARSER.parse(commandHandler, content)
-        val argumentParseResult = ARGUMENT_PARSER.parse(commandHandler, content)
+    private fun onCommandFired(
+        event: MessageCreateEvent,
+        command: AbstractCommand,
+        guildId: String,
+        content: String
+    ): Mono<Void> {
+        val flagParseResult = FLAG_PARSER.parse(command, content)
+        val argumentParseResult = ARGUMENT_PARSER.parse(command, content)
         return if (flagParseResult.resultType !== Result.ResultType.FAILURE && argumentParseResult.resultType !== Result.ResultType.FAILURE) {
             val commandFiredEvent = CommandFiredEvent(
-                    xf8bot,
-                    flagParseResult.result!!,
-                    argumentParseResult.result!!,
-                    event
+                xf8bot,
+                flagParseResult.result!!,
+                argumentParseResult.result!!,
+                event
             )
-            val disableChecksAnnotation: DisableChecks? = commandHandler.javaClass.getAnnotation(DisableChecks::class.java)
-            mono {
-                commandFiredEvent.guild
-                        .flatMap { it.selfMember }
-                        .flatMap { it.basePermissions }
-                        .map { it.containsAll(commandHandler.botRequiredPermissions) || it.contains(Permission.ADMINISTRATOR) }
-                        .filter {
-                            if (disableChecksAnnotation != null) {
-                                if (disableChecksAnnotation.value.asList()
-                                                .contains(CommandHandlerChecks.BOT_HAS_REQUIRED_PERMISSIONS)) {
-                                    return@filter true
-                                }
-                            }
-                            if (!it) {
-                                commandFiredEvent.channel
-                                        .flatMap { messageChannel: MessageChannel ->
-                                            messageChannel
-                                                    .createMessage("Could not execute command \"${commandHandler.getNameWithPrefix(xf8bot, guildId)}\" because of insufficient permissions!")
-                                        }
-                                        .subscribe()
-                                false
-                            } else {
-                                true
-                            }
+            val disabledChecks: List<AbstractCommand.Checks>? = command.javaClass
+                .getAnnotation(DisableChecks::class.java)
+                ?.value
+                ?.asList()
+            commandFiredEvent.guild
+                .filterWhen { guild ->
+                    if (disabledChecks != null) {
+                        if (disabledChecks.contains(AbstractCommand.Checks.BOT_HAS_REQUIRED_PERMISSIONS)) {
+                            return@filterWhen true.toMono()
                         }
-                        .filterWhen {
-                            if (disableChecksAnnotation != null) {
-                                if (disableChecksAnnotation.value.asList()
-                                                .contains(CommandHandlerChecks.IS_ADMINISTRATOR)) {
-                                    return@filterWhen Mono.just(true)
-                                }
-                            }
-                            if (commandHandler.requiresAdministrator()) {
-                                return@filterWhen canMemberUseCommand(xf8bot, commandFiredEvent.guild.block()!!, commandFiredEvent.member.get(), commandHandler)
-                                        .doOnNext {
-                                            if (!it) {
-                                                commandFiredEvent.channel
-                                                        .flatMap { it.createMessage("Sorry, you don't have high enough permissions.") }
-                                                        .subscribe()
-                                            }
-                                        }
-                            } else {
-                                Mono.just(true)
-                            }
+                    }
+                    guild.selfMember.flatMap { it.basePermissions }.map {
+                        it.containsAll(command.botRequiredPermissions) ||
+                                it.contains(Permission.ADMINISTRATOR)
+                    }.filter { it }.switchIfEmpty(commandFiredEvent.channel
+                        .flatMap { messageChannel: MessageChannel ->
+                            messageChannel
+                                .createMessage(
+                                    "Could not execute command \"${
+                                        command.getNameWithPrefix(
+                                            xf8bot,
+                                            guildId
+                                        )
+                                    }\" because of insufficient permissions!"
+                                )
                         }
-                        .filterWhen {
-                            if (disableChecksAnnotation != null) {
-                                if (disableChecksAnnotation.value.asList()
-                                                .contains(CommandHandlerChecks.IS_BOT_ADMINISTRATOR)) {
-                                    return@filterWhen Mono.just(true)
-                                }
+                        .thenReturn(false))
+                }
+                .filterWhen {
+                    if (disabledChecks != null) {
+                        if (disabledChecks.contains(AbstractCommand.Checks.IS_ADMINISTRATOR)) {
+                            return@filterWhen true.toMono()
+                        }
+                    }
+                    if (command.requiresAdministrator()) {
+                        return@filterWhen event.guild.flatMap {
+                            canMemberUseCommand(xf8bot, it, commandFiredEvent.member.get(), command)
+                        }.filter { it }.switchIfEmpty(commandFiredEvent.channel
+                            .flatMap {
+                                it.createMessage("Sorry, you don't have high enough permissions.")
                             }
-                            if (commandHandler.isBotAdministratorOnly) {
-                                if (!commandFiredEvent.xf8bot.isBotAdministrator(commandFiredEvent.member.get().id)) {
-                                    return@filterWhen commandFiredEvent.channel
-                                            .flatMap { it.createMessage("Sorry, you aren't a administrator of xf8bot.") }
-                                            .thenReturn(false)
-                                }
+                            .thenReturn(false))
+                    } else {
+                        true.toMono()
+                    }
+                }
+                .filterWhen {
+                    if (disabledChecks != null) {
+                        if (disabledChecks.contains(AbstractCommand.Checks.IS_BOT_ADMINISTRATOR)) {
+                            return@filterWhen true.toMono()
+                        }
+                    }
+                    if (command.isBotAdministratorOnly) {
+                        if (!commandFiredEvent.xf8bot.isBotAdministrator(commandFiredEvent.member.get().id)) {
+                            return@filterWhen commandFiredEvent.channel
+                                .flatMap { it.createMessage("Sorry, you aren't a administrator of xf8bot.") }
+                                .thenReturn(false)
+                        }
+                    }
+                    return@filterWhen true.toMono()
+                }
+                .filterWhen {
+                    if (disabledChecks != null) {
+                        if (disabledChecks.contains(AbstractCommand.Checks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS)) {
+                            return@filterWhen true.toMono()
+                        }
+                    }
+                    if (content.trim().split(" ").toTypedArray().size < command.minimumAmountOfArgs + 1) {
+                        commandFiredEvent.message.channel
+                            .flatMap {
+                                it.createMessage(
+                                    "Huh? Could you repeat that? The usage of this command is: `${
+                                        command.getUsageWithPrefix(
+                                            xf8bot,
+                                            guildId
+                                        )
+                                    }`."
+                                )
                             }
-                            return@filterWhen Mono.just(true)
-                        }
-                        .flatMap { bool: Boolean ->
-                            if (disableChecksAnnotation != null) {
-                                if (disableChecksAnnotation.value.asList()
-                                                .contains(CommandHandlerChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS)) {
-                                    Mono.just(bool)
-                                }
-                            }
-                            if (content.trim().split(" ").toTypedArray().size < commandHandler.minimumAmountOfArgs + 1) {
-                                commandFiredEvent.message.channel
-                                        .flatMap { it.createMessage("Huh? Could you repeat that? The usage of this command is: `" + commandHandler.getUsageWithPrefix(xf8bot, guildId) + "`.") }
-                                        .subscribe()
-                                Mono.empty()
-                            } else {
-                                Mono.just(bool)
-                            }
-                        }
-                        .flatMap { commandHandler.onCommandFired(commandFiredEvent) }
-                        .doOnError { LOGGER.error("An error happened while handling commands!", it) }
-                        .onErrorResume(ClientException::class.java) { exception ->
-                            commandFiredEvent.channel
-                                    .flatMap { it.createMessage("Client exception happened while handling command: " + exception.status + " " + exception.errorResponse.get().fields) }
-                                    .then()
-                        }
-                        .onErrorResume(MongoCommandException::class.java) { exception ->
-                            commandFiredEvent.channel
-                                    .flatMap { it.createMessage("Database error happened while handling command: " + exception.errorCodeName) }
-                                    .then()
-                        }
-                        .onErrorResume(ThisShouldNotHaveBeenThrownException::class.java) {
-                            commandFiredEvent.channel
-                                    .flatMap { it.createMessage("Something has horribly gone wrong. Please report this to the bot developer with the log.") }
-                                    .then()
-                        }
-                        .onErrorResume { t ->
-                            commandFiredEvent.channel
-                                    .flatMap { it.createMessage("Exception happened while handling command: " + t.message) }
-                                    .then()
-                        }.awaitFirstOrNull()
-            }
+                            .thenReturn(false)
+                    } else {
+                        true.toMono()
+                    }
+                }
+                .flatMap { command.onCommandFired(commandFiredEvent) }
+                .doOnError { LOGGER.error("An error happened while handling commands!", it) }
+                .onErrorResume(ClientException::class) { exception ->
+                    commandFiredEvent.channel
+                        .flatMap { it.createMessage("Client exception happened while handling command: ${exception.status}: ${exception.errorResponse.get().fields}") }
+                        .then()
+                }
+                .onErrorResume(MongoCommandException::class) { exception ->
+                    commandFiredEvent.channel
+                        .flatMap { it.createMessage("Database error happened while handling command: ${exception.errorCodeName}") }
+                        .then()
+                }
+                .onErrorResume(ThisShouldNotHaveBeenThrownException::class) {
+                    commandFiredEvent.channel
+                        .flatMap { it.createMessage("Something has horribly gone wrong. Please report this to the bot developer with the log.") }
+                        .then()
+                }
+                .onErrorResume { t ->
+                    commandFiredEvent.channel
+                        .flatMap { it.createMessage("Exception happened while handling command: ${t.message}") }
+                        .then()
+                }
         } else {
             when {
                 flagParseResult.resultType === Result.ResultType.FAILURE -> event.message
-                        .channel
-                        .flatMap { it.createMessage(flagParseResult.errorMessage) }
-                        .then()
+                    .channel
+                    .flatMap { it.createMessage(flagParseResult.errorMessage) }
+                    .then()
                 argumentParseResult.resultType === Result.ResultType.FAILURE -> event.message
-                        .channel
-                        .flatMap { it.createMessage(argumentParseResult.errorMessage) }
-                        .then()
+                    .channel
+                    .flatMap { it.createMessage(argumentParseResult.errorMessage) }
+                    .then()
                 else -> throw ThisShouldNotHaveBeenThrownException()
             }
         }

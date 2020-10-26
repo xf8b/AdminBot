@@ -21,55 +21,56 @@ package io.github.xf8b.xf8bot.util
 
 import com.mongodb.client.model.Filters.and
 import com.mongodb.client.model.Filters.eq
-import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Role
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toMono
 
 object PermissionUtil {
     @JvmStatic
     fun isMemberHigher(xf8bot: Xf8bot, guild: Guild, member: Member, otherMember: Member): Mono<Boolean> =
-            getAdministratorLevel(xf8bot, guild, member).flatMap { memberAdministratorLevel ->
-                getAdministratorLevel(xf8bot, guild, otherMember).map { otherMemberAdministratorLevel ->
-                    memberAdministratorLevel >= otherMemberAdministratorLevel
-                }
+        getAdministratorLevel(xf8bot, guild, member).flatMap { memberAdministratorLevel ->
+            getAdministratorLevel(xf8bot, guild, otherMember).map { otherMemberAdministratorLevel ->
+                memberAdministratorLevel >= otherMemberAdministratorLevel
             }
+        }
 
     @JvmStatic
     fun canMemberUseCommand(xf8bot: Xf8bot, guild: Guild, member: Member, command: AbstractCommand): Mono<Boolean> =
-            getAdministratorLevel(xf8bot, guild, member).map {
-                it >= command.administratorLevelRequired
-            }
+        getAdministratorLevel(xf8bot, guild, member).map {
+            it >= command.administratorLevelRequired
+        }
 
     @JvmStatic
-    fun isAdministrator(xf8bot: Xf8bot, guild: Guild, member: Member): Boolean {
-        if (member.id == guild.ownerId) return true
+    fun isAdministrator(xf8bot: Xf8bot, guild: Guild, member: Member): Mono<Boolean> {
+        if (member.id == guild.ownerId) return true.toMono()
         val guildId = guild.id.asString()
         val mongoCollection = xf8bot.mongoDatabase.getCollection("administratorRoles")
-        return member.roles.map(Role::getId).any {
-            Mono.from(mongoCollection.find(and(eq("roleId", it.asLong()), eq("guildId", guildId.toLong()))))
-                    .map { true }
-                    .defaultIfEmpty(false)
-                    .block()!!
-        }.block()!!
+        return member.roles.map(Role::getId).filterWhen {
+            mongoCollection.find(and(eq("roleId", it.asLong()), eq("guildId", guildId.toLong()))).toMono()
+                .map { true }
+                .defaultIfEmpty(false)
+        }.count().map { it >= 1 }
     }
 
     @JvmStatic
     fun getAdministratorLevel(xf8bot: Xf8bot, guild: Guild, member: Member): Mono<Int> {
-        if (member.id == guild.ownerId) return Mono.just(4)
+        if (member.id == guild.ownerId) return 4.toMono()
         val guildId = guild.id.asString()
         val mongoCollection = xf8bot.mongoDatabase.getCollection("administratorRoles")
         return member.roles.map(Role::getId)
-                .map { roleId: Snowflake ->
-                    Mono.from(mongoCollection.find(and(eq("roleId", roleId.asLong()), eq("guildId", guildId.toLong()))))
-                            .map { it.getInteger("level") }
-                            .defaultIfEmpty(0)
-                            .block()!!
-                }
-                .sort()
-                .last()
+            .flatMap { roleId ->
+                mongoCollection.find(
+                    and(
+                        eq("roleId", roleId.asLong()),
+                        eq("guildId", guildId.toLong())
+                    )
+                ).toMono().map { it.getInteger("level") }.defaultIfEmpty(0)
+            }
+            .sort()
+            .last()
     }
 }

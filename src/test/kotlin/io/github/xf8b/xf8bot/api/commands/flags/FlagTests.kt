@@ -24,27 +24,25 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import java.util.concurrent.TimeUnit
 
-
-class FlagTest {
-    @Test
-    fun `test flag regex`() {
-        val flagRegex = Flag.REGEX
-        assertTrue(flagRegex.matches("-c blue"))
-        assertTrue(flagRegex.matches("-f \"beans\""))
-        assertTrue(flagRegex.matches("-m = \"bruhman\""))
-        assertTrue(flagRegex.matches("--red=true"))
-    }
-}
-
 class IntegerFlagTest {
     @Test
     fun `test integer flag validity check`() {
         val integerFlag = IntegerFlag.builder()
-                .setShortName("i")
-                .setLongName("integer")
-                .build()
-        assertFalse(integerFlag.isValidValue("beans"))
-        assertFalse(integerFlag.isValidValue("\"2\""))
+            .setShortName("i")
+            .setLongName("integer")
+            .build()
+        assertFalse(integerFlag.isValidValue("beans")) {
+            "Unexpected result of true from validity predicate for input 'beans'"
+        }
+        assertFalse(integerFlag.isValidValue("\"2\"")) {
+            "Unexpected result of true from validity predicate for input '\"2\"'"
+        }
+        assertTrue(integerFlag.isValidValue("2")) {
+            "Unexpected result of false from validity predicate for input '2'"
+        }
+        assertTrue(integerFlag.isValidValue("-105")) {
+            "Unexpected result of false from validity predicate for input '-105'"
+        }
     }
 }
 
@@ -52,14 +50,14 @@ class TimeFlagTest {
     @Test
     fun `test time flag parse result`() {
         val timeFlag = TimeFlag.builder()
-                .setShortName("t")
-                .setLongName("time")
-                .build()
-        assertTrue {
-            timeFlag.parse("2d").first == 2L
+            .setShortName("t")
+            .setLongName("time")
+            .build()
+        assertTrue(timeFlag.parse("2d").first == 2L) {
+            "Unexpected failure of parsing '2d'"
         }
-        assertTrue {
-            timeFlag.parse("2min").second == TimeUnit.MINUTES
+        assertTrue(timeFlag.parse("2min").second == TimeUnit.MINUTES) {
+            "Unexpected failure of parsing '2min'"
         }
     }
 }

@@ -20,12 +20,6 @@
 package io.github.xf8b.xf8bot.api.commands
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand.CommandType
-import io.github.xf8b.xf8bot.util.LoggerDelegate
-import io.github.xf8b.xf8bot.util.getSubTypesOf
-import org.reflections.Reflections
-import org.reflections.scanners.SubTypesScanner
-import org.slf4j.Logger
-import java.lang.reflect.InvocationTargetException
 import java.util.*
 import java.util.stream.Collectors
 
@@ -34,13 +28,7 @@ import java.util.stream.Collectors
  *
  * @author xf8b
  */
-class CommandRegistry : AbstractList<AbstractCommand>() {
-    override val size: Int
-        get() = commandHandlers.size
-    private val logger: Logger by LoggerDelegate()
-    private val commandHandlers: MutableList<AbstractCommand> = LinkedList()
-    var locked = false
-
+class CommandRegistry : Registry<AbstractCommand>() {
     /**
      * Registers the passed in [AbstractCommand].
      *
@@ -56,35 +44,13 @@ class CommandRegistry : AbstractList<AbstractCommand>() {
         commandHandlers.add(command)
     }
 
-    fun slurpCommandHandlers(packagePrefix: String) {
-        val reflections = Reflections(packagePrefix, SubTypesScanner())
-        reflections.getSubTypesOf<AbstractCommand>().forEach {
-            try {
-                registerCommandHandler(it.getConstructor().newInstance())
-            } catch (exception: InstantiationException) {
-                logger.error("An error happened while trying to slurp command handlers!", exception)
-            } catch (exception: InvocationTargetException) {
-                logger.error("An error happened while trying to slurp command handlers!", exception)
-            } catch (exception: IllegalAccessException) {
-                logger.error("An error happened while trying to slurp command handlers!", exception)
-            } catch (exception: NoSuchMethodException) {
-                logger.error("An error happened while trying to slurp command handlers!", exception)
-            }
-        }
-        locked = true
-    }
+    fun <T : AbstractCommand> getCommand(klass: Class<out T>): T = klass.cast(registered.stream()
+        .filter { it.javaClass == klass }
+        .findFirst()
+        .orElseThrow { IllegalArgumentException("No command matches the class inputted!") })
 
-    override fun get(index: Int): AbstractCommand = commandHandlers[index]
-
-    override fun iterator(): MutableIterator<AbstractCommand> = commandHandlers.iterator()
-
-    fun <T : AbstractCommand> getCommandHandler(klass: Class<out T>): T = klass.cast(commandHandlers.stream()
-            .filter { it.javaClass == klass }
-            .findFirst()
-            .orElseThrow { IllegalArgumentException("No command matches the class inputted!") })
-
-    fun getCommandHandlersWithCommandType(commandType: CommandType): List<AbstractCommand> =
-            LinkedList(commandHandlers.stream()
-                    .filter { it.commandType === commandType }
-                    .collect(Collectors.toUnmodifiableList()))
+    fun getCommandsWithCommandType(commandType: CommandType): List<AbstractCommand> =
+        LinkedList(registered.stream()
+            .filter { it.commandType === commandType }
+            .collect(Collectors.toUnmodifiableList()))
 }

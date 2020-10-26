@@ -23,6 +23,8 @@ import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import io.github.xf8b.utils.optional.toOptional
+import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
@@ -30,16 +32,16 @@ import reactor.core.publisher.Mono
 import java.util.*
 
 class CommandFiredEvent(
-        val xf8bot: Xf8bot,
-        private val flagMap: Map<Flag<*>, Any>,
-        private val argumentsMap: Map<Argument<*>, Any>,
-        event: MessageCreateEvent
+    val xf8bot: Xf8bot,
+    private val flagMap: Map<Flag<*>, Any>,
+    private val argumentsMap: Map<Argument<*>, Any>,
+    event: MessageCreateEvent
 ) : MessageCreateEvent(
-        event.client,
-        event.shardInfo,
-        event.message,
-        event.guildId.map(Snowflake::asLong).orElse(null),
-        event.member.orElse(null)
+    event.client,
+    event.shardInfo,
+    event.message,
+    event.guildId.map(Snowflake::asLong).toValueOrNull(),
+    event.member.toValueOrNull()
 ) {
     val prefix: Mono<String> = if (guildId.isEmpty) {
         Mono.empty()
@@ -52,10 +54,10 @@ class CommandFiredEvent(
         get() = message.author
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getValueOfFlag(flag: Flag<T>): Optional<T> = Optional.ofNullable(flagMap[flag] as T?)
+    fun <T : Any> getValueOfFlag(flag: Flag<T>): Optional<T> = (flagMap[flag] as T?).toOptional()
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getValueOfArgument(argument: Argument<T>): Optional<T> = Optional.ofNullable(argumentsMap[argument] as T?)
+    fun <T : Any> getValueOfArgument(argument: Argument<T>): Optional<T> = (argumentsMap[argument] as T?).toOptional()
 
     override fun toString(): String {
         return "CommandFiredEvent(" +

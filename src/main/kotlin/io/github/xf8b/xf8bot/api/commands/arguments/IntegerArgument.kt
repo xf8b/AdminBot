@@ -24,12 +24,12 @@ import java.util.function.Function
 import java.util.function.Predicate
 
 class IntegerArgument(
-        index: Range<Int>?,
-        name: String?,
-        required: Boolean,
-        parseFunction: Function<String, Int>,
-        validityPredicate: Predicate<String>,
-        invalidValueErrorMessageFunction: Function<String, String>
+    index: Range<Int>?,
+    name: String?,
+    required: Boolean,
+    parseFunction: Function<String, Int>,
+    validityPredicate: Predicate<String>,
+    invalidValueErrorMessageFunction: Function<String, String>
 ) : Argument<Int> {
     override val index: Range<Int>
     override val name: String
@@ -61,7 +61,8 @@ class IntegerArgument(
         private var required = true
         private var parseFunction = Function { stringToParse: String -> stringToParse.toInt() }
         private var validityPredicate = Predicate { value: String -> value.toIntOrNull() != null }
-        private var invalidValueErrorMessageFunction = Function { _: String -> Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
+        private var invalidValueErrorMessageFunction =
+            Function { _: String -> Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
 
         fun setIndex(index: Range<Int>): IntegerArgumentBuilder = apply {
             this.index = index
@@ -85,17 +86,18 @@ class IntegerArgument(
             this.validityPredicate = validityPredicate
         }
 
-        fun setInvalidValueErrorMessageFunction(invalidValueErrorMessageFunction: Function<String, String>): IntegerArgumentBuilder = apply {
-            this.invalidValueErrorMessageFunction = invalidValueErrorMessageFunction
-        }
+        fun setInvalidValueErrorMessageFunction(invalidValueErrorMessageFunction: Function<String, String>): IntegerArgumentBuilder =
+            apply {
+                this.invalidValueErrorMessageFunction = invalidValueErrorMessageFunction
+            }
 
         fun build(): IntegerArgument = IntegerArgument(
-                index,
-                name,
-                required,
-                parseFunction,
-                validityPredicate,
-                invalidValueErrorMessageFunction
+            index,
+            name,
+            required,
+            parseFunction,
+            validityPredicate,
+            invalidValueErrorMessageFunction
         )
     }
 

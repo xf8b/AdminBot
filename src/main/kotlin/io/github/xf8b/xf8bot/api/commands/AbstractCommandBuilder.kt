@@ -26,18 +26,18 @@ import io.github.xf8b.xf8bot.api.commands.flags.Flag
 
 //only here for java compatibility
 class AbstractCommandBuilder(
-        name: String? = null,
-        usage: String? = null,
-        description: String? = null,
-        commandType: AbstractCommand.CommandType? = null,
-        actions: MutableMap<String, String> = HashMap(),
-        aliases: MutableList<String> = ArrayList(),
-        minimumAmountOfArgs: Int = 0,
-        flags: MutableList<Flag<*>> = ArrayList(),
-        arguments: MutableList<Argument<*>> = ArrayList(),
-        botRequiredPermissions: PermissionSet = PermissionSet.none(),
-        administratorLevelRequired: Int = 0,
-        isBotAdministratorOnly: Boolean = false,
+    name: String? = null,
+    usage: String? = null,
+    description: String? = null,
+    commandType: AbstractCommand.CommandType? = null,
+    actions: MutableMap<String, String> = HashMap(),
+    aliases: MutableList<String> = ArrayList(),
+    minimumAmountOfArgs: Int = 0,
+    flags: MutableList<Flag<*>> = ArrayList(),
+    arguments: MutableList<Argument<*>> = ArrayList(),
+    botRequiredPermissions: PermissionSet = PermissionSet.none(),
+    administratorLevelRequired: Int = 0,
+    isBotAdministratorOnly: Boolean = false,
 ) {
     var name: String? = name
         private set
@@ -184,7 +184,7 @@ class AbstractCommandBuilder(
     }
 
     override fun toString(): String {
-        return "AbstractCommandHandlerBuilder(name=$name, " +
+        return "AbstractCommandBuilder(name=$name, " +
                 "usage=$usage, " +
                 "description=$description, " +
                 "commandType=$commandType, " +

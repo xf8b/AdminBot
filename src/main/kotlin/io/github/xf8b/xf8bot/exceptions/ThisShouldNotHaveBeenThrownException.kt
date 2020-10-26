@@ -20,5 +20,5 @@
 package io.github.xf8b.xf8bot.exceptions
 
 class ThisShouldNotHaveBeenThrownException(
-        message: String = "Something bad has happened"
+    message: String = "Something bad has happened"
 ) : Error(message)

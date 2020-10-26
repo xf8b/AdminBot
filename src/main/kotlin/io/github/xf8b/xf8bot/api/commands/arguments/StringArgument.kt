@@ -24,12 +24,12 @@ import java.util.function.Function
 import java.util.function.Predicate
 
 class StringArgument(
-        index: Range<Int>?,
-        name: String?,
-        required: Boolean,
-        parseFunction: Function<String, String>,
-        validityPredicate: Predicate<String>,
-        invalidValueErrorMessageFunction: Function<String, String>
+    index: Range<Int>?,
+    name: String?,
+    required: Boolean,
+    parseFunction: Function<String, String>,
+    validityPredicate: Predicate<String>,
+    invalidValueErrorMessageFunction: Function<String, String>
 ) : Argument<String> {
     override val index: Range<Int>
     override val name: String
@@ -61,7 +61,8 @@ class StringArgument(
         private var required = true
         private var parseFunction = Function { stringToParse: String -> stringToParse }
         private var validityPredicate = Predicate { _: String -> true }
-        private var invalidValueErrorMessageFunction = Function { _: String -> Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
+        private var invalidValueErrorMessageFunction =
+            Function { _: String -> Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
 
         fun setIndex(index: Range<Int>): StringArgumentBuilder = apply {
             this.index = index
@@ -85,17 +86,18 @@ class StringArgument(
             this.validityPredicate = validityPredicate
         }
 
-        fun setInvalidValueErrorMessageFunction(invalidValueErrorMessageFunction: Function<String, String>): StringArgumentBuilder = apply {
-            this.invalidValueErrorMessageFunction = invalidValueErrorMessageFunction
-        }
+        fun setInvalidValueErrorMessageFunction(invalidValueErrorMessageFunction: Function<String, String>): StringArgumentBuilder =
+            apply {
+                this.invalidValueErrorMessageFunction = invalidValueErrorMessageFunction
+            }
 
         fun build(): StringArgument = StringArgument(
-                index,
-                name,
-                required,
-                parseFunction,
-                validityPredicate,
-                invalidValueErrorMessageFunction
+            index,
+            name,
+            required,
+            parseFunction,
+            validityPredicate,
+            invalidValueErrorMessageFunction
         )
 
         override fun toString(): String {

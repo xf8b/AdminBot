@@ -26,20 +26,28 @@ import com.mongodb.reactivestreams.client.MongoCollection
 import discord4j.common.util.Snowflake
 import org.bson.Document
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toMono
 import java.time.Duration
 
 class PrefixCache(private val mongoCollection: MongoCollection<Document>) {
     private val cache = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofSeconds(5))
-            .build<Snowflake, Mono<String>> { snowflake ->
-                Mono.from(mongoCollection.find(Filters.eq("guildId", snowflake.asLong())))
-                        .map { it.get("prefix", String::class.java) }
-            }
+        .expireAfterWrite(Duration.ofSeconds(5))
+        .build<Snowflake, Mono<String>> { snowflake ->
+            mongoCollection.find(Filters.eq("guildId", snowflake.asLong())).toMono()
+                .map { it.getString("prefix") }
+                .switchIfEmpty(
+                    mongoCollection.insertOne(
+                        Document()
+                            .append("guildId", snowflake.asLong())
+                            .append("prefix", Xf8bot.DEFAULT_PREFIX)
+                    ).toMono().thenReturn(Xf8bot.DEFAULT_PREFIX)
+                )
+        }
 
     fun getPrefix(snowflake: Snowflake): Mono<String> = cache.get(snowflake)!!
 
-    fun setPrefix(snowflake: Snowflake, prefix: String): Mono<Void> = Mono.from(mongoCollection.findOneAndUpdate(
-            Filters.eq("guildId", snowflake.asLong()),
-            Updates.set("prefix", prefix)
-    )).then(Mono.fromRunnable { cache.refresh(snowflake) })
+    fun setPrefix(snowflake: Snowflake, prefix: String): Mono<Void> = mongoCollection.findOneAndUpdate(
+        Filters.eq("guildId", snowflake.asLong()),
+        Updates.set("prefix", prefix)
+    ).toMono().then(Mono.fromRunnable { cache.refresh(snowflake) })
 }

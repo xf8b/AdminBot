@@ -25,6 +25,7 @@ repositories {
     //TODO: remove?
     //for discord4j 3.2.0
     maven("https://repo.spring.io/milestone")
+    maven("https://repo.repsy.io/mvn/progamer28415/main")
 }
 
 dependencies {
@@ -33,11 +34,14 @@ dependencies {
     //discord4j
     implementation("com.discord4j:discord4j-core:${property("discord4jVersion")}")
     implementation("com.discord4j:stores-caffeine:${property("discord4jStoresVersion")}")
+    //reactor
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:${property("reactorKotlinExtensions")}")
     //music
     //implementation("com.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
     //see https://github.com/sedmelluq/lavaplayer/issues/517 for why this is here
     //TODO remove when new release
-    implementation("com.github.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
+    //implementation("com.github.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
+    implementation("com.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
     //command libs
     //TODO: remove?
     implementation("com.mojang:brigadier:${property("brigadierVersion")}")
@@ -52,15 +56,22 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine:${property("caffeineVersion")}")
     //drivers
     implementation("org.mongodb:mongodb-driver-reactivestreams:${property("mongoDbDriverVersion")}")
+    //kotlin
     //coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${property("coroutinesVersion")}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${property("coroutinesVersion")}")
+    //scripting
+    implementation("org.jetbrains.kotlin:kotlin-script-runtime:${property("scriptingVersion")}")
+    implementation("org.jetbrains.kotlin:kotlin-script-util:${property("scriptingVersion")}")
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:${property("scriptingVersion")}")
     //util
     implementation("org.apache.commons:commons-text:${property("commonsTextVersion")}")
     implementation("net.jodah:typetools:${property("typeToolsVersion")}")
     implementation("org.reflections:reflections:${property("reflectionsVersion")}")
     implementation("com.google.guava:guava:${property("guavaVersion")}")
     implementation("org.codehaus.groovy:groovy-all:${property("groovyVersion")}")
+    implementation("io.github.xf8b:utils:${property("utilsVersion")}")
+    implementation("io.micrometer:micrometer-registry-prometheus:1.5.5")
 }
 
 tasks {

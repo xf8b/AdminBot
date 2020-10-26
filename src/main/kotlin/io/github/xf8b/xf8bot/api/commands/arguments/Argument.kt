@@ -32,7 +32,8 @@ interface Argument<out T : Any> {
     val invalidValueErrorMessageFunction: Function<String, String>
 
     companion object {
-        const val DEFAULT_INVALID_VALUE_ERROR_MESSAGE = "Invalid value `%s` for argument at index %s! Required value: %s."
+        const val DEFAULT_INVALID_VALUE_ERROR_MESSAGE =
+            "Invalid value `%s` for argument at index %s! Required value: %s."
     }
 
     /**

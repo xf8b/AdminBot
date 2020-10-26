@@ -22,18 +22,22 @@ package io.github.xf8b.xf8bot.api.commands.flags
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument.Companion.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
 import java.util.function.Function
 import java.util.function.Predicate
+import java.util.function.Supplier
 
 interface Flag<out T : Any> {
     val required: Boolean
     val requiresValue: Boolean
-    val validityPredicate: Predicate<String>
+    val defaultValue: Supplier<out T>
+    val validityPredicate: Predicate<in String>
     val shortName: String
     val longName: String
-    val parseFunction: Function<String, out T>
-    val invalidValueErrorMessageFunction: Function<String, String>
+    val parseFunction: Function<in String, out T>
+    val invalidValueErrorMessageFunction: Function<in String, out String>
 
     companion object {
         const val DEFAULT_INVALID_VALUE_ERROR_MESSAGE = "Invalid value `%s`! Required value: %s."
+
+        @Deprecated(message = "Buggy regex. Use contains or any other method other than this horrible regex.")
         val REGEX: Regex = "(--?)([a-zA-Z]+) ?=? ?(\"?[\\w ]+\"?)".toRegex()
     }
 

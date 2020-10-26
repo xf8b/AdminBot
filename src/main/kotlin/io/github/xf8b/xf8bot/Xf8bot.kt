@@ -51,20 +51,24 @@ import discord4j.gateway.intent.IntentSet
 import discord4j.rest.util.Color
 import discord4j.store.caffeine.CaffeineStoreService
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
-import io.github.xf8b.xf8bot.commands.SlapBrigadierCommand
-import io.github.xf8b.xf8bot.data.BotConfiguration
+import io.github.xf8b.xf8bot.api.commands.findAndRegister
+import io.github.xf8b.xf8bot.commands.other.SlapBrigadierCommand
 import io.github.xf8b.xf8bot.data.PrefixCache
 import io.github.xf8b.xf8bot.listeners.MessageListener
 import io.github.xf8b.xf8bot.listeners.ReadyListener
+import io.github.xf8b.xf8bot.settings.BotConfiguration
 import io.github.xf8b.xf8bot.util.*
+import io.micrometer.core.instrument.Metrics.globalRegistry
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics
+import io.micrometer.core.instrument.logging.LoggingMeterRegistry
 import org.reactivestreams.Publisher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.io.IOException
 import java.net.URISyntaxException
 import java.nio.file.Path
-import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.system.exitProcess
@@ -80,9 +84,10 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
 
     init {
         audioPlayerManager = DefaultAudioPlayerManager()
-        audioPlayerManager.configuration.frameBufferFactory = AudioFrameBufferFactory { bufferDuration: Int, format: AudioDataFormat, stopping: AtomicBoolean ->
-            NonAllocatingAudioFrameBuffer(bufferDuration, format, stopping)
-        }
+        audioPlayerManager.configuration.frameBufferFactory =
+            AudioFrameBufferFactory { bufferDuration: Int, format: AudioDataFormat, stopping: AtomicBoolean ->
+                NonAllocatingAudioFrameBuffer(bufferDuration, format, stopping)
+            }
         AudioSourceManagers.registerRemoteSources(audioPlayerManager)
         //TODO: bass and loop commands
         //TODO: subcommands
@@ -90,28 +95,30 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         //TODO: use optional instead of null?
         val classLoader = Thread.currentThread().contextClassLoader
         val inputStream = classLoader.getResourceAsStream("version.txt")
-                ?: throw NullPointerException("The version file does not exist!")
+            ?: throw NullPointerException("The version file does not exist!")
         Scanner(inputStream).use { scanner ->
             version = scanner.nextLine()
         }
         client = DiscordClient.create(botConfiguration.token)
-                .gateway()
-                .setSharding(botConfiguration.shardingStrategy)
-                .setStoreService(CaffeineStoreService())
-                .setInitialStatus { shardInfo: ShardInfo ->
-                    Presence.online(Activity.playing("${botConfiguration.activity} | Shard ID: ${shardInfo.index}"))
-                }
-                .setEnabledIntents(IntentSet.nonPrivileged().or(IntentSet.of(Intent.GUILD_MEMBERS)))
-                .login()
-                .doOnError {
-                    LOGGER.error("Could not login!", it)
-                    exitProcess(0)
-                }.block()!!
+            .gateway()
+            .setSharding(botConfiguration.shardingStrategy)
+            .setStoreService(CaffeineStoreService())
+            .setInitialStatus { shardInfo: ShardInfo ->
+                Presence.online(Activity.playing("${botConfiguration.activity} | Shard ID: ${shardInfo.index}"))
+            }
+            .setEnabledIntents(IntentSet.nonPrivileged().or(IntentSet.of(Intent.GUILD_MEMBERS)))
+            .login()
+            .doOnError {
+                LOGGER.error("Could not login!", it)
+                exitProcess(0)
+            }.block()!!
         //TODO: coroutines
         this.botConfiguration = botConfiguration
-        val mongoClient = MongoClients.create(ParsingUtil.fixMongoConnectionUrl(
+        val mongoClient = MongoClients.create(
+            ParsingUtil.fixMongoConnectionUrl(
                 botConfiguration.mongoConnectionUrl
-        ))
+            )
+        )
         mongoDatabase = mongoClient.getDatabase(botConfiguration.mongoDatabaseName)
         prefixCache = PrefixCache(mongoDatabase.getCollection("prefixes"))
     }
@@ -122,18 +129,19 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
 
         @Throws(IOException::class, URISyntaxException::class)
         @JvmStatic
-        fun main(args: Array<String>) {
+        fun main(vararg args: String) {
+            Schedulers.enableMetrics()
             val classLoader = Thread.currentThread().contextClassLoader
             val url = classLoader.getResource("baseConfig.toml")
-                    ?: throw NullPointerException("The base config file does not exist!")
+                ?: throw NullPointerException("The base config file does not exist!")
             val botConfiguration = BotConfiguration(
-                    url,
-                    Path.of(System.getProperty("user.dir")).resolve("config.toml")
+                url,
+                Path.of(System.getProperty("user.dir")).resolve("config.toml")
             )
             JCommander.newBuilder()
-                    .addObject(botConfiguration)
-                    .build()
-                    .parse(*args)
+                .addObject(botConfiguration)
+                .build()
+                .parse(*args)
             Xf8bot(botConfiguration).start().block()
         }
     }
@@ -143,51 +151,53 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
             client.logout().block()
             LOGGER.info("Shutting down!")
         })
-        commandRegistry.slurpCommandHandlers("io.github.xf8b.xf8bot.commands")
+        commandRegistry.findAndRegister("io.github.xf8b.xf8bot.commands")
         val messageListener = MessageListener(this, commandRegistry)
         val readyListener = ReadyListener(
-                botConfiguration.activity,
-                botConfiguration.botAdministrators,
-                version
+            botConfiguration.activity,
+            botConfiguration.botAdministrators,
+            version
         )
         //TODO: figure out why readyevent isnt being fired
         val readyPublisher: Publisher<*> = client.on<ReadyEvent>()
-                .flatMap { readyListener.onEventFired(it) }
+            .flatMap { readyListener.onEventFired(it) }
         val messageCreateEventPublisher: Publisher<*> = client.on<MessageCreateEvent>()
-                .filter { it.message.content.isNotEmpty() }
-                .filter { it.member.isPresent }
-                .filter { it.message.author.isPresent }
-                .filter { it.message.author.get().isNotBot() }
-                .flatMap { messageListener.onEventFired(it) }
+            .filter { it.message.content.isNotEmpty() }
+            .filter { it.member.isPresent }
+            .filter { it.message.author.isPresent }
+            .filter { it.message.author.get().isNotBot }
+            .flatMap { messageListener.onEventFired(it) }
+            .onErrorContinue { throwable, _ ->
+                LOGGER.error("Error happened while handling message create events", throwable)
+            } //TODO remove
         val commandDispatcher = CommandDispatcher<MessageCreateEvent>()
         SlapBrigadierCommand.register(commandDispatcher)
         val brigadierMessageCreatePublisher: Publisher<*> = client.on<MessageCreateEvent>()
-                .filter { it.message.content.isNotEmpty() }
-                .filter { it.member.isPresent }
-                .filter { it.message.author.isPresent }
-                .filter { it.message.author.get().isNotBot() }
-                .filter { it.message.content.startsWith(">slap") }
-                .flatMap {
-                    Mono.defer {
-                        try {
-                            commandDispatcher.execute(it.message.content, it)
-                            Mono.empty()
-                        } catch (exception: CommandSyntaxException) {
-                            it.message.channel.flatMap {
-                                it.createMessage("CommandSyntaxException: $exception")
-                            }
+            .filter { it.message.content.isNotEmpty() }
+            .filter { it.member.isPresent }
+            .filter { it.message.author.isPresent }
+            .filter { it.message.author.get().isNotBot }
+            .filter { it.message.content.startsWith(">slap") }
+            .flatMap {
+                Mono.defer {
+                    try {
+                        Mono.fromRunnable { commandDispatcher.execute(it.message.content, it) }
+                    } catch (exception: CommandSyntaxException) {
+                        it.message.channel.flatMap {
+                            it.createMessage("CommandSyntaxException: $exception")
                         }
                     }
                 }
+            }
         val webhookPublisher: Publisher<*> = client.self.flatMap { self: User ->
             val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
             val discordAsync = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
-                    .getAppender("ASYNC_DISCORD") as AsyncAppender
+                .getAppender("ASYNC_DISCORD") as AsyncAppender
             val discordAppender = discordAsync.getAppender("DISCORD") as DiscordAppender
             discordAppender.username = self.username
             discordAppender.avatarUrl = self.avatarUrl
             val webhookUrl = botConfiguration.logDumpWebhook
-            discordAppender.addFilter(FunctionalLoggingFilter {
+            discordAppender.addFilter(FunctionalFilter {
                 if (webhookUrl.trim().isBlank()) {
                     FilterReply.DENY
                 } else {
@@ -216,16 +226,16 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
             }
         }
         val disconnectPublisher: Publisher<*> = client.onDisconnect()
-                .doOnSuccess { LOGGER.info("Successfully disconnected!") }
+            .doOnSuccess { LOGGER.info("Successfully disconnected!") }
         return Mono.`when`(
-                readyPublisher,
-                messageCreateEventPublisher,
-                brigadierMessageCreatePublisher,
-                webhookPublisher,
-                disconnectPublisher
+            readyPublisher,
+            messageCreateEventPublisher,
+            brigadierMessageCreatePublisher,
+            webhookPublisher,
+            disconnectPublisher
         )
     }
 
     fun isBotAdministrator(snowflake: Snowflake): Boolean =
-            botConfiguration.botAdministrators.contains(snowflake)
+        botConfiguration.botAdministrators.contains(snowflake)
 }
