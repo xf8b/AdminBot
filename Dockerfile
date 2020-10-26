@@ -1,4 +1,4 @@
-FROM gradle:6.7.0-jdk15-openj9 as BUILD
+FROM gradle:6.7.0-jdk15-hotspot as BUILD
 COPY . .
 RUN gradle -v
 RUN gradle build
