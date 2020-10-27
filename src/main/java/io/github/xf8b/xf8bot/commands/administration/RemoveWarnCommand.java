@@ -52,7 +52,8 @@ public class RemoveWarnCommand extends AbstractCommand {
     private static final StringFlag WARN_ID = StringFlag.builder()
             .setShortName("i")
             .setLongName("warnId")
-            //TODO: fix
+            //hopefully fixed
+            //TODO fix if not fixed
             .setValidityPredicate(s -> s.matches("\\b[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b"))
             .setInvalidValueErrorMessageFunction($ -> "The warn ID must be a UUID!")
             .setNotRequired()

@@ -37,10 +37,6 @@ dependencies {
     //reactor
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:${property("reactorKotlinExtensions")}")
     //music
-    //implementation("com.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
-    //see https://github.com/sedmelluq/lavaplayer/issues/517 for why this is here
-    //TODO remove when new release
-    //implementation("com.github.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
     implementation("com.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
     //command libs
     //TODO: remove?

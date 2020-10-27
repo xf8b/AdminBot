@@ -24,17 +24,14 @@ import java.util.function.Predicate
 
 object ExceptionPredicates {
     @JvmStatic
-    fun isClientExceptionWithCode(code: Int): Predicate<Throwable> {
-        //todo fix error handling
-        return Predicate { throwable ->
-            if (throwable is ClientException) {
-                throwable.errorResponse
-                    .map { it.fields["code"] }
-                    .map { it as Int == code }
-                    .orElse(false)
-            } else {
-                false
-            }
+    fun isClientExceptionWithCode(code: Int): Predicate<Throwable> = Predicate { throwable ->
+        if (throwable is ClientException) {
+            throwable.errorResponse
+                .map { it.fields["code"] }
+                .map { it as Int == code }
+                .orElse(false)
+        } else {
+            false
         }
     }
 }

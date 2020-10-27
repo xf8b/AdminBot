@@ -157,7 +157,9 @@ public class HelpCommand extends AbstractCommand {
                 }
             }
         }
-        return Mono.empty(); //TODO: see if this breaks anything
+        return event.getChannel()
+                .flatMap(it -> it.createMessage("Error: Could not find command/section " + commandOrSection.get()))
+                .then();
     }
 
     private void generateCommandTypeEmbed(@NotNull CommandFiredEvent event, @NotNull CommandRegistry commandRegistry, @NotNull EmbedCreateSpec embedCreateSpec, CommandType commandType, @NotNull String guildId, int pageNumber) {

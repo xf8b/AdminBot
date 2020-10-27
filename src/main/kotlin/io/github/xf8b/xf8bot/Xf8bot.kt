@@ -109,7 +109,6 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
                 LOGGER.error("Could not login!", it)
                 exitProcess(0)
             }.block()!!
-        //TODO: coroutines
         this.botConfiguration = botConfiguration
         val mongoClient = MongoClients.create(
             ParsingUtil.fixMongoConnectionUrl(
