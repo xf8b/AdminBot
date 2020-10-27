@@ -58,9 +58,6 @@ import io.github.xf8b.xf8bot.listeners.MessageListener
 import io.github.xf8b.xf8bot.listeners.ReadyListener
 import io.github.xf8b.xf8bot.settings.BotConfiguration
 import io.github.xf8b.xf8bot.util.*
-import io.micrometer.core.instrument.Metrics.globalRegistry
-import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics
-import io.micrometer.core.instrument.logging.LoggingMeterRegistry
 import org.reactivestreams.Publisher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
