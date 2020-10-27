@@ -31,6 +31,7 @@ class ReactorMetricsCommand : AbstractCommand(
     aliases = "\${prefix}metrics".toSingletonImmutableList(),
     isBotAdministratorOnly = true
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-    }
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap {
+        it.createMessage("todo")
+    }.then()
 }
