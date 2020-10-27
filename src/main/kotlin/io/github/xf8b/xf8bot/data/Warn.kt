@@ -21,4 +21,4 @@ package io.github.xf8b.xf8bot.data
 
 import discord4j.common.util.Snowflake
 
-data class WarnContext(val memberWhoWarnedId: Snowflake, val reason: String, val warnId: String)
+data class Warn(val memberWhoWarnedId: Snowflake, val reason: String, val warnId: String)

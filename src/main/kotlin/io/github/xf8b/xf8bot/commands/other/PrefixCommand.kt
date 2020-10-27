@@ -17,7 +17,7 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.commands
+package io.github.xf8b.xf8bot.commands.other
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
@@ -61,7 +61,7 @@ class PrefixCommand : AbstractCommand(
             }.then()
             //set prefix
             else -> xf8bot.prefixCache.setPrefix(guildId, newPrefix.get()).then(channelMono.flatMap {
-                it.createMessage("Successfully set prefix from " + previousPrefix + " to " + newPrefix.get() + ".")
+                it.createMessage("Successfully set prefix from $previousPrefix to ${newPrefix.get()}.")
             }).then()
         }
     }

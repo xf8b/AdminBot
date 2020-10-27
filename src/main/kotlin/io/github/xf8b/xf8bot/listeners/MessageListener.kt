@@ -30,12 +30,12 @@ import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.DisableChecks
+import io.github.xf8b.xf8bot.api.commands.parser.ArgumentCommandParser
+import io.github.xf8b.xf8bot.api.commands.parser.FlagCommandParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.LoggerDelegate
 import io.github.xf8b.xf8bot.util.PermissionUtil.canMemberUseCommand
-import io.github.xf8b.xf8bot.api.commands.parser.ArgumentCommandParser
-import io.github.xf8b.xf8bot.api.commands.parser.FlagCommandParser
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorResume
@@ -57,8 +57,7 @@ class MessageListener(
         //TODO: add spam protection
         val message = event.message
         val content = message.content
-        val guild = event.guild.block()!!
-        val guildId = guild.id.asString()
+        val guildId = event.guildId.get().asString()
         if (content.trim() == "<@!${event.client.selfId.asString()}> help") {
             val infoCommand: InfoCommand = commandRegistry.findRegisteredWithType()
             return onCommandFired(event, infoCommand, guildId, content).thenReturn(event)

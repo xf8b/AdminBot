@@ -20,7 +20,7 @@ See [the GitHub docs](https://docs.github.com/en/free-pro-team@latest/packages/m
 ### Self Compiling
 1. Download the code, and run `gradlew shadowJar` (or `./gradlew shadowJar` for Mac and Linux).    
 2. The jar file will be in `build/libs`.  
-3. Run that using `java -jar xf8bot-x.x.x-all.jar`. (optionally you can add program arguments so you don't have to do step 4. see [the documentation](https://xf8b.github.io/documentation/xf8bot/args/))
+3. Run that using `java -jar xf8bot-x.x.x-all.jar`. (optionally you can add program arguments, so you don't have to do step 4. see [the documentation](https://xf8b.github.io/documentation/xf8bot/args/))
 4. It will fail because of the invalid token.  
 You must go to `config.toml` and fill out the fields that are under `required`.  
 5. Invite the bot to your server.  

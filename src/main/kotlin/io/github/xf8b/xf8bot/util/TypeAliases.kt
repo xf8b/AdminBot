@@ -17,10 +17,8 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.data
+package io.github.xf8b.xf8bot.util
 
-interface Configuration {
-    fun <T> get(name: String): T
+import com.beust.jcommander.IStringConverter
 
-    fun <T> set(name: String, newValue: T)
-}
+typealias Converter<T> = IStringConverter<T>

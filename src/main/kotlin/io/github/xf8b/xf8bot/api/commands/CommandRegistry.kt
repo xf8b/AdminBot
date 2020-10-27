@@ -32,16 +32,13 @@ class CommandRegistry : Registry<AbstractCommand>() {
     /**
      * Registers the passed in [AbstractCommand].
      *
-     * @param command The command to be registered.
+     * @param t the [AbstractCommand] to be registered
      */
-    private fun registerCommandHandler(command: AbstractCommand) {
-        if (locked) throw UnsupportedOperationException("Registry is currently locked!")
-        commandHandlers.forEach {
-            if (it.name == command.name) {
-                throw IllegalArgumentException("Cannot register 2 commands with the same name!")
-            }
+    override fun register(t: AbstractCommand) {
+        if (registered.any { it.name == t.name }) {
+            throw IllegalArgumentException("Cannot register 2 commands with the same name!")
         }
-        commandHandlers.add(command)
+        super.register(t)
     }
 
     fun <T : AbstractCommand> getCommand(klass: Class<out T>): T = klass.cast(registered.stream()

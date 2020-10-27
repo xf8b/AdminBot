@@ -19,10 +19,10 @@
 
 package io.github.xf8b.xf8bot.settings.converter
 
-import com.beust.jcommander.IStringConverter
 import discord4j.core.shard.ShardingStrategy
+import io.github.xf8b.xf8bot.util.Converter
 
-class ShardingStrategyConverter : IStringConverter<ShardingStrategy> {
+class ShardingStrategyConverter : Converter<ShardingStrategy> {
     override fun convert(value: String): ShardingStrategy = when (value.toLowerCase()) {
         "recommended" -> ShardingStrategy.recommended()
         "single" -> ShardingStrategy.single()

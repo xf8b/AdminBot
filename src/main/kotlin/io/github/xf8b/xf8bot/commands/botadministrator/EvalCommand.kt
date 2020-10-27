@@ -17,7 +17,7 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.commands
+package io.github.xf8b.xf8bot.commands.botadministrator
 
 import com.google.common.collect.ImmutableList.of
 import com.google.common.collect.Range

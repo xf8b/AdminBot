@@ -17,7 +17,10 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@ParametersAreNonnullByDefault
-package io.github.xf8b.xf8bot;
+package io.github.xf8b.xf8bot.settings
 
-import javax.annotation.ParametersAreNonnullByDefault;
+interface Configuration {
+    fun <T> get(name: String): T
+
+    fun <T> set(name: String, newValue: T)
+}

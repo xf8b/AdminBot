@@ -206,18 +206,18 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
                 val webhookIdAndToken = ParsingUtil.parseWebhookUrl(webhookUrl)
                 //TODO: move logging to webhooks
                 client.getWebhookByIdWithToken(webhookIdAndToken.left, webhookIdAndToken.right)
-                        .flatMap { webhook: Webhook ->
-                            webhook.execute { webhookExecuteSpec: WebhookExecuteSpec ->
-                                webhookExecuteSpec.setAvatarUrl(self.avatarUrl)
-                                        .setUsername(self.username)
-                                        .addEmbed { embedCreateSpec: EmbedCreateSpec ->
-                                            embedCreateSpec.setTitle(":warning: Bot was restarted! :warning:")
-                                                    .setDescription("This is a new run!")
-                                                    .setColor(Color.YELLOW)
-                                                    .setTimestamp(Instant.now())
-                                        }
-                            }
+                    .flatMap { webhook: Webhook ->
+                        webhook.execute { webhookExecuteSpec: WebhookExecuteSpec ->
+                            webhookExecuteSpec.setAvatarUrl(self.avatarUrl)
+                                .setUsername(self.username)
+                                .addEmbed { embedCreateSpec: EmbedCreateSpec ->
+                                    embedCreateSpec.setTitle(":warning: Bot was restarted! :warning:")
+                                        .setDescription("This is a new run!")
+                                        .setColor(Color.YELLOW)
+                                        .setTimestampToNow()
+                                }
                         }
+                    }
             } else {
                 Mono.empty()
             }
