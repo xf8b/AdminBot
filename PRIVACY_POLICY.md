@@ -18,7 +18,7 @@ In a future update, xf8bot will automatically delete data from:
 - roles which have been deleted
 ## Logging
 Only the following is logged:
-- Bot information, including bot administrators
+- Bot information, including bot administrators' IDs
 - Errors
 - Amount of guilds that the bot is in
 
