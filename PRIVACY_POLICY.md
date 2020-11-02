@@ -13,8 +13,6 @@ In a future update, xf8bot will use encryption for databases. This may render pr
 ## Time Stored
 All of the collected data, as in [the collected data section](#collected-data) will be stored indefinitely unless the hoster decides to delete data from the database.  
 In a future update, xf8bot will automatically delete data from:
-- guilds which have removed xf8bot
-- users which have left the guild
 - roles which have been deleted
 ## Logging
 Only the following is logged:
