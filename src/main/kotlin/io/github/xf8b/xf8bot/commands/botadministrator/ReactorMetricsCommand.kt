@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.botadministrator
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
 
@@ -31,8 +31,5 @@ class ReactorMetricsCommand : AbstractCommand(
     aliases = "\${prefix}metrics".toSingletonImmutableList(),
     isBotAdministratorOnly = true
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap {
-        it.createMessage("todo")
-    }.then()
-    //TODO
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = TODO("gotta do this")
 }

@@ -19,97 +19,24 @@
 
 package io.github.xf8b.xf8bot.api.commands.arguments
 
+import com.google.common.base.Predicates
 import com.google.common.collect.Range
 import java.util.function.Function
 import java.util.function.Predicate
 
 class StringArgument(
-    index: Range<Int>?,
-    name: String?,
-    required: Boolean,
-    parseFunction: Function<String, String>,
-    validityPredicate: Predicate<String>,
-    invalidValueErrorMessageFunction: Function<String, String>
+    override val index: Range<Int>,
+    override val name: String,
+    override val required: Boolean = true,
+    override val parseFunction: Function<in String, out String> = DEFAULT_PARSE_FUNCTION,
+    override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
+    override val invalidValueErrorMessageFunction: Function<in String, out String> = DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
 ) : Argument<String> {
-    override val index: Range<Int>
-    override val name: String
-    override val required: Boolean
-    override val parseFunction: Function<String, out String>
-    override val validityPredicate: Predicate<String>
-    override val invalidValueErrorMessageFunction: Function<String, String>
-
-    init {
-        if (index == null || name == null) {
-            throw NullPointerException("You are missing a index or name!")
-        }
-        this.index = index
-        this.name = name
-        this.required = required
-        this.parseFunction = parseFunction
-        this.validityPredicate = validityPredicate
-        this.invalidValueErrorMessageFunction = invalidValueErrorMessageFunction
-    }
-
     companion object {
-        @JvmStatic
-        fun builder(): StringArgumentBuilder = StringArgumentBuilder()
-    }
-
-    class StringArgumentBuilder {
-        private var index: Range<Int>? = null
-        private var name: String? = null
-        private var required = true
-        private var parseFunction = Function { stringToParse: String -> stringToParse }
-        private var validityPredicate = Predicate { _: String -> true }
-        private var invalidValueErrorMessageFunction =
-            Function { _: String -> Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
-
-        fun setIndex(index: Range<Int>): StringArgumentBuilder = apply {
-            this.index = index
-        }
-
-        fun setName(name: String): StringArgumentBuilder = apply {
-            this.name = name
-        }
-
-        fun setNotRequired(): StringArgumentBuilder = setRequired(false)
-
-        private fun setRequired(required: Boolean): StringArgumentBuilder = apply {
-            this.required = required
-        }
-
-        fun setParseFunction(parseFunction: Function<String, String>): StringArgumentBuilder = apply {
-            this.parseFunction = parseFunction
-        }
-
-        fun setValidityPredicate(validityPredicate: Predicate<String>): StringArgumentBuilder = apply {
-            this.validityPredicate = validityPredicate
-        }
-
-        fun setInvalidValueErrorMessageFunction(invalidValueErrorMessageFunction: Function<String, String>): StringArgumentBuilder =
-            apply {
-                this.invalidValueErrorMessageFunction = invalidValueErrorMessageFunction
-            }
-
-        fun build(): StringArgument = StringArgument(
-            index,
-            name,
-            required,
-            parseFunction,
-            validityPredicate,
-            invalidValueErrorMessageFunction
-        )
-
-        override fun toString(): String {
-            return "StringArgument.StringArgumentBuilder(" +
-                    "index=$index, " +
-                    "name=$name, " +
-                    "required=$required, " +
-                    "parseFunction=$parseFunction, " +
-                    "validityPredicate=$validityPredicate, " +
-                    "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
-                    ")"
-        }
+        private val DEFAULT_PARSE_FUNCTION: Function<in String, out String> = Function.identity()
+        private val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicates.alwaysTrue()
+        private val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> =
+            Function { Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -138,13 +65,11 @@ class StringArgument(
         return result
     }
 
-    override fun toString(): String {
-        return "StringArgument(index=$index, " +
-                "name='$name', " +
-                "required=$required, " +
-                "parseFunction=$parseFunction, " +
-                "validityPredicate=$validityPredicate, " +
-                "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
-                ")"
-    }
+    override fun toString(): String = "StringArgument(index=$index, " +
+            "name='$name', " +
+            "required=$required, " +
+            "parseFunction=$parseFunction, " +
+            "validityPredicate=$validityPredicate, " +
+            "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
+            ")"
 }

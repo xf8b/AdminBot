@@ -20,14 +20,14 @@
 package io.github.xf8b.xf8bot.commands.other
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import reactor.core.publisher.Mono
 
-//doesn't actually do anything, only exists because i want it to be in help command
+// doesn't actually do anything, only exists because i want it to be in help command
 class FakeSlapCommand : AbstractCommand(
     name = "\${prefix}slap",
     description = "Slaps the person.",
     commandType = CommandType.OTHER
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = Mono.empty()
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = Mono.empty()
 }

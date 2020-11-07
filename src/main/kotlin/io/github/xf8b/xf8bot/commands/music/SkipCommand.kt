@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.music
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
@@ -35,28 +35,28 @@ class SkipCommand : AbstractCommand(
     arguments = ImmutableList.of(AMOUNT_TO_SKIP)
 ) {
     companion object {
-        private val AMOUNT_TO_SKIP = IntegerArgument.builder()
-            .setName("amount to skip")
-            .setIndex(Range.singleton(1))
-            .setNotRequired()
-            .build()
+        private val AMOUNT_TO_SKIP = IntegerArgument(
+            name = "amount to skip",
+            index = Range.singleton(1),
+            required = false
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val guildId = event.guild.map { it.id }.block()!!
-        val guildMusicHandler = GuildMusicHandler.getMusicHandler(
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+        val guildId = context.guildId.get()
+        val guildMusicHandler = GuildMusicHandler.get(
             guildId,
-            event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            context.xf8bot.audioPlayerManager,
+            context.channel.block()!!
         )
-        val amountToSkip = event.getValueOfArgument(AMOUNT_TO_SKIP).orElse(1)
-        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+        val amountToSkip = context.getValueOfArgument(AMOUNT_TO_SKIP).orElse(1)
+        return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
-                guildMusicHandler.skip(amountToSkip).then(event.channel.flatMap {
+                guildMusicHandler.skip(amountToSkip).then(context.channel.flatMap {
                     it.createMessage("Successfully skipped the current video!")
                 })
             }
-            .switchIfEmpty(event.channel.flatMap { it.createMessage("I am not connected to a VC!") })
+            .switchIfEmpty(context.channel.flatMap { it.createMessage("I am not connected to a VC!") })
             .then()
     }
 }

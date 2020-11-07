@@ -43,25 +43,7 @@ abstract class AbstractCommand(
     val administratorLevelRequired: Int = 0,
     val isBotAdministratorOnly: Boolean = false
 ) {
-    constructor(builder: AbstractCommandBuilder) : this(
-        builder.name!!,
-        builder.description!!,
-        builder.commandType!!,
-        builder.actions,
-        builder.aliases,
-        builder.minimumAmountOfArgs,
-        builder.flags,
-        builder.arguments,
-        builder.usage ?: generateUsage(builder.name!!, builder.flags, builder.arguments),
-        builder.botRequiredPermissions,
-        builder.administratorLevelRequired,
-        builder.isBotAdministratorOnly
-    )
-
     companion object {
-        @JvmStatic
-        fun builder(): AbstractCommandBuilder = AbstractCommandBuilder()
-
         private fun generateUsage(
             commandName: String,
             flags: List<Flag<*>>,
@@ -101,16 +83,16 @@ abstract class AbstractCommand(
         }
     }
 
-    abstract fun onCommandFired(event: CommandFiredEvent): Mono<Void>
+    abstract fun onCommandFired(context: CommandFiredContext): Mono<Void>
 
     fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): String =
-        name.replace("\${prefix}", xf8bot.prefixCache.getPrefix(guildId.toSnowflake()).block()!!)
+        name.replace("\${prefix}", xf8bot.prefixCache.get(guildId.toSnowflake()).block()!!)
 
     fun getUsageWithPrefix(xf8bot: Xf8bot, guildId: String): String =
-        usage.replace("\${prefix}", xf8bot.prefixCache.getPrefix(guildId.toSnowflake()).block()!!)
+        usage.replace("\${prefix}", xf8bot.prefixCache.get(guildId.toSnowflake()).block()!!)
 
     fun getAliasesWithPrefixes(xf8bot: Xf8bot, guildId: String): List<String> = aliases.map {
-        it.replace("\${prefix}", xf8bot.prefixCache.getPrefix(guildId.toSnowflake()).block()!!)
+        it.replace("\${prefix}", xf8bot.prefixCache.get(guildId.toSnowflake()).block()!!)
     }
 
     fun requiresAdministrator(): Boolean = administratorLevelRequired > 0
@@ -120,7 +102,8 @@ abstract class AbstractCommand(
         BOT_ADMINISTRATOR("Commands only for bot administrators."),
         MUSIC("Commands related with playing music."),
         INFO("Commands which give information."),
-        OTHER("Other commands which do not fit in any of the above categories.")
+        SETTINGS("Commands that are used for settings/configurations."),
+        OTHER("Other commands which do not fit in any of the above categories."),
     }
 
     enum class Checks {

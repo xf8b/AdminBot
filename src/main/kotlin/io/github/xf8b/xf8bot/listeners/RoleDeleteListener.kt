@@ -17,20 +17,24 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.api.commands.experimental
+package io.github.xf8b.xf8bot.listeners
 
-@Target(
-    AnnotationTarget.CLASS,
-    AnnotationTarget.ANNOTATION_CLASS,
-    AnnotationTarget.PROPERTY,
-    AnnotationTarget.FIELD,
-    AnnotationTarget.LOCAL_VARIABLE,
-    AnnotationTarget.VALUE_PARAMETER,
-    AnnotationTarget.CONSTRUCTOR,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.PROPERTY_GETTER,
-    AnnotationTarget.PROPERTY_SETTER,
-    AnnotationTarget.TYPEALIAS
-)
-@MustBeDocumented
-annotation class ExperimentalFlagParsing
+import discord4j.core.event.domain.role.RoleDeleteEvent
+import io.github.xf8b.xf8bot.database.BotMongoDatabase
+import io.github.xf8b.xf8bot.database.actions.RemoveAdministratorRoleAction
+import io.github.xf8b.xf8bot.util.toMono
+import reactor.core.publisher.Mono
+
+class RoleDeleteListener(
+    private val botMongoDatabase: BotMongoDatabase
+) : EventListener<RoleDeleteEvent> {
+    override fun onEventFired(event: RoleDeleteEvent): Mono<RoleDeleteEvent> {
+        botMongoDatabase.execute(
+            RemoveAdministratorRoleAction(
+                event.guildId,
+                event.roleId
+            )
+        )
+        return event.toMono()
+    }
+}

@@ -19,3 +19,4 @@ config.toml
 
 # misc
 logs
+encryption_keyset.json

@@ -25,6 +25,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.channel.MessageChannel
 import io.github.xf8b.utils.tuples.and
+import io.github.xf8b.xf8bot.data.Cache
 import reactor.core.publisher.Mono
 import java.util.concurrent.TimeUnit
 
@@ -34,30 +35,31 @@ class GuildMusicHandler(
     var messageChannel: MessageChannel
 ) {
     private val audioPlayer: AudioPlayer = audioPlayerManager.createPlayer()
-    val lavaPlayerAudioProvider: LavaPlayerAudioProvider = LavaPlayerAudioProvider(audioPlayer)
     val musicTrackScheduler: MusicTrackScheduler = MusicTrackScheduler(audioPlayer, ::messageChannel) {
         it.subscribe()
     }
+    val lavaPlayerAudioProvider: LavaPlayerAudioProvider = LavaPlayerAudioProvider(audioPlayer)
 
     init {
         audioPlayer.addListener(musicTrackScheduler.createListener())
     }
 
-    companion object {
+    companion object GuildMusicHandlerCache :
+        Cache<Triple<Snowflake, AudioPlayerManager, MessageChannel>, GuildMusicHandler> {
         private val CACHE = Caffeine.newBuilder()
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build<Triple<Snowflake, AudioPlayerManager, MessageChannel>, GuildMusicHandler> {
                 GuildMusicHandler(it.first, it.second, it.third)
             }
 
-        @JvmStatic
-        fun getMusicHandler(
+        fun get(
             guildId: Snowflake,
             audioPlayerManager: AudioPlayerManager,
             messageChannel: MessageChannel
-        ): GuildMusicHandler =
-            CACHE.get(guildId and audioPlayerManager and messageChannel)!!
-                .also { it.messageChannel = messageChannel }
+        ): GuildMusicHandler = get(guildId to audioPlayerManager and messageChannel)
+
+        override fun get(key: Triple<Snowflake, AudioPlayerManager, MessageChannel>): GuildMusicHandler =
+            CACHE.get(key)!!.apply { messageChannel = key.third }
     }
 
     fun playYoutubeVideo(identifier: String): Mono<Void> = Mono.fromRunnable {

@@ -20,14 +20,12 @@
 package io.github.xf8b.xf8bot.listeners
 
 import com.mongodb.MongoCommandException
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.http.client.ClientException
 import discord4j.rest.util.Permission
-import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.DisableChecks
 import io.github.xf8b.xf8bot.api.commands.parser.ArgumentCommandParser
@@ -52,9 +50,8 @@ class MessageListener(
     }
 
     override fun onEventFired(event: MessageCreateEvent): Mono<MessageCreateEvent> {
-        //TODO: reactify all the classes
-        //TODO: make exception handler
-        //TODO: add spam protection
+        // TODO: reactify all the classes
+        // TODO: add spam protection
         val message = event.message
         val content = message.content
         val guildId = event.guildId.get().asString()
@@ -62,21 +59,21 @@ class MessageListener(
             val infoCommand: InfoCommand = commandRegistry.findRegisteredWithType()
             return onCommandFired(event, infoCommand, guildId, content).thenReturn(event)
         }
-        val commandRequested = content.trim().split(" ").toTypedArray()[0]
-        for (command in commandRegistry) {
-            val name = command.getNameWithPrefix(xf8bot, guildId)
-            val aliases = command.getAliasesWithPrefixes(xf8bot, guildId)
-            if (commandRequested.equals(name, ignoreCase = true)) {
-                return onCommandFired(event, command, guildId, content).thenReturn(event)
-            } else if (aliases.isNotEmpty()) {
-                for (alias in aliases) {
-                    if (commandRequested.equals(alias, ignoreCase = true)) {
-                        return onCommandFired(event, command, guildId, content).thenReturn(event)
-                    }
-                }
-            }
+        return onCommandFired(
+            event,
+            findCommand(content.trim().split(" ").toTypedArray()[0], guildId)
+                ?: return event.toMono(),
+            guildId,
+            content
+        ).thenReturn(event)
+    }
+
+    private fun findCommand(commandRequested: String, guildId: String): AbstractCommand? = commandRegistry.find {
+        it.getNameWithPrefix(xf8bot, guildId).equals(commandRequested, ignoreCase = true)
+    } ?: commandRegistry.find { command ->
+        command.getAliasesWithPrefixes(xf8bot, guildId).any {
+            it.equals(commandRequested, ignoreCase = true)
         }
-        return event.toMono()
     }
 
     private fun onCommandFired(
@@ -87,18 +84,18 @@ class MessageListener(
     ): Mono<Void> {
         val flagParseResult = FLAG_PARSER.parse(command, content)
         val argumentParseResult = ARGUMENT_PARSER.parse(command, content)
-        return if (flagParseResult.resultType !== Result.ResultType.FAILURE && argumentParseResult.resultType !== Result.ResultType.FAILURE) {
-            val commandFiredEvent = CommandFiredEvent(
+        return if (flagParseResult.isSuccess() && argumentParseResult.isSuccess()) {
+            val commandFiredContext = CommandFiredContext.of(
                 xf8bot,
+                event,
                 flagParseResult.result!!,
-                argumentParseResult.result!!,
-                event
+                argumentParseResult.result!!
             )
             val disabledChecks: List<AbstractCommand.Checks>? = command.javaClass
                 .getAnnotation(DisableChecks::class.java)
                 ?.value
                 ?.asList()
-            commandFiredEvent.guild
+            commandFiredContext.guild
                 .filterWhen { guild ->
                     if (disabledChecks != null) {
                         if (disabledChecks.contains(AbstractCommand.Checks.BOT_HAS_REQUIRED_PERMISSIONS)) {
@@ -106,21 +103,17 @@ class MessageListener(
                         }
                     }
                     guild.selfMember.flatMap { it.basePermissions }.map {
-                        it.containsAll(command.botRequiredPermissions) ||
-                                it.contains(Permission.ADMINISTRATOR)
-                    }.filter { it }.switchIfEmpty(commandFiredEvent.channel
-                        .flatMap { messageChannel: MessageChannel ->
-                            messageChannel
-                                .createMessage(
-                                    "Could not execute command \"${
-                                        command.getNameWithPrefix(
-                                            xf8bot,
-                                            guildId
-                                        )
-                                    }\" because of insufficient permissions!"
+                        it.containsAll(command.botRequiredPermissions) || it.contains(Permission.ADMINISTRATOR)
+                    }.filter { it }.switchIfEmpty(commandFiredContext.channel.flatMap { messageChannel ->
+                        messageChannel.createMessage(
+                            "Could not execute command \"${
+                                command.getNameWithPrefix(
+                                    xf8bot,
+                                    guildId
                                 )
-                        }
-                        .thenReturn(false))
+                            }\" because of insufficient permissions!"
+                        )
+                    }.thenReturn(false))
                 }
                 .filterWhen {
                     if (disabledChecks != null) {
@@ -129,13 +122,11 @@ class MessageListener(
                         }
                     }
                     if (command.requiresAdministrator()) {
-                        return@filterWhen event.guild.flatMap {
-                            canMemberUseCommand(xf8bot, it, commandFiredEvent.member.get(), command)
-                        }.filter { it }.switchIfEmpty(commandFiredEvent.channel
-                            .flatMap {
-                                it.createMessage("Sorry, you don't have high enough permissions.")
-                            }
-                            .thenReturn(false))
+                        event.guild.flatMap {
+                            canMemberUseCommand(xf8bot, it, commandFiredContext.member.get(), command)
+                        }.filter { it }.switchIfEmpty(commandFiredContext.channel.flatMap {
+                            it.createMessage("Sorry, you don't have high enough permissions.")
+                        }.thenReturn(false))
                     } else {
                         true.toMono()
                     }
@@ -147,8 +138,8 @@ class MessageListener(
                         }
                     }
                     if (command.isBotAdministratorOnly) {
-                        if (!commandFiredEvent.xf8bot.isBotAdministrator(commandFiredEvent.member.get().id)) {
-                            return@filterWhen commandFiredEvent.channel
+                        if (!commandFiredContext.xf8bot.isBotAdministrator(commandFiredContext.member.get().id)) {
+                            return@filterWhen commandFiredContext.channel
                                 .flatMap { it.createMessage("Sorry, you aren't a administrator of xf8bot.") }
                                 .thenReturn(false)
                         }
@@ -162,54 +153,54 @@ class MessageListener(
                         }
                     }
                     if (content.trim().split(" ").toTypedArray().size < command.minimumAmountOfArgs + 1) {
-                        commandFiredEvent.message.channel
-                            .flatMap {
-                                it.createMessage(
-                                    "Huh? Could you repeat that? The usage of this command is: `${
-                                        command.getUsageWithPrefix(
-                                            xf8bot,
-                                            guildId
-                                        )
-                                    }`."
-                                )
-                            }
-                            .thenReturn(false)
+                        commandFiredContext.message.channel.flatMap {
+                            it.createMessage(
+                                "Huh? Could you repeat that? The usage of this command is: `${
+                                    command.getUsageWithPrefix(
+                                        xf8bot,
+                                        guildId
+                                    )
+                                }`."
+                            )
+                        }.thenReturn(false)
                     } else {
                         true.toMono()
                     }
                 }
-                .flatMap { command.onCommandFired(commandFiredEvent) }
+                .flatMap { command.onCommandFired(commandFiredContext) }
                 .doOnError { LOGGER.error("An error happened while handling commands!", it) }
                 .onErrorResume(ClientException::class) { exception ->
-                    commandFiredEvent.channel
+                    commandFiredContext.channel
                         .flatMap { it.createMessage("Client exception happened while handling command: ${exception.status}: ${exception.errorResponse.get().fields}") }
                         .then()
                 }
                 .onErrorResume(MongoCommandException::class) { exception ->
-                    commandFiredEvent.channel
+                    commandFiredContext.channel
                         .flatMap { it.createMessage("Database error happened while handling command: ${exception.errorCodeName}") }
                         .then()
                 }
                 .onErrorResume(ThisShouldNotHaveBeenThrownException::class) {
-                    commandFiredEvent.channel
+                    commandFiredContext.channel
                         .flatMap { it.createMessage("Something has horribly gone wrong. Please report this to the bot developer with the log.") }
                         .then()
                 }
                 .onErrorResume { t ->
-                    commandFiredEvent.channel
+                    commandFiredContext.channel
                         .flatMap { it.createMessage("Exception happened while handling command: ${t.message}") }
                         .then()
                 }
         } else {
             when {
-                flagParseResult.resultType === Result.ResultType.FAILURE -> event.message
+                flagParseResult.isFailure() -> event.message
                     .channel
                     .flatMap { it.createMessage(flagParseResult.errorMessage) }
                     .then()
-                argumentParseResult.resultType === Result.ResultType.FAILURE -> event.message
+
+                argumentParseResult.isFailure() -> event.message
                     .channel
                     .flatMap { it.createMessage(argumentParseResult.errorMessage) }
                     .then()
+
                 else -> throw ThisShouldNotHaveBeenThrownException()
             }
         }

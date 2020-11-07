@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.info
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import reactor.core.publisher.Mono
 import java.time.temporal.ChronoUnit
@@ -30,15 +30,15 @@ class PingCommand : AbstractCommand(
     description = "Gets the ping. Pretty useless.",
     commandType = CommandType.INFO
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel
         .flatMap { it.createMessage("Getting ping...") }
         .flatMap { message ->
-            val gatewayPing = event.client
-                .getGatewayClient(event.shardInfo.index)
+            val gatewayPing = context.client
+                .getGatewayClient(context.shardInfo.index)
                 .orElseThrow { ThisShouldNotHaveBeenThrownException() }
                 .responseTime
                 .toMillis()
-            val ping = event.message.timestamp.until(message.timestamp, ChronoUnit.MILLIS)
+            val ping = context.message.timestamp.until(message.timestamp, ChronoUnit.MILLIS)
             message.edit { it.setContent("Ping: ${ping}ms, Websocket: ${gatewayPing}ms") }
         }.then()
 }

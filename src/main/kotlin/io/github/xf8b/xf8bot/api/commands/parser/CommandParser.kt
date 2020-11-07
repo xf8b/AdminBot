@@ -30,8 +30,8 @@ interface CommandParser<E> {
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      *
      * @param command the command to parse [E]s for
-     * @param stringToParse the string to parse for [E]s
-     * @return the [Result] of parsing the [E]s from [stringToParse]
+     * @param toParse the string to parse for [E]s
+     * @return the [Result] of parsing the [E]s from [toParse]
      */
-    fun parse(command: AbstractCommand, stringToParse: String): Result<Map<E, Any>>
+    fun parse(command: AbstractCommand, toParse: String): Result<Map<E, Any>>
 }

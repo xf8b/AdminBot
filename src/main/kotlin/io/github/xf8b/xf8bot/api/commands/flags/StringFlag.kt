@@ -36,84 +36,11 @@ class StringFlag(
         DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
 ) : Flag<String> {
     companion object {
-        @JvmStatic
-        fun builder(): StringFlagBuilder = StringFlagBuilder()
-
         val DEFAULT_DEFAULT_VALUE: Supplier<out String> = Supplier { throw NoSuchElementException() }
         val DEFAULT_PARSE_FUNCTION: Function<in String, out String> = Function { it }
         val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicates.alwaysTrue()
         val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> = Function {
             Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-        }
-
-        class StringFlagBuilder {
-            private var shortName: String? = null
-            private var longName: String? = null
-            private var required = true
-            private var requiresValue = true
-            private var defaultValue: Supplier<out String> = DEFAULT_DEFAULT_VALUE
-            private var parseFunction: Function<in String, out String> = DEFAULT_PARSE_FUNCTION
-            private var validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE
-            private var invalidValueErrorMessageFunction: Function<in String, out String> =
-                DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
-
-            fun setShortName(shortName: String) = apply {
-                this.shortName = shortName
-            }
-
-            fun setLongName(longName: String) = apply {
-                this.longName = longName
-            }
-
-            fun setNotRequired() = setRequired(false)
-
-            private fun setRequired(required: Boolean) = apply {
-                this.required = required
-            }
-
-            fun setRequiresValue(requiresValue: Boolean) = apply {
-                this.requiresValue = requiresValue
-            }
-
-            fun setDefaultValue(defaultValue: Supplier<out String>) = apply {
-                this.defaultValue = defaultValue
-            }
-
-            fun setParseFunction(parseFunction: Function<in String, out String>) = apply {
-                this.parseFunction = parseFunction
-            }
-
-            fun setValidityPredicate(validityPredicate: Predicate<in String>) = apply {
-                this.validityPredicate = validityPredicate
-            }
-
-            fun setInvalidValueErrorMessageFunction(function: Function<in String, out String>) = apply {
-                this.invalidValueErrorMessageFunction = function
-            }
-
-            fun build(): StringFlag = StringFlag(
-                shortName ?: throw NullPointerException("A short name is required!"),
-                longName ?: throw NullPointerException("A long name is required!"),
-                required,
-                requiresValue,
-                defaultValue,
-                parseFunction,
-                validityPredicate,
-                invalidValueErrorMessageFunction
-            )
-
-            override fun toString(): String {
-                return "StringFlagBuilder(" +
-                        "shortName=$shortName, " +
-                        "longName=$longName, " +
-                        "required=$required, " +
-                        "requiresValue=$requiresValue, " +
-                        "defaultValue=$defaultValue, " +
-                        "parseFunction=$parseFunction, " +
-                        "validityPredicate=$validityPredicate, " +
-                        "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
-                        ")"
-            }
         }
     }
 
@@ -147,16 +74,14 @@ class StringFlag(
         return result
     }
 
-    override fun toString(): String {
-        return "StringFlag(" +
-                "shortName='$shortName', " +
-                "longName='$longName', " +
-                "required=$required, " +
-                "requiresValue=$requiresValue, " +
-                "defaultValue=$defaultValue, " +
-                "parseFunction=$parseFunction, " +
-                "validityPredicate=$validityPredicate, " +
-                "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
-                ")"
-    }
+    override fun toString(): String = "StringFlag(" +
+            "shortName='$shortName', " +
+            "longName='$longName', " +
+            "required=$required, " +
+            "requiresValue=$requiresValue, " +
+            "defaultValue=$defaultValue, " +
+            "parseFunction=$parseFunction, " +
+            "validityPredicate=$validityPredicate, " +
+            "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
+            ")"
 }

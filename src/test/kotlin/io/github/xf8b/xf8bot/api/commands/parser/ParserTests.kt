@@ -19,40 +19,51 @@
 
 package io.github.xf8b.xf8bot.api.commands.parser
 
-import io.github.xf8b.utils.optional.Result
+import com.google.common.collect.Range
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
+import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.api.commands.flags.TimeFlag
 import io.github.xf8b.xf8bot.util.toImmutableList
-import org.junit.Test
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
 
 class FakeCommand : AbstractCommand(
     name = "fake command",
     description = "fake command",
     commandType = CommandType.OTHER,
-    flags = (integerFlag to timeFlag and stringFlag).toImmutableList(),
+    flags = (INTEGER_FLAG to TIME_FLAG and STRING_FLAG).toImmutableList(),
+    arguments = (INTEGER_ARGUMENT to STRING_ARGUMENT).toImmutableList()
 ) {
     companion object {
-        val integerFlag = IntegerFlag(
+        val INTEGER_FLAG = IntegerFlag(
             shortName = "n",
             longName = "number"
         )
-        val timeFlag = TimeFlag(
+        val TIME_FLAG = TimeFlag(
             shortName = "t",
             longName = "time"
         )
-        val stringFlag = StringFlag(
+        val STRING_FLAG = StringFlag(
             shortName = "s",
             longName = "string"
         )
+        val INTEGER_ARGUMENT = IntegerArgument(
+            name = "integer arg",
+            index = Range.singleton(0)
+        )
+        val STRING_ARGUMENT = StringArgument(
+            name = "string arg",
+            index = Range.atLeast(1)
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = error("how")
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = error("how")
 }
 
 class FlagCommandParserTest {
@@ -60,20 +71,46 @@ class FlagCommandParserTest {
     fun `test flag parser`() {
         val flagParser = FlagCommandParser()
         val fakeCommand = FakeCommand()
-        val result = flagParser.parse(fakeCommand, "-n 2 -t 2d --string \"hello\"")
+        val result = flagParser.parse(
+            fakeCommand,
+            """-n 2 --string "459ad068-5355-4b2b-b080-54751138ddc2" -t 2d  --string ignored""""
+        )
         println(result.resultType)
-        assertTrue(result.resultType == Result.ResultType.SUCCESS) {
-            result.errorMessage
+        assertTrue(result.isSuccess()) {
+            "Unexpected result type ${result.resultType} - error: ${result.errorMessage}"
         }
         val flagMap = result.result!!
-        assertTrue(flagMap[FakeCommand.integerFlag] as Int == 2) {
-            "Unexpected value ${flagMap[FakeCommand.integerFlag]}"
+        assertTrue(flagMap[FakeCommand.INTEGER_FLAG] as Int == 2) {
+            "Unexpected value ${flagMap[FakeCommand.INTEGER_FLAG]}, expected 2"
         }
-        assertTrue((flagMap[FakeCommand.timeFlag] as Pair<*, *>).first == 2L)  {
-            "Unexpected value ${flagMap[FakeCommand.timeFlag]}"
+        assertTrue((flagMap[FakeCommand.TIME_FLAG] as Pair<*, *>).first == 2L) {
+            "Unexpected value ${flagMap[FakeCommand.TIME_FLAG]}, expected Pair.of(2L, TimeUnit.DAYS)"
         }
-        assertTrue(flagMap[FakeCommand.stringFlag] as String == "hello") {
-            "Unexpected value ${flagMap[FakeCommand.stringFlag]}"
+        assertTrue(flagMap[FakeCommand.STRING_FLAG] as String == "459ad068-5355-4b2b-b080-54751138ddc2") {
+            """Unexpected value "${flagMap[FakeCommand.STRING_FLAG]}", expected "459ad068-5355-4b2b-b080-54751138ddc2""""
+        }
+    }
+}
+
+class ArgumentCommandParserTest {
+    @Test
+    fun `test argument parser`() {
+        val argumentParser = ArgumentCommandParser()
+        val fakeCommand = FakeCommand()
+        val result = argumentParser.parse(
+            fakeCommand,
+            """23 hey beans bean bean hello --string ignored"""
+        )
+        println(result.resultType)
+        assertTrue(result.isSuccess()) {
+            "Unexpected result type ${result.resultType} - error: ${result.errorMessage}"
+        }
+        val argumentMap = result.result!!
+        assertTrue(argumentMap[FakeCommand.INTEGER_ARGUMENT] as Int == 23) {
+            "Unexpected value ${argumentMap[FakeCommand.INTEGER_ARGUMENT]}, expected 23"
+        }
+        assertTrue(argumentMap[FakeCommand.STRING_ARGUMENT] as String == "hey beans bean bean hello") {
+            """Unexpected value ${argumentMap[FakeCommand.STRING_ARGUMENT]}, expected "hey beans bean bean hello""""
         }
     }
 }

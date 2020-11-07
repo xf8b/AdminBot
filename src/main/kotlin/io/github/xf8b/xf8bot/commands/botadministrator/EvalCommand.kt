@@ -22,12 +22,12 @@ package io.github.xf8b.xf8bot.commands.botadministrator
 import com.google.common.collect.ImmutableList.of
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import kotlinx.coroutines.reactive.awaitFirst
-import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.mono
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.onErrorResume
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 import javax.script.ScriptException
@@ -42,37 +42,34 @@ class EvalCommand : AbstractCommand(
     isBotAdministratorOnly = true
 ) {
     companion object {
-        private val CODE_TO_EVAL = StringArgument.builder()
-            .setIndex(Range.atLeast(1))
-            .setName("code to eval")
-            .build()
+        private val CODE_TO_EVAL = StringArgument(
+            name = "code to evaluate",
+            index = Range.atLeast(1)
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
-        val thingToEval = event.getValueOfArgument(CODE_TO_EVAL).get()
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = mono {
+        val thingToEval = context.getValueOfArgument(CODE_TO_EVAL).get()
         val engine: ScriptEngine = ScriptEngineManager().getEngineByExtension("kts")
-        try {
-            engine.put("event", event)
-            engine.put("guild", event.guild.awaitFirst())
-            engine.put("channel", event.channel.awaitFirst())
-            engine.put("member", event.member.get())
-            val result = engine.eval(
-                """
-                import discord4j.common.util.Snowflake
-                $thingToEval
-                """.trimIndent()
-            ).toString()
-            event.message
-                .channel
-                .flatMap { it.createMessage("Result: $result") }
-                .then()
-                .awaitFirstOrNull()
-        } catch (exception: ScriptException) {
-            event.message
-                .channel
-                .flatMap { it.createMessage("ScriptException: $exception") }
-                .then()
-                .awaitFirstOrNull()
-        }
+        engine.put("context", context)
+        engine.put("guild", context.guild.awaitFirst())
+        engine.put("channel", context.channel.awaitFirst())
+        engine.put("member", context.member.get())
+        engine.eval(
+            """
+            import discord4j.common.util.Snowflake
+            $thingToEval
+            """.trimIndent()
+        ).toString()
+    }.flatMap { result ->
+        context.message
+            .channel
+            .flatMap { it.createMessage("Result: $result") }
+            .then()
+    }.onErrorResume(ScriptException::class) { exception ->
+        context.message
+            .channel
+            .flatMap { it.createMessage("ScriptException: $exception") }
+            .then()
     }
 }

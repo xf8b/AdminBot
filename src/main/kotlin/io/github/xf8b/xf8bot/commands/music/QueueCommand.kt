@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.commands.music
 
 import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import io.github.xf8b.xf8bot.util.setTimestampToNow
 import reactor.core.publisher.Mono
@@ -31,16 +31,16 @@ class QueueCommand : AbstractCommand(
     description = "Gets the music queue.",
     commandType = CommandType.MUSIC
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val guildId = event.guild.map { it.id }.block()!!
-        val guildMusicHandler = GuildMusicHandler.getMusicHandler(
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+        val guildId = context.guildId.get()
+        val guildMusicHandler = GuildMusicHandler.get(
             guildId,
-            event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            context.xf8bot.audioPlayerManager,
+            context.channel.block()!!
         )
-        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
-            .flatMap { _ ->
-                event.channel.flatMap { channel ->
+        return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+            .flatMap {
+                context.channel.flatMap { channel ->
                     channel.createEmbed { spec ->
                         spec.setTitle("Queue")
                             .setColor(Color.BLUE)
@@ -60,7 +60,7 @@ class QueueCommand : AbstractCommand(
                     }
                 }
             }
-            .switchIfEmpty(event.channel.flatMap { it.createMessage("I am not connected to a VC!") })
+            .switchIfEmpty(context.channel.flatMap { it.createMessage("I am not connected to a VC!") })
             .then()
     }
 }

@@ -17,14 +17,14 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.commands.other
+package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import discord4j.core.`object`.entity.channel.MessageChannel
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import reactor.core.publisher.Mono
@@ -32,35 +32,37 @@ import reactor.core.publisher.Mono
 class PrefixCommand : AbstractCommand(
     name = "\${prefix}prefix",
     description = "Sets the prefix to the specified prefix.",
-    commandType = CommandType.OTHER,
+    commandType = CommandType.SETTINGS,
     minimumAmountOfArgs = 1,
     arguments = ImmutableList.of(NEW_PREFIX),
     administratorLevelRequired = 4
 ) {
     companion object {
-        private val NEW_PREFIX = StringArgument.builder()
-            .setIndex(Range.atLeast(1))
-            .setName("prefix")
-            .setNotRequired()
-            .build()
+        private val NEW_PREFIX = StringArgument(
+            name = "prefix",
+            index = Range.atLeast(1),
+            required = false
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val channelMono: Mono<MessageChannel> = event.channel
-        val guildId = event.guildId.orElseThrow { ThisShouldNotHaveBeenThrownException() }
-        val previousPrefix = event.prefix.block()!!
-        val newPrefix = event.getValueOfArgument(NEW_PREFIX)
-        val xf8bot = event.xf8bot
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+        val channelMono: Mono<MessageChannel> = context.channel
+        val guildId = context.guildId.orElseThrow { ThisShouldNotHaveBeenThrownException() }
+        val previousPrefix = context.prefix.block()!!
+        val newPrefix = context.getValueOfArgument(NEW_PREFIX)
+        val xf8bot = context.xf8bot
         return when {
-            //reset prefix
-            newPrefix.isEmpty -> xf8bot.prefixCache.setPrefix(guildId, Xf8bot.DEFAULT_PREFIX).then(channelMono.flatMap {
+            // reset prefix
+            newPrefix.isEmpty -> xf8bot.prefixCache.set(guildId, Xf8bot.DEFAULT_PREFIX).then(channelMono.flatMap {
                 it.createMessage("Successfully reset prefix.")
             }).then()
+
             previousPrefix == newPrefix.get() -> channelMono.flatMap {
                 it.createMessage("You can't set the prefix to the same thing, silly.")
             }.then()
-            //set prefix
-            else -> xf8bot.prefixCache.setPrefix(guildId, newPrefix.get()).then(channelMono.flatMap {
+
+            // set prefix
+            else -> xf8bot.prefixCache.set(guildId, newPrefix.get()).then(channelMono.flatMap {
                 it.createMessage("Successfully set prefix from $previousPrefix to ${newPrefix.get()}.")
             }).then()
         }

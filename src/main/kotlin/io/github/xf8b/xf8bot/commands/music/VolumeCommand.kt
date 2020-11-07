@@ -24,7 +24,7 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
@@ -39,18 +39,18 @@ class VolumeCommand : AbstractCommand(
     arguments = ImmutableList.of(VOLUME)
 ) {
     companion object {
-        private val VOLUME = IntegerArgument.builder()
-            .setName("volume")
-            .setIndex(Range.singleton(1))
-            .setValidityPredicate { value ->
+        private val VOLUME = IntegerArgument(
+            name = "volume",
+            index = Range.singleton(1),
+            validityPredicate = { value ->
                 try {
                     val level = value.toInt()
                     level in 0..400
                 } catch (exception: NumberFormatException) {
                     false
                 }
-            }
-            .setInvalidValueErrorMessageFunction { invalidValue ->
+            },
+            invalidValueErrorMessageFunction = { invalidValue ->
                 try {
                     val level = invalidValue.toInt()
                     when {
@@ -62,30 +62,30 @@ class VolumeCommand : AbstractCommand(
                     Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
                 }
             }
-            .build()
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = Mono.defer {
-        val guildId = event.guild.map { it.id }.block()!!
-        val guildMusicHandler = GuildMusicHandler.getMusicHandler(
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = Mono.defer {
+        val guildId = context.guildId.get()
+        val guildMusicHandler = GuildMusicHandler.get(
             guildId,
-            event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            context.xf8bot.audioPlayerManager,
+            context.channel.block()!!
         )
-        val volume = event.getValueOfArgument(VOLUME).get()
-        event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+        val volume = context.getValueOfArgument(VOLUME).get()
+        context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
-                guildMusicHandler.setVolume(volume).then(event.channel.flatMap {
+                guildMusicHandler.setVolume(volume).then(context.channel.flatMap {
                     it.createMessage("Successfully set volume to $volume!")
                 })
             }
-            .switchIfEmpty(Mono.justOrEmpty(event.member)
+            .switchIfEmpty(Mono.justOrEmpty(context.member)
                 .flatMap(Member::getVoiceState)
                 .flatMap(VoiceState::getChannel)
                 .flatMap {
-                    event.channel.flatMap { it.createMessage("I am not in a VC!") }
+                    context.channel.flatMap { it.createMessage("I am not in a VC!") }
                 }
-                .switchIfEmpty(event.channel.flatMap {
+                .switchIfEmpty(context.channel.flatMap {
                     it.createMessage("You are not in a VC!")
                 })
             )

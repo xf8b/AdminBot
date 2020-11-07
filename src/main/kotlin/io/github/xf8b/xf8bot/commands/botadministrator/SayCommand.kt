@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.botadministrator
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import reactor.core.publisher.Mono
 
@@ -35,13 +35,13 @@ class SayCommand : AbstractCommand(
     isBotAdministratorOnly = true
 ) {
     companion object {
-        private val CONTENT = StringArgument.builder()
-            .setName("content")
-            .setIndex(Range.atLeast(1))
-            .build()
+        private val CONTENT = StringArgument(
+            name = "content",
+            index = Range.atLeast(1)
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap {
-        it.createMessage(event.getValueOfArgument(CONTENT).get())
-    }.then(event.message.delete())
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel.flatMap {
+        it.createMessage(context.getValueOfArgument(CONTENT).get())
+    }.then(context.message.delete())
 }

@@ -26,7 +26,7 @@ import discord4j.core.`object`.entity.Member
 import discord4j.core.spec.GuildMemberEditSpec
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.ExceptionPredicates.isClientExceptionWithCode
 import io.github.xf8b.xf8bot.util.ParsingUtil.parseUserId
@@ -46,59 +46,58 @@ class NicknameCommand : AbstractCommand(
     administratorLevelRequired = 1
 ) {
     companion object {
-        private val MEMBER = StringFlag.builder()
-            .setShortName("m")
-            .setLongName("member")
-            .build()
-        private val NICKNAME = StringFlag.builder()
-            .setShortName("n")
-            .setLongName("nickname")
-            .setNotRequired()
-            .build()
+        private val MEMBER = StringFlag(
+            shortName = "m",
+            longName = "member"
+        )
+        private val NICKNAME = StringFlag(
+            shortName = "n",
+            longName = "nickname",
+            required = false
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        return parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
-            .switchIfEmpty(event.channel
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> =
+        parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
+            .switchIfEmpty(context.channel
                 .flatMap { it.createMessage("No member found!") }
-                .then() //yes i know, very hacky
+                .then() // yes i know, very hacky
                 .cast())
             .map(Snowflake::of)
             .flatMap { userId: Snowflake ->
-                event.guild.flatMap { guild: Guild ->
+                context.guild.flatMap { guild: Guild ->
                     guild.getMemberById(userId).onErrorResume(isClientExceptionWithCode(10007), {
-                        event.channel
+                        context.channel
                             .flatMap { it.createMessage("The member is not in the guild!") }
                             .then()
                             .cast()
                     })
                 }
-            } //unknown member
+            } // unknown member
             .filterWhen { member: Member ->
-                event.guild.flatMap { guild: Guild ->
+                context.guild.flatMap { guild: Guild ->
                     guild.selfMember
                         .flatMap { otherMember: Member -> member.isHigher(otherMember) }
                         .filter { !it }
-                        .switchIfEmpty(event.channel
+                        .switchIfEmpty(context.channel
                             .flatMap { it.createMessage("Cannot nickname member because the member is higher than me!") }
                             .thenReturn(false))
                 }
             }
             .flatMap { member: Member ->
-                val nickname = event.getValueOfFlag(NICKNAME).orElse("")
+                val nickname = context.getValueOfFlag(NICKNAME).orElse("")
                 val reset = nickname == ""
                 Mono.just(member)
-                    .filter { it.id != event.client.selfId }
+                    .filter { it.id != context.client.selfId }
                     .flatMap { it.edit { spec: GuildMemberEditSpec -> spec.setNickname(nickname) } }
-                    .switchIfEmpty(event.guild
+                    .switchIfEmpty(context.guild
                         .flatMap { it.changeSelfNickname(nickname) }
                         .thenReturn(member))
                     .flatMap {
-                        event.channel.flatMap {
+                        context.channel.flatMap {
                             it.createMessage("Successfully " + (if (reset) "re" else "") + "set nickname of " + member.displayName + "!")
                         }
                     }
                     .then()
             }
-    }
 }

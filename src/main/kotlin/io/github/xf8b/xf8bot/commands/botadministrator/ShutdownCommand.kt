@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.botadministrator
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import reactor.core.publisher.Mono
 import kotlin.system.exitProcess
 
@@ -30,7 +30,7 @@ class ShutdownCommand : AbstractCommand(
     commandType = CommandType.BOT_ADMINISTRATOR,
     isBotAdministratorOnly = true
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel
         .flatMap { it.createMessage("Shutting down!") }
         .doOnSuccess { exitProcess(0) }
         .then()

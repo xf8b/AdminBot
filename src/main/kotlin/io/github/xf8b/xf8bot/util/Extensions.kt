@@ -32,38 +32,41 @@ import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import org.reflections.Reflections
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.time.Instant
 
-//extension fields
+// extension fields
 val Member.tagWithDisplayName: String
     get() = "${this.displayName}#${this.discriminator}"
 
 val User.isNotBot: Boolean
     get() = !isBot
 
-//extension functions
+// extension functions
 fun EmbedCreateSpec.setTimestampToNow(): EmbedCreateSpec = this.setTimestamp(Instant.now())
 
-//to functions
-//to snowflake
+// to functions
+// to snowflake
 fun String.toSnowflake(): Snowflake = Snowflake.of(this)
 
 fun Long.toSnowflake(): Snowflake = Snowflake.of(this)
 
 fun Instant.toSnowflake(): Snowflake = Snowflake.of(this)
 
-//to collection
+// to mono
+fun <T> T?.toMono(): Mono<T> = Mono.justOrEmpty(this)
+
+// to collection
 fun Permission.toSingletonPermissionSet(): PermissionSet = PermissionSet.of(this)
 
 fun <T> T.toSingletonImmutableList(): ImmutableList<T> = ImmutableList.of(this)
 
-fun <T> Pair<T, T>.toImmutableList(): ImmutableList<T> = ImmutableList.of(first, second)
+fun <T> Double<T, T>.toImmutableList(): ImmutableList<T> = ImmutableList.of(first, second)
 
 fun <T> Triple<T, T, T>.toImmutableList(): ImmutableList<T> = ImmutableList.of(first, second, third)
 
-//functions purely for using reified type parameters
-inline fun <reified T : AbstractCommand> CommandRegistry.getCommandWithType(): T =
-    getCommand(T::class.java)
+// functions purely for using reified type parameters
+inline fun <reified T : AbstractCommand> CommandRegistry.getCommandWithType(): T = getCommand(T::class.java)
 
 inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTypesOf(T::class.java)
 

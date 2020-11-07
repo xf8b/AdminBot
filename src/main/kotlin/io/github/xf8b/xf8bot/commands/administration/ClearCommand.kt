@@ -21,10 +21,11 @@ package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
@@ -33,7 +34,6 @@ import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import io.github.xf8b.xf8bot.util.toSnowflake
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.mono
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
@@ -49,18 +49,18 @@ class ClearCommand : AbstractCommand(
     administratorLevelRequired = 2,
 ) {
     companion object {
-        private val AMOUNT = IntegerArgument.builder()
-            .setIndex(Range.singleton(1))
-            .setName("amount")
-            .setValidityPredicate {
+        private val AMOUNT = IntegerArgument(
+            index = Range.singleton(1),
+            name = "amount",
+            validityPredicate = {
                 try {
                     val amount = it.toInt()
                     amount in 2..500
                 } catch (exception: NumberFormatException) {
                     false
                 }
-            }
-            .setInvalidValueErrorMessageFunction {
+            },
+            invalidValueErrorMessageFunction = {
                 try {
                     val amount = it.toInt()
                     when {
@@ -72,28 +72,24 @@ class ClearCommand : AbstractCommand(
                     Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
                 }
             }
-            .build()
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
-        val amountToClear = event.getValueOfArgument(AMOUNT)
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = mono {
+        val amountToClear = context.getValueOfArgument(AMOUNT)
             .orElseThrow { ThisShouldNotHaveBeenThrownException() }
-        val amountOfMessagesPurged: Long = event.channel.flux().flatMap {
+        val messagesToDelete = context.channel.flux().flatMap {
             it.getMessagesBefore(Instant.now().toSnowflake())
-        }.take(amountToClear.toLong()).count().blockOptional().orElseThrow {
-            ThisShouldNotHaveBeenThrownException()
-        }
-        event.channel.flux().flatMap { it.getMessagesBefore(Instant.now().toSnowflake()) }
-            .take(amountToClear.toLong())
-            .transform { (event.channel.block() as TextChannel).bulkDeleteMessages(it) }
-            .flatMap { it.delete() }
-            .doOnComplete {
-                event.channel.flatMap { it.createMessage("Successfully purged $amountOfMessagesPurged message(s).") }
-                    .delayElement(Duration.ofSeconds(3))
-                    .flatMap { it.delete() }
-                    .subscribe()
-            }
-            .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10008)) { Flux.empty() } //unknown message
+        }.take(amountToClear.toLong())
+        val count = messagesToDelete.count()
+        messagesToDelete.transform { (context.channel.block() as TextChannel).bulkDeleteMessages(it) }
+            .flatMap(Message::delete)
+            .then(count.flatMap { amountDeleted ->
+                context.channel.flatMap {
+                    it.createMessage("Successfully purged $amountDeleted message(s).")
+                }
+            }.delayElement(Duration.ofSeconds(3)).flatMap(Message::delete))
+            .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10008)) { Mono.empty() } // unknown message
             .awaitFirstOrNull()
     }
 }

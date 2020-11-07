@@ -24,7 +24,7 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
@@ -37,40 +37,40 @@ class PlayCommand : AbstractCommand(
     arguments = ImmutableList.of(YOUTUBE_VIDEO_NAME_OR_LINK)
 ) {
     companion object {
-        private val YOUTUBE_VIDEO_NAME_OR_LINK = StringArgument.builder()
-            .setName("youtube video name or link")
-            .setIndex(Range.atLeast(1))
-            .build()
+        private val YOUTUBE_VIDEO_NAME_OR_LINK = StringArgument(
+            name = "youtube video name or link",
+            index = Range.atLeast(1)
+        )
         private const val YOUTUBE_URL_REGEX = "https://(www\\.)?youtube\\.com/watch\\?v=.+"
         private const val OTHER_YOUTUBE_URL_REGEX = "https://(www\\.)?youtu\\.be/watch\\?v=.+"
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val guildId = event.guild.map { it.id }.block()!!
-        val guildMusicHandler = GuildMusicHandler.getMusicHandler(
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+        val guildId = context.guildId.get()
+        val guildMusicHandler = GuildMusicHandler.get(
             guildId,
-            event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            context.xf8bot.audioPlayerManager,
+            context.channel.block()!!
         )
-        val temp = event.getValueOfArgument(YOUTUBE_VIDEO_NAME_OR_LINK).get()
+        val temp = context.getValueOfArgument(YOUTUBE_VIDEO_NAME_OR_LINK).get()
         val videoUrlOrSearch: String = when {
             temp.matches(YOUTUBE_URL_REGEX.toRegex()) -> temp
             temp.matches(OTHER_YOUTUBE_URL_REGEX.toRegex()) -> temp
             else -> "ytsearch: $temp"
         }
         val playMono: Mono<Void> = guildMusicHandler.playYoutubeVideo(videoUrlOrSearch)
-        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+        return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap { playMono }
-            .switchIfEmpty(Mono.justOrEmpty(event.member)
+            .switchIfEmpty(Mono.justOrEmpty(context.member)
                 .flatMap(Member::getVoiceState)
                 .flatMap(VoiceState::getChannel)
                 .flatMap { voiceChannel ->
                     voiceChannel.join { spec ->
                         spec.setProvider(guildMusicHandler.lavaPlayerAudioProvider)
-                    }.then(event.channel.flatMap {
+                    }.then(context.channel.flatMap {
                         it.createMessage("Successfully connected to your VC!")
                     }).flatMap { playMono }
-                }.switchIfEmpty(event.channel.flatMap {
+                }.switchIfEmpty(context.channel.flatMap {
                     it.createMessage("You are not in a VC!")
                 }.then())
             )

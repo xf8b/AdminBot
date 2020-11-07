@@ -45,30 +45,33 @@ class SlapBrigadierCommand : Command<MessageCreateEvent> {
                     RequiredArgumentBuilder.argument<MessageCreateEvent, String>(
                         "person",
                         StringArgumentType.greedyString()
-                    )
-                        .executes(SlapBrigadierCommand())
+                    ).executes(SlapBrigadierCommand())
                 )
             )
         }
     }
 
     override fun run(context: CommandContext<MessageCreateEvent>): Int {
-        context.source.guild.flatMap { it.selfMember }.map { it.displayName }.flatMap { selfDisplayName ->
-            var senderUsername = context.source
-                .member
-                .get()
-                .displayName
-            var personToSlap = StringArgumentType.getString(context, "person")
-            val itemToUse = ITEMS[ThreadLocalRandom.current().nextInt(ITEMS.size)]
-            if (personToSlap.equals(selfDisplayName, ignoreCase = true)) {
-                personToSlap = senderUsername
-                senderUsername = selfDisplayName
-            }
-            context.source
-                .message
-                .channel
-                .flatMap { it.createMessage("$senderUsername slapped $personToSlap with a $itemToUse!") }
-        }.block()
+        context.source
+            .guild
+            .flatMap { it.selfMember }
+            .map { it.displayName }
+            .flatMap { selfDisplayName ->
+                var senderUsername = context.source
+                    .member
+                    .get()
+                    .displayName
+                var personToSlap = StringArgumentType.getString(context, "person")
+                val itemToUse = ITEMS[ThreadLocalRandom.current().nextInt(ITEMS.size)]
+                if (personToSlap.equals(selfDisplayName, ignoreCase = true)) {
+                    personToSlap = senderUsername
+                    senderUsername = selfDisplayName
+                }
+                context.source
+                    .message
+                    .channel
+                    .flatMap { it.createMessage("$senderUsername slapped $personToSlap with a $itemToUse!") }
+            }.block()
         return Command.SINGLE_SUCCESS
     }
 }

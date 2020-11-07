@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.administration
 import com.google.common.collect.Range
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
@@ -38,15 +38,15 @@ class UnbanCommand : AbstractCommand(
     administratorLevelRequired = 3
 ) {
     companion object {
-        private val MEMBER = StringArgument.builder()
-            .setIndex(Range.atLeast(1))
-            .setName("member")
-            .build()
+        private val MEMBER = StringArgument(
+            name = "member",
+            index = Range.atLeast(1)
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val memberIdOrUsername = event.getValueOfArgument(MEMBER).get()
-        return event.guild.flatMap { guild ->
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+        val memberIdOrUsername = context.getValueOfArgument(MEMBER).get()
+        return context.guild.flatMap { guild ->
             guild.bans.filter { ban ->
                 val usernameMatches = ban.user.username == memberIdOrUsername
                 if (!usernameMatches) {
@@ -62,9 +62,9 @@ class UnbanCommand : AbstractCommand(
                 }
             }.take(1).flatMap { ban ->
                 guild.unban(ban.user.id)
-                    .then(event.channel.flatMap {
+                    .then(context.channel.flatMap {
                         it.createMessage("Successfully unbanned " + ban.user.username + "!")
-                    }).switchIfEmpty(event.channel.flatMap {
+                    }).switchIfEmpty(context.channel.flatMap {
                         it.createMessage("The member does not exist or is not banned!")
                     })
             }.then()

@@ -26,9 +26,10 @@ import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.data.Warn
+import io.github.xf8b.xf8bot.database.actions.FindAllMatchingAction
 import io.github.xf8b.xf8bot.util.ExceptionPredicates
 import io.github.xf8b.xf8bot.util.ParsingUtil.parseUserId
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
@@ -49,42 +50,44 @@ class WarnsCommand : AbstractCommand(
     administratorLevelRequired = 1
 ) {
     companion object {
-        private val MEMBER = StringArgument.builder()
-            .setIndex(Range.atLeast(1))
-            .setName("member")
-            .build()
+        private val MEMBER = StringArgument(
+            name = "member",
+            index = Range.atLeast(1)
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val mongoCollection = event.xf8bot
-            .mongoDatabase
-            .getCollection("warns")
-        return parseUserId(event.guild, event.getValueOfArgument(MEMBER).get())
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> =
+        parseUserId(context.guild, context.getValueOfArgument(MEMBER).get())
             .map { it.toSnowflake() }
-            .switchIfEmpty(event.channel
+            .switchIfEmpty(context.channel
                 .flatMap { it.createMessage("No member found!") }
-                .then() //yes i know, very hacky
+                .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->
-                event.guild.flatMap { guild ->
+                context.guild.flatMap { guild ->
                     guild.getMemberById(userId)
                         .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
-                            event.channel
+                            context.channel
                                 .flatMap { it.createMessage("The member is not in the guild!") }
-                                .then() //yes i know, very hacky
+                                .then() // yes i know, very hacky
                                 .cast()
-                        } //unknown member
+                        } // unknown member
                 }
             }
             .flatMap { member ->
-                event.guild.flatMap { guild ->
-                    val warnsMono = mongoCollection.find(
-                        Filters.and(
-                            Filters.eq("guildId", event.guildId.get().asLong()),
-                            Filters.eq("userId", member.id.asLong())
+                context.guild.flatMap {
+                    val warnsMono = context.xf8bot.botMongoDatabase.execute(
+                        FindAllMatchingAction(
+                            collectionName = "warns",
+                            Filters.and(
+                                Filters.eq("guildId", context.guildId.get().asLong()),
+                                Filters.eq("userId", member.id.asLong())
+                            )
                         )
                     ).toFlux().map { document ->
                         Warn(
+                            document.getLong("guildId").toSnowflake(),
+                            document.getLong("userId").toSnowflake(),
                             document.getLong("memberWhoWarnedId").toSnowflake(),
                             document.getString("reason"),
                             document.getString("warnId")
@@ -92,7 +95,7 @@ class WarnsCommand : AbstractCommand(
                     }.collectList().flatMap { warns ->
                         warns.toFlux().flatMap {
                             mono {
-                                guild.getMemberById(it.memberWhoWarnedId)
+                                it.getMemberWhoWarnedAsMember(context.client)
                                     .map { it.nicknameMention }
                                     .block()!! to it.reason and it.warnId
                             }
@@ -101,7 +104,7 @@ class WarnsCommand : AbstractCommand(
 
                     warnsMono.flatMap sendWarns@{ warns ->
                         if (warns.isNotEmpty()) {
-                            event.channel.flatMap {
+                            context.channel.flatMap {
                                 it.createEmbed { embedCreateSpec: EmbedCreateSpec ->
                                     embedCreateSpec.setTitle("Warnings For `${member.username}`")
                                         .setColor(Color.BLUE)
@@ -110,20 +113,19 @@ class WarnsCommand : AbstractCommand(
                                         embedCreateSpec.addField(
                                             "`$reason`",
                                             """
-                                                    Warn ID: $warnId
-                                                    Member Who Warned:
-                                                    $memberWhoWarnedMention
-                                                    """.trimIndent(),
+                                            Warn ID: $warnId
+                                            Member Who Warned:
+                                            $memberWhoWarnedMention
+                                            """.trimIndent(),
                                             true
                                         )
                                     }
                                 }
                             }
                         } else {
-                            event.channel.flatMap { it.createMessage("The member has no warns.") }
+                            context.channel.flatMap { it.createMessage("The member has no warns.") }
                         }
                     }
                 }
             }.then()
-    }
 }

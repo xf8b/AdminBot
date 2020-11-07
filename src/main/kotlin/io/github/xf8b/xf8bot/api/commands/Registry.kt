@@ -51,7 +51,7 @@ open class Registry<T : Any> : AbstractList<T>() {
     override fun iterator(): MutableIterator<T> = registered.iterator()
 
     inline fun <reified E : T> findRegisteredWithType(): E = E::class.java.cast(registered.stream()
-        .filter { it?.javaClass == E::class.java }
+        .filter { it.javaClass == E::class.java }
         .findFirst()
         .orElseThrow { IllegalArgumentException("No registered object matches the class inputted!") })
 }

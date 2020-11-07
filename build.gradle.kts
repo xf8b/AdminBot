@@ -1,20 +1,19 @@
 import net.minecrell.gradle.licenser.LicenseProperties
 
 plugins {
+    idea
     application
     java
-    idea
-    kotlin("jvm") version "1.4.10"
+    kotlin("jvm") version "1.4.20-RC"
     id("com.github.johnrengelman.shadow") version "6.1.0"
-    id("io.freefair.lombok") version "5.2.1"
     id("net.minecrell.licenser") version "0.4.1"
-    id("com.github.ben-manes.versions") version "0.33.0"
+    id("com.github.ben-manes.versions") version "0.34.0"
 }
 
-group = property("mavenGroup")
-version = property("currentVersion")
+infix fun Project.property(name: String): Any = findProperty(name)!!
 
-fun property(name: String): Any = project.findProperty(name)!!
+group = project property "mavenGroup"
+version = project property "currentVersion"
 
 repositories {
     jcenter()
@@ -26,48 +25,54 @@ repositories {
     //for discord4j 3.2.0
     maven("https://repo.spring.io/milestone")
     maven("https://repo.repsy.io/mvn/progamer28415/main")
+    maven("https://dl.bintray.com/kotlin/kotlin-eap")
 }
 
 dependencies {
     //junit
-    testImplementation("junit:junit:${property("junitVersion")}")
+    testImplementation(kotlin("test-junit5"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api:${project property "junitVersion"}")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${project property "junitVersion"}")
     //discord4j
-    implementation("com.discord4j:discord4j-core:${property("discord4jVersion")}")
-    implementation("com.discord4j:stores-caffeine:${property("discord4jStoresVersion")}")
+    implementation("com.discord4j:discord4j-core:${project property "discord4jVersion"}")
     //reactor
-    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:${property("reactorKotlinExtensions")}")
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:${project property "reactorKotlinExtensions"}")
     //music
-    implementation("com.sedmelluq:lavaplayer:${property("lavaplayerVersion")}")
+    implementation("com.sedmelluq:lavaplayer:${project property "lavaplayerVersion"}")
     //command libs
     //TODO: remove?
-    implementation("com.mojang:brigadier:${property("brigadierVersion")}")
+    implementation("com.mojang:brigadier:${project property "brigadierVersion"}")
     //parsing libs
-    implementation("com.beust:jcommander:${property("jCommanderVersion")}")
+    implementation("com.beust:jcommander:${project property "jCommanderVersion"}")
     //logging
-    implementation("ch.qos.logback:logback-classic:${property("logbackClassicVersion")}")
-    implementation("com.github.napstr:logback-discord-appender:${property("logbackDiscordAppenderVersion")}")
+    implementation("ch.qos.logback:logback-classic:${project property "logbackClassicVersion"}")
+    implementation("com.github.napstr:logback-discord-appender:${project property "logbackDiscordAppenderVersion"}")
     //config
-    implementation("com.electronwill.night-config:toml:${property("nightConfigVersion")}")
+    implementation("com.electronwill.night-config:toml:${project property "nightConfigVersion"}")
     //caching
-    implementation("com.github.ben-manes.caffeine:caffeine:${property("caffeineVersion")}")
+    implementation("com.github.ben-manes.caffeine:caffeine:${project property "caffeineVersion"}")
     //drivers
-    implementation("org.mongodb:mongodb-driver-reactivestreams:${property("mongoDbDriverVersion")}")
+    implementation("org.mongodb:mongodb-driver-reactivestreams:${project property "mongoDbDriverVersion"}")
     //kotlin
     //coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${property("coroutinesVersion")}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${property("coroutinesVersion")}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${project property "coroutinesVersion"}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${project property "coroutinesVersion"}")
     //scripting
-    implementation("org.jetbrains.kotlin:kotlin-script-runtime:${property("scriptingVersion")}")
-    implementation("org.jetbrains.kotlin:kotlin-script-util:${property("scriptingVersion")}")
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:${property("scriptingVersion")}")
+    implementation("org.jetbrains.kotlin:kotlin-script-runtime:${project property "kotlinVersion"}")
+    implementation("org.jetbrains.kotlin:kotlin-script-util:${project property "kotlinVersion"}")
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:${project property "kotlinVersion"}")
+    implementation("net.java.dev.jna:jna:${project property "jnaVersion"}")
+    runtimeOnly("org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:${project property "kotlinVersion"}")
+    runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:${project property "kotlinVersion"}")
+    //encryption
+    implementation("com.google.crypto.tink:tink:${project property "tinkVersion"}")
     //util
-    implementation("org.apache.commons:commons-text:${property("commonsTextVersion")}")
-    implementation("net.jodah:typetools:${property("typeToolsVersion")}")
-    implementation("org.reflections:reflections:${property("reflectionsVersion")}")
-    implementation("com.google.guava:guava:${property("guavaVersion")}")
-    implementation("org.codehaus.groovy:groovy-all:${property("groovyVersion")}")
-    implementation("io.github.xf8b:utils:${property("utilsVersion")}")
-    implementation("io.micrometer:micrometer-registry-prometheus:1.5.5")
+    implementation("org.apache.commons:commons-text:${project property "commonsTextVersion"}")
+    implementation("net.jodah:typetools:${project property "typeToolsVersion"}")
+    implementation("org.reflections:reflections:${project property "reflectionsVersion"}")
+    implementation("com.google.guava:guava:${project property "guavaVersion"}")
+    implementation("io.github.xf8b:utils:${project property "utilsVersion"}")
+    implementation("io.micrometer:micrometer-registry-prometheus:${project property "micrometerRegistryVersion"}")
 }
 
 tasks {
@@ -76,7 +81,11 @@ tasks {
     }
 
     compileKotlin {
-        kotlinOptions.jvmTarget = "14"
+        kotlinOptions.jvmTarget = "15"
+    }
+
+    test {
+        useJUnitPlatform()
     }
 
     processResources {
@@ -86,21 +95,22 @@ tasks {
             expand("version" to project.version)
         }
     }
-
-    dependencyUpdates {
-        gradleReleaseChannel = "current"
-    }
 }
 
 application {
     @Suppress("DEPRECATION") //apparently shadow needs this
-    mainClassName = property("mainClass").toString()
+    mainClassName = (project property "mainClass").toString()
 }
 
 java {
+    //toolchain seems to have issues currently, see CI for example
+    /*
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(15))
     }
+    */
+    sourceCompatibility = JavaVersion.VERSION_15
+    targetCompatibility = JavaVersion.VERSION_15
 }
 
 license {
@@ -113,9 +123,8 @@ license {
     ext {
         set("name", "xf8b")
         set("years", "2020")
-        set("projectName", property("projectName"))
+        set("projectName", project property "projectName")
     }
 
-    include("**/*.java")
     include("**/*.kt")
 }

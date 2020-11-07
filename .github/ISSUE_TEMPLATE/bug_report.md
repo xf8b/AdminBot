@@ -1,6 +1,6 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: Bug Report
+about: Create a report to help fix a bug
 title: "[Bug]"
 labels: bug
 assignees: xf8b
@@ -12,10 +12,8 @@ A clear and concise description of what the bug is.
 **To Reproduce**
 Steps to reproduce the behavior.
 For example:
-1. Go to 'log'
-2. Click on 'view all'
-3. Scroll down to the bottom
-4. See error
+1. Start bot
+1. Run `>slap` with no args
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
@@ -26,7 +24,7 @@ If applicable, add the bot log to help explain your problem.
 **Information**
 Please supply the following:
 - xf8bot information
-- java version
+- Java version
 - production or develop
 
 **Additional context**

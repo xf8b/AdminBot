@@ -22,14 +22,12 @@ package io.github.xf8b.xf8bot.util
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
-import discord4j.core.`object`.entity.Role
 import org.apache.commons.lang3.tuple.Pair
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.util.regex.Pattern
 
 object ParsingUtil {
     /**
@@ -51,28 +49,27 @@ object ParsingUtil {
      * @return the ID parsed from the [stringToParse] or a person that
      * matches the username/nickname.
      */
-    @JvmStatic
     fun parseUserId(guildPublisher: Publisher<Guild>, stringToParse: String): Mono<Long> {
         val guildMono = guildPublisher.toMono()
         return try {
             if (stringToParse.length < 18) throw NumberFormatException()
-            //after this point we know its a user id
+            // after this point we know its a user id
             stringToParse.toLong().toMono()
-        } catch (exception: NumberFormatException) {
+        } catch (_: NumberFormatException) {
             try {
                 if (stringToParse.replace("[<@!>]".toRegex(), "").length < 18) {
                     throw NumberFormatException()
                 }
-                //after this point we know its a user mention
+                // after this point we know its a user mention
                 stringToParse.replace("[<@!>]".toRegex(), "").toLong().toMono()
-            } catch (exception1: NumberFormatException) {
-                val memberWhoMatchesUsernameMono: Mono<Long> = guildMono.flatMapMany { guild: Guild ->
+            } catch (_: NumberFormatException) {
+                val memberWhoMatchesUsernameMono: Mono<Long> = guildMono.flatMapMany { guild ->
                     guild.requestMembers()
                         .filter { it.username.trim().equals(stringToParse, ignoreCase = true) }
                         .map(Member::getId)
                         .map(Snowflake::asLong)
                 }.takeLast(1).singleOrEmpty()
-                val memberWhoMatchesNicknameMono: Mono<Long> = guildMono.flatMapMany { guild: Guild ->
+                val memberWhoMatchesNicknameMono: Mono<Long> = guildMono.flatMapMany { guild ->
                     guild.members
                         .filter { it.nickname.isPresent }
                         .filter { it.nickname.get().trim().equals(stringToParse, ignoreCase = true) }
@@ -85,30 +82,29 @@ object ParsingUtil {
         }
     }
 
-    @JvmStatic
     fun parseRoleId(guildPublisher: Publisher<Guild>, stringToParse: String): Mono<Long> {
         val guildMono = guildPublisher.toMono()
         return try {
-            if (stringToParse.length < 18) throw NumberFormatException() //too lazy to copy paste stuff
-            //after this point we know its a role id
+            if (stringToParse.length < 18) throw NumberFormatException() // too lazy to copy paste stuff
+            // after this point we know its a role id
             Mono.just(stringToParse.toLong())
         } catch (_: NumberFormatException) {
             try {
                 if (stringToParse.replace("[<@!>]".toRegex(), "").length < 18) {
                     throw NumberFormatException()
                 }
-                //after this point we know its a role mention
+                // after this point we know its a role mention
                 Mono.just(stringToParse.replace("[<@&>]".toRegex(), "").toLong())
             } catch (_: NumberFormatException) {
-                guildMono.flatMap { guild: Guild ->
+                guildMono.flatMap { guild ->
                     guild.roles
-                        .filter { role: Role ->
+                        .filter { role ->
                             role.name
-                                .trim { it <= ' ' }
+                                .trim()
                                 .equals(stringToParse, ignoreCase = true)
                         }
-                        .map { obj: Role -> obj.id }
-                        .map { obj: Snowflake -> obj.asLong() }
+                        .map { it.id }
+                        .map { it.asLong() }
                         .takeLast(1)
                         .singleOrEmpty()
                 }
@@ -116,44 +112,20 @@ object ParsingUtil {
         }
     }
 
-    @JvmStatic
-    @Deprecated(
-        "Use parseUserId!", replaceWith = ReplaceWith(
-            "ParsingUtil.parseUserId",
-            "io.github.xf8b.xf8bot.util.ParsingUtil"
-        )
-    )
-    fun parseUserIdAsSnowflake(guild: Publisher<Guild>, stringToParse: String): Mono<Snowflake> {
-        val id = parseUserId(guild, stringToParse)
-        return id.map(Snowflake::of)
-    }
-
-    @JvmStatic
-    @Deprecated(
-        "Use parseRoleId!", replaceWith = ReplaceWith(
-            "ParsingUtil.parseRoleId",
-            "io.github.xf8b.xf8bot.util.ParsingUtil"
-        )
-    )
-    fun parseRoleIdAsSnowflake(guild: Publisher<Guild>, stringToParse: String): Mono<Snowflake> {
-        val id = parseRoleId(guild, stringToParse)
-        return id.map(Snowflake::of)
-    }
-
     /**
      * Returns the token of the webhook and the ID.
      * @param webhookUrl the url to parse the token and ID from
      * @return the token of the webhook and the ID in a [Pair]
      */
-    fun parseWebhookUrl(webhookUrl: String): Pair<Snowflake, String> {
-        val pattern = Pattern.compile("https://discordapp\\.com/api/webhooks/(\\d+)/(.+)")
-        val matcher = pattern.matcher(webhookUrl)
-        return if (!matcher.find()) {
+    fun parseWebhookUrl(webhookUrl: String): Double<Snowflake, String> {
+        val regex = "https://discordapp\\.com/api/webhooks/(\\d+)/(.+)".toRegex()
+        return if (!(webhookUrl matches regex)) {
             throw IllegalArgumentException("Invalid webhook URL!")
         } else {
-            val id = matcher.group(1)
-            val token = matcher.group(2)
-            Pair.of(Snowflake.of(id), token)
+            val matchResult = regex.find(webhookUrl)!!.destructured
+            val id = matchResult.component1()
+            val token = matchResult.component2()
+            Snowflake.of(id) to token
         }
     }
 
@@ -163,15 +135,15 @@ object ParsingUtil {
      * @return the MongoDB connection URL with the password URL encoded
      */
     fun fixMongoConnectionUrl(connectionUrl: String): String {
-        val pattern = Pattern.compile("mongodb(\\+srv)?://(.+):(.+)@(.+)")
-        val matcher = pattern.matcher(connectionUrl)
-        return if (!matcher.find()) {
+        val regex = "mongodb(\\+srv)?://(.+):(.+)@(.+)".toRegex()
+        return if (!(connectionUrl matches regex)) {
             throw IllegalArgumentException("Invalid connection URL!")
         } else {
-            val srv = matcher.group(1)
-            val username = matcher.group(2)
-            val password = URLEncoder.encode(matcher.group(3), StandardCharsets.UTF_8)
-            val serverUrl = matcher.group(4)
+            val matchResult = regex.find(connectionUrl)!!.destructured
+            val srv = matchResult.component1()
+            val username = matchResult.component2()
+            val password = URLEncoder.encode(matchResult.component3(), StandardCharsets.UTF_8)
+            val serverUrl = matchResult.component4()
             "mongodb$srv://$username:$password@$serverUrl"
         }
     }

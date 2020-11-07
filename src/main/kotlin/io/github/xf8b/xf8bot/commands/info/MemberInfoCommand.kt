@@ -24,8 +24,9 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.entity.Member
 import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
+import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.*
 import org.apache.commons.lang3.StringUtils
@@ -46,100 +47,91 @@ class MemberInfoCommand : AbstractCommand(
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet()
 ) {
     companion object {
-        private val MEMBER: StringArgument = StringArgument.builder()
-            .setIndex(Range.atLeast(1))
-            .setName("member")
-            .build()
+        private val MEMBER: StringArgument = StringArgument(
+            name = "member",
+            index = Range.atLeast(1)
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
         val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
             .withLocale(Locale.UK)
             .withZone(ZoneOffset.UTC)
-        return ParsingUtil.parseUserId(event.guild, event.getValueOfArgument(MEMBER).get())
+        return ParsingUtil.parseUserId(context.guild, context.getValueOfArgument(MEMBER).get())
             .map(Long::toSnowflake)
-            .switchIfEmpty(event.channel
+            .switchIfEmpty(context.channel
                 .flatMap { it.createMessage("No member found!") }
-                .then() //yes i know, very hacky
+                .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->
-                event.guild
+                context.guild
                     .flatMap { it.getMemberById(userId) }
                     .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
-                        event.channel
+                        context.channel
                             .flatMap { it.createMessage("The member is not in the guild!") }
-                            .then() //yes i know, very hacky
+                            .then() // yes i know, very hacky
                             .cast()
-                    } //unknown member
-            }
-            .flatMap { member: Member ->
-                val displayName = member.displayName
-                val avatarUrl = member.avatarUrl
-                val memberJoinDiscordTime = member.id.timestamp
-                val memberJoinServerTime = member.joinTime
-                val id = member.id.asString()
-                //TODO: make this less of an abysmal mess
-                member.color.flatMap { color ->
-                    member.presence
-                        .map { it.status }
-                        .flatMap { status ->
-                            member.presence
-                                .map { it.activity }
-                                .map { optional ->
-                                    optional?.map { it.name }
-                                        ?.orElse("No activity.")
-                                        ?: "No activity."
+                    } // unknown member
+                    .flatMap { member: Member ->
+                        val displayName = member.displayName
+                        val avatarUrl = member.avatarUrl
+                        val memberJoinDiscordTime = member.id.timestamp
+                        val memberJoinServerTime = member.joinTime
+                        val id = member.id.asString()
+                        val otherInfo = Mono.zip(
+                            member.color,
+                            member.presence.map { it.status },
+                            member.presence.map { it.activity }.map { optional ->
+                                optional?.map { it.name }
+                                    ?.toValueOrNull()
+                                    ?: "No activity."
+                            },
+                            context.guild.map { member.id == it.ownerId },
+                            OrderUtil.orderRoles(member.roles)
+                                .map { it.mention }
+                                .collectList()
+                                .map { it.joinToString(separator = " ") }
+                                .defaultIfEmpty("No roles")
+                        )
+                        otherInfo.flatMap { info ->
+                            context.channel.flatMap {
+                                it.createEmbed { embedCreateSpec ->
+                                    embedCreateSpec.setTitle("Info For Member `${member.tagWithDisplayName}`")
+                                        .setAuthor(displayName, null, avatarUrl)
+                                        .addField("Is Owner:", info.t4.toString(), true)
+                                        .addField("Is Bot:", member.isBot.toString(), true)
+                                        .addField("Roles:", info.t5, true)
+                                        .addField(
+                                            "Status:", StringUtils.capitalize(
+                                                info.t2
+                                                    .name
+                                                    .toLowerCase()
+                                                    .replace("_", " ")
+                                            ), true
+                                        )
+                                        .addField("Activity:", info.t3, true)
+                                        .addField(
+                                            "Joined Discord (UTC):",
+                                            formatter.format(memberJoinDiscordTime),
+                                            true
+                                        )
+                                        .addField(
+                                            "Joined Server (UTC):",
+                                            formatter.format(memberJoinServerTime),
+                                            true
+                                        )
+                                        .addField("ID:", id, true)
+                                        .addField(
+                                            "Role Color RGB:",
+                                            "Red: ${info.t1.red}, Green: ${info.t1.green}, Blue: ${info.t1.blue}",
+                                            true
+                                        )
+                                        .addField("Avatar URL:", avatarUrl, true)
+                                        .setTimestampToNow()
                                 }
-                                .flatMap { activity ->
-                                    event.guild.map {
-                                        member.id == it.ownerId
-                                    }.flatMap { isOwner ->
-                                        OrderUtil.orderRoles(member.roles)
-                                            .map { it.mention }
-                                            .collectList()
-                                            .map { it.joinToString(separator = " ") }
-                                            .defaultIfEmpty("No roles")
-                                            .flatMap { roleMentions ->
-                                                event.channel.flatMap {
-                                                    it.createEmbed { embedCreateSpec ->
-                                                        embedCreateSpec.setTitle("Info For Member `${member.tagWithDisplayName}`")
-                                                            .setAuthor(displayName, null, avatarUrl)
-                                                            .addField("Is Owner:", isOwner.toString(), true)
-                                                            .addField("Is Bot:", member.isBot.toString(), true)
-                                                            .addField("Roles:", roleMentions, true)
-                                                            .addField(
-                                                                "Status:", StringUtils.capitalize(
-                                                                    status?.name?.toLowerCase()?.replace("_", " ")
-                                                                        ?: "None"
-                                                                ), true
-                                                            )
-                                                            .addField("Activity:", activity, true)
-                                                            .addField(
-                                                                "Joined Discord:",
-                                                                formatter.format(memberJoinDiscordTime),
-                                                                true
-                                                            )
-                                                            .addField(
-                                                                "Joined Server:",
-                                                                formatter.format(memberJoinServerTime),
-                                                                true
-                                                            )
-                                                            .addField("ID:", id, true)
-                                                            .addField(
-                                                                "Role Color RGB:",
-                                                                "Red: ${color.red}, Green: ${color.green}, Blue: ${color.blue}",
-                                                                true
-                                                            )
-                                                            .addField("Avatar URL:", avatarUrl, true)
-                                                            .setTimestampToNow()
-                                                    }
-                                                }
-                                            }
-                                    }
-                                }
+                            }
                         }
-                }
-            }
-            .then()
+                    }
+            }.then()
     }
 }

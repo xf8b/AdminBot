@@ -24,81 +24,18 @@ import java.util.function.Function
 import java.util.function.Predicate
 
 class IntegerArgument(
-    index: Range<Int>?,
-    name: String?,
-    required: Boolean,
-    parseFunction: Function<String, Int>,
-    validityPredicate: Predicate<String>,
-    invalidValueErrorMessageFunction: Function<String, String>
+    override val index: Range<Int>,
+    override val name: String,
+    override val required: Boolean = true,
+    override val parseFunction: Function<in String, out Int> = DEFAULT_PARSE_FUNCTION,
+    override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
+    override val invalidValueErrorMessageFunction: Function<in String, out String> = DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION,
 ) : Argument<Int> {
-    override val index: Range<Int>
-    override val name: String
-    override val required: Boolean
-    override val parseFunction: Function<String, out Int>
-    override val validityPredicate: Predicate<String>
-    override val invalidValueErrorMessageFunction: Function<String, String>
-
-    init {
-        if (index == null || name == null) {
-            throw NullPointerException("You are missing a index or name!")
-        }
-        this.index = index
-        this.name = name
-        this.required = required
-        this.parseFunction = parseFunction
-        this.validityPredicate = validityPredicate
-        this.invalidValueErrorMessageFunction = invalidValueErrorMessageFunction
-    }
-
     companion object {
-        @JvmStatic
-        fun builder(): IntegerArgumentBuilder = IntegerArgumentBuilder()
-    }
-
-    class IntegerArgumentBuilder {
-        private var index: Range<Int>? = null
-        private var name: String? = null
-        private var required = true
-        private var parseFunction = Function { stringToParse: String -> stringToParse.toInt() }
-        private var validityPredicate = Predicate { value: String -> value.toIntOrNull() != null }
-        private var invalidValueErrorMessageFunction =
-            Function { _: String -> Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
-
-        fun setIndex(index: Range<Int>): IntegerArgumentBuilder = apply {
-            this.index = index
-        }
-
-        fun setName(name: String): IntegerArgumentBuilder = apply {
-            this.name = name
-        }
-
-        fun setNotRequired(): IntegerArgumentBuilder = setRequired(false)
-
-        private fun setRequired(required: Boolean): IntegerArgumentBuilder = apply {
-            this.required = required
-        }
-
-        fun setParseFunction(parseFunction: Function<String, Int>): IntegerArgumentBuilder = apply {
-            this.parseFunction = parseFunction
-        }
-
-        fun setValidityPredicate(validityPredicate: Predicate<String>): IntegerArgumentBuilder = apply {
-            this.validityPredicate = validityPredicate
-        }
-
-        fun setInvalidValueErrorMessageFunction(invalidValueErrorMessageFunction: Function<String, String>): IntegerArgumentBuilder =
-            apply {
-                this.invalidValueErrorMessageFunction = invalidValueErrorMessageFunction
-            }
-
-        fun build(): IntegerArgument = IntegerArgument(
-            index,
-            name,
-            required,
-            parseFunction,
-            validityPredicate,
-            invalidValueErrorMessageFunction
-        )
+        private val DEFAULT_PARSE_FUNCTION: Function<in String, out Int> = Function { it.toInt() }
+        private val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicate { it.toIntOrNull() != null }
+        private val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> =
+            Function { Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -127,14 +64,12 @@ class IntegerArgument(
         return result
     }
 
-    override fun toString(): String {
-        return "IntegerArgument(" +
-                "index=$index, " +
-                "name='$name', " +
-                "required=$required, " +
-                "parseFunction=$parseFunction, " +
-                "validityPredicate=$validityPredicate, " +
-                "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
-                ")"
-    }
+    override fun toString(): String = "IntegerArgument(" +
+            "index=$index, " +
+            "name='$name', " +
+            "required=$required, " +
+            "parseFunction=$parseFunction, " +
+            "validityPredicate=$validityPredicate, " +
+            "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
+            ")"
 }

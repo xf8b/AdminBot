@@ -20,5 +20,18 @@
 package io.github.xf8b.xf8bot.data
 
 import discord4j.common.util.Snowflake
+import discord4j.core.GatewayDiscordClient
+import discord4j.core.`object`.entity.Member
+import reactor.core.publisher.Mono
+import java.util.*
 
-data class Warn(val memberWhoWarnedId: Snowflake, val reason: String, val warnId: String)
+data class Warn(
+    val guildId: Snowflake,
+    val userId: Snowflake,
+    val memberWhoWarnedId: Snowflake,
+    val reason: String,
+    val warnId: String = UUID.randomUUID().toString()
+) {
+    fun getMemberWhoWarnedAsMember(gatewayDiscordClient: GatewayDiscordClient): Mono<Member> =
+        gatewayDiscordClient.getMemberById(guildId, memberWhoWarnedId)
+}

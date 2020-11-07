@@ -23,7 +23,6 @@ import discord4j.rest.http.client.ClientException
 import java.util.function.Predicate
 
 object ExceptionPredicates {
-    @JvmStatic
     fun isClientExceptionWithCode(code: Int): Predicate<Throwable> = Predicate { throwable ->
         if (throwable is ClientException) {
             throwable.errorResponse

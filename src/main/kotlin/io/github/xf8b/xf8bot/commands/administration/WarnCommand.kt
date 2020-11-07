@@ -20,25 +20,23 @@
 package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
-import com.mongodb.client.model.Filters
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
+import io.github.xf8b.xf8bot.data.Warn
+import io.github.xf8b.xf8bot.database.actions.AddWarningAction
 import io.github.xf8b.xf8bot.util.ExceptionPredicates.isClientExceptionWithCode
 import io.github.xf8b.xf8bot.util.ParsingUtil.parseUserId
-import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigher
+import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
 import io.github.xf8b.xf8bot.util.tagWithDisplayName
 import io.github.xf8b.xf8bot.util.toSnowflake
-import org.bson.Document
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
 import java.time.Instant
-import java.util.*
 
 class WarnCommand : AbstractCommand(
     name = "\${prefix}warn",
@@ -49,57 +47,53 @@ class WarnCommand : AbstractCommand(
     administratorLevelRequired = 1
 ) {
     companion object {
-        private val MEMBER = StringFlag.builder()
-            .setShortName("m")
-            .setLongName("member")
-            .build()
-        private val REASON = StringFlag.builder()
-            .setShortName("r")
-            .setLongName("reason")
-            .setValidityPredicate { it != "all" }
-            .setInvalidValueErrorMessageFunction {
+        private val MEMBER = StringFlag(
+            shortName = "m",
+            longName = "member"
+        )
+        private val REASON = StringFlag(
+            shortName = "r",
+            longName = "reason",
+            validityPredicate = { it != "all" },
+            invalidValueErrorMessageFunction = {
                 if (it == "all") {
                     "Sorry, but this warn reason is reserved."
                 } else {
                     Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
                 }
-            }
-            .setNotRequired()
-            .build()
+            },
+            required = false
+        )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val memberWhoWarnedId = event.member.orElseThrow().id
-        val reason = event.getValueOfFlag(REASON).orElse("No warn reason was provided.")
-        if (reason == "all") {
-            return event.channel.flatMap {
-                it.createMessage("Sorry, but this warn reason is reserved.")
-            }.then()
-        }
-        val mongoCollection = event.xf8bot
-            .mongoDatabase
-            .getCollection("warns")
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+        val memberWhoWarnedId = context.member.orElseThrow().id
+        val reason = context.getValueOfFlag(REASON).orElse("No warn reason was provided.")
 
-        return parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
+        return parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
             .map { it.toSnowflake() }
-            .switchIfEmpty(event.channel
+            .switchIfEmpty(context.channel
                 .flatMap { it.createMessage("No member found!") }
-                .then() //yes i know, very hacky
+                .then() // yes i know, very hacky
                 .cast())
             .flatMap {
-                event.guild.flatMap { guild ->
+                context.guild.flatMap { guild ->
                     guild.getMemberById(it)
                         .onErrorResume(isClientExceptionWithCode(10007)) {
-                            event.channel
+                            context.channel
                                 .flatMap { it.createMessage("The member is not in the guild!") }
-                                .then() //yes i know, very hacky
+                                .then() // yes i know, very hacky
                                 .cast()
-                        } //unknown member
+                        } // unknown member
                         .filterWhen { member ->
-                            isMemberHigher(event.xf8bot, guild, event.member.get(), member)
-                                .filter { !it }
-                                .switchIfEmpty(event.channel.flatMap {
-                                    it.createMessage("Cannot warn member because the member is equal to or higher than you!")
+                            isMemberHigherOrEqual(
+                                context.xf8bot,
+                                guild,
+                                firstMember = context.member.get(),
+                                secondMember = member
+                            ).filter { !it }
+                                .switchIfEmpty(context.channel.flatMap {
+                                    it.createMessage("Cannot warn member because the member is higher than or equal to you!")
                                 }.thenReturn(false))
                         }
                         .flatMap { member ->
@@ -108,7 +102,7 @@ class WarnCommand : AbstractCommand(
                                     if (member.isBot) {
                                         false.toMono()
                                     } else {
-                                        event.client.self.map {
+                                        context.client.self.map {
                                             member != it
                                         }
                                     }
@@ -117,8 +111,8 @@ class WarnCommand : AbstractCommand(
                                     it.createEmbed { embedCreateSpec: EmbedCreateSpec ->
                                         embedCreateSpec.setTitle("You were warned!")
                                             .setFooter(
-                                                "Warned by: " + event.member.get().tagWithDisplayName,
-                                                event.member.get().avatarUrl
+                                                "Warned by: " + context.member.get().tagWithDisplayName,
+                                                context.member.get().avatarUrl
                                             )
                                             .addField("Server", guild.name, false)
                                             .addField("Reason", reason, false)
@@ -126,30 +120,19 @@ class WarnCommand : AbstractCommand(
                                             .setColor(Color.RED)
                                     }
                                 }
-                                .onErrorResume(isClientExceptionWithCode(50007)) { Mono.empty() } //cannot send to user
-                            Flux.from(mongoCollection.find(Filters.eq("userId", member.id.asLong())))
-                                .flatMap {
-                                    mongoCollection.insertOne(
-                                        Document()
-                                            .append("guildId", guild.id.asLong())
-                                            .append("userId", member.id.asLong())
-                                            .append("memberWhoWarnedId", memberWhoWarnedId.asLong())
-                                            .append("warnId", UUID.randomUUID().toString())
-                                            .append("reason", reason)
-                                    ).toMono()
-                                }
-                                .switchIfEmpty(
-                                    mongoCollection.insertOne(
-                                        Document()
-                                            .append("guildId", guild.id.asLong())
-                                            .append("userId", member.id.asLong())
-                                            .append("memberWhoWarnedId", memberWhoWarnedId.asLong())
-                                            .append("warnId", UUID.randomUUID().toString())
-                                            .append("reason", reason)
-                                    ).toMono()
+                                .onErrorResume(isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send to user
+                            context.xf8bot.botMongoDatabase.execute(
+                                AddWarningAction(
+                                    Warn(
+                                        guild.id,
+                                        member.id,
+                                        memberWhoWarnedId,
+                                        reason
+                                    )
                                 )
+                            ).toMono()
                                 .then(privateChannelMono)
-                                .then(event.channel.flatMap {
+                                .then(context.channel.flatMap {
                                     it.createMessage("Successfully warned " + member.displayName + ".")
                                 }).then()
                         }.then()

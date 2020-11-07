@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.music
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import reactor.core.publisher.Mono
 
 class LeaveCommand : AbstractCommand(
@@ -28,13 +28,13 @@ class LeaveCommand : AbstractCommand(
     description = "Leaves the current VC.",
     commandType = CommandType.MUSIC
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
-        event.client.voiceConnectionRegistry.getVoiceConnection(event.guild.map { it.id }.block()!!)
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> =
+        context.client.voiceConnectionRegistry.getVoiceConnection(context.guildId.get())
             .flatMap { voiceConnection ->
-                voiceConnection.disconnect().then(event.channel.flatMap {
+                voiceConnection.disconnect().then(context.channel.flatMap {
                     it.createMessage("Successfully left the VC!")
                 })
             }
-            .switchIfEmpty(event.channel.flatMap { it.createMessage("I am not connected to a VC!") })
+            .switchIfEmpty(context.channel.flatMap { it.createMessage("I am not connected to a VC!") })
             .then()
 }

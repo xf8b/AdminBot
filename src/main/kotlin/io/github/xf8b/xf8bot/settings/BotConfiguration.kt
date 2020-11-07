@@ -60,14 +60,16 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configur
     @Parameter(names = ["-n", "--mongo-database-name"], description = "The MongoDB database to use")
     var mongoDatabaseName: String
 
+    @Parameter(names = ["-e", "--encryption"], description = "Whether to enable encryption for the database")
+    var encryptionEnabled: Boolean
+
     private val config: CommentedFileConfig = CommentedFileConfig.builder(configFilePath)
         .onFileNotFound(FileNotFoundAction.copyData(baseConfigFilePath))
-        .autosave()
         .build()
 
     init {
-        //config is closed after this point
-        //can still be used to get values, but save and load will throw an exception
+        // config is closed after this point
+        // can still be used to get values, but save and load will throw an exception
         config.use { it.load() }
         token = get("token")
         activity = get<String>("activity").replace("\${defaultPrefix}", Xf8bot.DEFAULT_PREFIX)
@@ -76,16 +78,17 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configur
         shardingStrategy = ShardingStrategyConverter().convert(get("sharding"))
         mongoConnectionUrl = get("mongoConnectionUrl")
         mongoDatabaseName = get("mongoDatabaseName")
+        encryptionEnabled = get("enableEncryption")
     }
 
     override fun <T> get(name: String): T = checkNotNull(getOrNull(name)) {
         "$name does not exist in the config!"
     }
 
+    override fun <T> set(name: String, newValue: T) =
+        throw UnsupportedOperationException("Cannot set value of field when config is closed!")
+
     private fun <T> getOrNull(name: String): T? = config.get<T?>(name)
 
     private fun <T, E> getAndMap(name: String, mapClosure: (T) -> E): List<E> = get<List<T>>(name).map(mapClosure)
-
-    override fun <T> set(name: String, newValue: T) =
-        throw UnsupportedOperationException("Cannot set value of field when config is closed!")
 }

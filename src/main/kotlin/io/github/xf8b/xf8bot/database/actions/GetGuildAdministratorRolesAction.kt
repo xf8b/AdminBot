@@ -17,7 +17,12 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@ParametersAreNonnullByDefault
-package io.github.xf8b.xf8bot;
+package io.github.xf8b.xf8bot.database.actions
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import com.mongodb.client.model.Filters
+import discord4j.common.util.Snowflake
+
+class GetGuildAdministratorRolesAction(val guildId: Snowflake) : FindAllMatchingAction(
+    "administratorRoles",
+    Filters.eq("guildId", guildId.asLong())
+)

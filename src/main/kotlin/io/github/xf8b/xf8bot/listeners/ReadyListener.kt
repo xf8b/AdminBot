@@ -21,6 +21,7 @@ package io.github.xf8b.xf8bot.listeners
 
 import discord4j.common.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
+import io.github.xf8b.utils.semver.SemanticVersion
 import io.github.xf8b.xf8bot.util.LoggerDelegate
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
@@ -29,12 +30,12 @@ import java.util.stream.Collectors
 class ReadyListener(
     private val botActivity: String,
     private val botAdmins: List<Snowflake>,
-    private val botVersion: String
+    private val botVersion: SemanticVersion
 ) : EventListener<ReadyEvent> {
     private val logger: Logger by LoggerDelegate()
 
     override fun onEventFired(event: ReadyEvent): Mono<ReadyEvent> = Mono.fromRunnable<Void> {
-        logger.info("Successfully started xf8bot version $botVersion!")
+        logger.info("Successfully started xf8bot version ${botVersion.toStringVersion()}!")
         logger.info("Logged in as ${event.self.username}#${event.self.discriminator}.")
         logger.info("Logged into ${event.guilds.size} guilds.")
         logger.info("Total shards: ${event.shardInfo.count}")

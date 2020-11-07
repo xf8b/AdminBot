@@ -22,3 +22,5 @@ package io.github.xf8b.xf8bot.util
 import com.beust.jcommander.IStringConverter
 
 typealias Converter<T> = IStringConverter<T>
+
+typealias Double<A, B> = Pair<A, B>

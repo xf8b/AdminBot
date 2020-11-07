@@ -9,6 +9,8 @@ admins = [
 sharding = "SINGLE"
 mongoConnectionUrl = "mongodb+srv://<username>:<password>@<something>"
 mongoDatabaseName = "bot"
+# HIGHLY RECOMMENDED
+enableEncryption = true
 # Not required
 # Note: If you don't have a webhook for the log dump, leave the field as "" or remove it.
 logDumpWebhook = "https://discordapp.com/api/webhooks/please/fillinwithwebhook"

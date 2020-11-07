@@ -27,9 +27,9 @@ interface Argument<out T : Any> {
     val required: Boolean
     val index: Range<Int>
     val name: String
-    val validityPredicate: Predicate<String>
-    val parseFunction: Function<String, out T>
-    val invalidValueErrorMessageFunction: Function<String, String>
+    val validityPredicate: Predicate<in String>
+    val parseFunction: Function<in String, out T>
+    val invalidValueErrorMessageFunction: Function<in String, out String>
 
     companion object {
         const val DEFAULT_INVALID_VALUE_ERROR_MESSAGE =

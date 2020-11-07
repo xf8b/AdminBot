@@ -22,33 +22,53 @@ package io.github.xf8b.xf8bot.data
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Updates
-import com.mongodb.reactivestreams.client.MongoCollection
 import discord4j.common.util.Snowflake
 import io.github.xf8b.xf8bot.Xf8bot
+import io.github.xf8b.xf8bot.database.BotMongoDatabase
+import io.github.xf8b.xf8bot.database.actions.AddDocumentAction
+import io.github.xf8b.xf8bot.database.actions.FindAllMatchingAction
+import io.github.xf8b.xf8bot.database.actions.FindAndUpdateAction
 import org.bson.Document
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import java.time.Duration
 
-class PrefixCache(private val mongoCollection: MongoCollection<Document>) {
+class PrefixCache(
+    private val botMongoDatabase: BotMongoDatabase,
+    val collectionName: String
+) : ReactiveMutableCache<Snowflake, String, Mono<Void>> {
     private val cache = Caffeine.newBuilder()
         .expireAfterWrite(Duration.ofSeconds(5))
         .build<Snowflake, Mono<String>> { snowflake ->
-            mongoCollection.find(Filters.eq("guildId", snowflake.asLong())).toMono()
+            botMongoDatabase.execute(
+                FindAllMatchingAction(
+                    collectionName,
+                    Filters.eq("guildId", snowflake.asLong())
+                )
+            ).toMono()
                 .map { it.getString("prefix") }
                 .switchIfEmpty(
-                    mongoCollection.insertOne(
-                        Document()
-                            .append("guildId", snowflake.asLong())
-                            .append("prefix", Xf8bot.DEFAULT_PREFIX)
+                    botMongoDatabase.execute(
+                        AddDocumentAction(
+                            collectionName,
+                            Document(
+                                mapOf(
+                                    "guildId" to snowflake.asLong(),
+                                    "prefix" to Xf8bot.DEFAULT_PREFIX
+                                )
+                            )
+                        )
                     ).toMono().thenReturn(Xf8bot.DEFAULT_PREFIX)
                 )
         }
 
-    fun getPrefix(snowflake: Snowflake): Mono<String> = cache.get(snowflake)!!
+    override fun get(key: Snowflake): Mono<String> = cache.get(key)!!
 
-    fun setPrefix(snowflake: Snowflake, prefix: String): Mono<Void> = mongoCollection.findOneAndUpdate(
-        Filters.eq("guildId", snowflake.asLong()),
-        Updates.set("prefix", prefix)
-    ).toMono().then(Mono.fromRunnable { cache.refresh(snowflake) })
+    override fun set(key: Snowflake, value: String): Mono<Void> = botMongoDatabase.execute(
+        FindAndUpdateAction(
+            collectionName,
+            Filters.eq("guildId", key.asLong()),
+            Updates.set("prefix", value)
+        )
+    ).toMono().then(Mono.fromRunnable { cache.refresh(key) })
 }

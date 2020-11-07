@@ -20,22 +20,43 @@
 package io.github.xf8b.xf8bot.commands.other
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.flags.BooleanFlag
+import io.github.xf8b.xf8bot.util.isNotBot
+import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
 
 class SomeoneCommand : AbstractCommand(
     name = "\${prefix}someone",
     description = "Pings a random person.",
-    commandType = CommandType.OTHER
+    commandType = CommandType.OTHER,
+    aliases = "@someone".toSingletonImmutableList(),
+    flags = IGNORE_BOTS.toSingletonImmutableList()
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.guild.flatMap { guild ->
-        guild.requestMembers()
-            .collectList()
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+        val membersToPickFrom = context.guild.flatMap { guild ->
+            if (context.getValueOfFlag(IGNORE_BOTS).isPresent) {
+                guild.requestMembers()
+                    .filter { it.isNotBot }
+                    .collectList()
+            } else {
+                guild.requestMembers()
+                    .collectList()
+            }
+        }
+        return membersToPickFrom
             .map {
                 it.shuffle()
                 it[0]
             }
-            .flatMap { member -> event.channel.flatMap { it.createMessage(member.nicknameMention) } }
+            .flatMap { member -> context.channel.flatMap { it.createMessage(member.nicknameMention) } }
             .then()
+    }
+
+    companion object {
+        private val IGNORE_BOTS = BooleanFlag(
+            shortName = "i",
+            longName = "ignoreBots"
+        )
     }
 }

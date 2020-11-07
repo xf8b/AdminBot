@@ -31,7 +31,7 @@ class LoggerDelegate<in R : Any> : ReadOnlyProperty<R, Logger> {
     private lateinit var logger: Logger
 
     override fun getValue(thisRef: R, property: KProperty<*>): Logger {
-        if (!::logger.isInitialized) {
+        if (!this::logger.isInitialized) {
             logger = logger(thisRef.javaClass)
         }
         return logger

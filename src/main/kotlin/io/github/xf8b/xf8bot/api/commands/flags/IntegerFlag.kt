@@ -35,9 +35,6 @@ class IntegerFlag(
         DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
 ) : Flag<Int> {
     companion object {
-        @JvmStatic
-        fun builder(): IntegerFlagBuilder = IntegerFlagBuilder()
-
         val DEFAULT_DEFAULT_VALUE: Supplier<out Int> = Supplier { throw NoSuchElementException() }
         val DEFAULT_PARSE_FUNCTION: Function<in String, out Int> = Function { it.toInt() }
         val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicate { value ->
@@ -45,76 +42,6 @@ class IntegerFlag(
         }
         val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> = Function {
             Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-        }
-
-        class IntegerFlagBuilder {
-            private var shortName: String? = null
-            private var longName: String? = null
-            private var required = true
-            private var requiresValue = true
-            private var defaultValue: Supplier<out Int> = DEFAULT_DEFAULT_VALUE
-            private var parseFunction: Function<in String, out Int> = DEFAULT_PARSE_FUNCTION
-            private var validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE
-            private var invalidValueErrorMessageFunction: Function<in String, out String> =
-                DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
-
-            fun setShortName(shortName: String) = apply {
-                this.shortName = shortName
-            }
-
-            fun setLongName(longName: String) = apply {
-                this.longName = longName
-            }
-
-            fun setNotRequired() = setRequired(false)
-
-            private fun setRequired(required: Boolean) = apply {
-                this.required = required
-            }
-
-            fun setRequiresValue(requiresValue: Boolean) = apply {
-                this.requiresValue = requiresValue
-            }
-
-            fun setDefaultValue(defaultValue: Supplier<out Int>) = apply {
-                this.defaultValue = defaultValue
-            }
-
-            fun setParseFunction(parseFunction: Function<in String, out Int>) = apply {
-                this.parseFunction = parseFunction
-            }
-
-            fun setValidityPredicate(validityPredicate: Predicate<in String>) = apply {
-                this.validityPredicate = validityPredicate
-            }
-
-            fun setInvalidValueErrorMessageFunction(function: Function<in String, out String>) = apply {
-                this.invalidValueErrorMessageFunction = function
-            }
-
-            fun build(): IntegerFlag = IntegerFlag(
-                shortName ?: throw NullPointerException("A short name is required!"),
-                longName ?: throw NullPointerException("A long name is required!"),
-                required,
-                requiresValue,
-                defaultValue,
-                parseFunction,
-                validityPredicate,
-                invalidValueErrorMessageFunction
-            )
-
-            override fun toString(): String {
-                return "IntegerFlagBuilder(" +
-                        "shortName=$shortName, " +
-                        "longName=$longName, " +
-                        "required=$required, " +
-                        "requiresValue=$requiresValue, " +
-                        "defaultValue=$defaultValue, " +
-                        "parseFunction=$parseFunction, " +
-                        "validityPredicate=$validityPredicate, " +
-                        "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
-                        ")"
-            }
         }
     }
 
@@ -148,16 +75,14 @@ class IntegerFlag(
         return result
     }
 
-    override fun toString(): String {
-        return "IntegerFlag(" +
-                "shortName='$shortName', " +
-                "longName='$longName', " +
-                "required=$required, " +
-                "requiresValue=$requiresValue, " +
-                "defaultValue=$defaultValue, " +
-                "parseFunction=$parseFunction, " +
-                "validityPredicate=$validityPredicate, " +
-                "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
-                ")"
-    }
+    override fun toString(): String = "IntegerFlag(" +
+            "shortName='$shortName', " +
+            "longName='$longName', " +
+            "required=$required, " +
+            "requiresValue=$requiresValue, " +
+            "defaultValue=$defaultValue, " +
+            "parseFunction=$parseFunction, " +
+            "validityPredicate=$validityPredicate, " +
+            "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
+            ")"
 }
