@@ -36,6 +36,10 @@ jobs:
           # Prefix the list here with "+" to use these queries and those in the config file.
           # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
+      - uses: actions/setup-java@v1
+          with:
+            java-version: 15
+
       - run: |
           chmod +x gradlew
           ./gradlew build
