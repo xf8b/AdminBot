@@ -122,6 +122,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         // TODO: subcommands
         // TODO: member verifying system
         // TODO: use optional instead of null?
+        // TODO: leveling system
         val classLoader = Thread.currentThread().contextClassLoader
         val inputStream = classLoader.getResourceAsStream("version.txt")
             ?: throw NullPointerException("The version file does not exist!")

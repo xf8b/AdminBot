@@ -86,10 +86,10 @@ class AdministratorsCommand : AbstractCommand(
     commandType = CommandType.SETTINGS,
     actions = ImmutableMap.copyOf(
         mapOf(
-            "addrole" to "Adds to the list of administrator roles.",
-            "removerole" to "Removes from the list of administrator roles.",
-            "removedeletedroles" to "Removes deleted roles from the list of administrator roles.",
-            "getroles" to "Gets the list of administrator roles."
+            "add/addrole" to "Adds to the list of administrator roles.",
+            "rm/remove/removerole" to "Removes from the list of administrator roles.",
+            "rdr/rmdel/removedeletedroles" to "Removes deleted roles from the list of administrator roles.",
+            "ls/list/listroles/get/getroles" to "Gets the list of administrator roles."
         )
     ),
     aliases = "\${prefix}admins".toSingletonImmutableList(),
@@ -229,7 +229,9 @@ class AdministratorsCommand : AbstractCommand(
                     .toFlux()
                     .collectMap(
                         { it.getLong("roleId") },
-                        { it.getInteger("level") })
+                        { it.getInteger("level") }
+                    )
+                    .filter { it.isNotEmpty() }
                     .map { it.sortByValue() }
                     .flatMap { administratorRoles: Map<Long, Int> ->
                         val roleNames = administratorRoles.keys

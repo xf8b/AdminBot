@@ -24,12 +24,12 @@ import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
-import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactor.mono
+import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorResume
 import javax.script.ScriptEngine
-import javax.script.ScriptEngineManager
 import javax.script.ScriptException
 
 class EvalCommand : AbstractCommand(
@@ -50,17 +50,17 @@ class EvalCommand : AbstractCommand(
 
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> = mono {
         val thingToEval = context.getValueOfArgument(CODE_TO_EVAL).get()
-        val engine: ScriptEngine = ScriptEngineManager().getEngineByExtension("kts")
+        val engine: ScriptEngine = GroovyScriptEngineImpl()
         engine.put("context", context)
-        engine.put("guild", context.guild.awaitFirst())
-        engine.put("channel", context.channel.awaitFirst())
+        engine.put("guild", context.guild.awaitSingle())
+        engine.put("channel", context.channel.awaitSingle())
         engine.put("member", context.member.get())
         engine.eval(
             """
-            import discord4j.common.util.Snowflake
+            import discord4j.common.util.Snowflake;
             $thingToEval
             """.trimIndent()
-        ).toString()
+        )?.toString() ?: "null result"
     }.flatMap { result ->
         context.message
             .channel

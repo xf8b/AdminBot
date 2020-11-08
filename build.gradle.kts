@@ -7,7 +7,7 @@ plugins {
     kotlin("jvm") version "1.4.20-RC"
     id("com.github.johnrengelman.shadow") version "6.1.0"
     id("net.minecrell.licenser") version "0.4.1"
-    id("com.github.ben-manes.versions") version "0.34.0"
+    id("com.github.ben-manes.versions") version "0.35.0"
 }
 
 infix fun Project.property(name: String): Any = findProperty(name)!!
@@ -58,12 +58,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${project property "coroutinesVersion"}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${project property "coroutinesVersion"}")
     //scripting
-    implementation("org.jetbrains.kotlin:kotlin-script-runtime:${project property "kotlinVersion"}")
-    implementation("org.jetbrains.kotlin:kotlin-script-util:${project property "kotlinVersion"}")
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:${project property "kotlinVersion"}")
-    implementation("net.java.dev.jna:jna:${project property "jnaVersion"}")
-    runtimeOnly("org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:${project property "kotlinVersion"}")
-    runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:${project property "kotlinVersion"}")
+    implementation("org.codehaus.groovy:groovy-all:${project.findProperty("groovyVersion")}")
     //encryption
     implementation("com.google.crypto.tink:tink:${project property "tinkVersion"}")
     //util
@@ -81,6 +76,10 @@ tasks {
     }
 
     compileKotlin {
+        kotlinOptions.jvmTarget = "15"
+    }
+
+    compileTestKotlin {
         kotlinOptions.jvmTarget = "15"
     }
 

@@ -35,12 +35,12 @@ class SomeoneCommand : AbstractCommand(
 ) {
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
         val membersToPickFrom = context.guild.flatMap { guild ->
-            if (context.getValueOfFlag(IGNORE_BOTS).isPresent) {
+            if (context.getValueOfFlag(IGNORE_BOTS).isEmpty || !context.getValueOfFlag(IGNORE_BOTS).get()) {
                 guild.requestMembers()
-                    .filter { it.isNotBot }
                     .collectList()
             } else {
                 guild.requestMembers()
+                    .filter { it.isNotBot }
                     .collectList()
             }
         }

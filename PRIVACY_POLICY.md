@@ -11,9 +11,8 @@ This depends on the hoster, but usually they will use a cloud MongoDB server, ho
 See the privacy policies of those hosters.  
 In a future update, xf8bot will use encryption for databases. This may render privacy concerns about these hosters invalid.  
 ## Time Stored
-All of the collected data, as in [the collected data section](#collected-data) will be stored indefinitely unless the hoster decides to delete data from the database.  
-In a future update, xf8bot will automatically delete data from:
-- roles which have been deleted
+All the collected data, as in [the collected data section](#collected-data) will be stored indefinitely unless the hoster decides to delete data from the database.  
+An exception to this rule is when **roles are deleted**. When roles are deleted, **all data associated with it will be deleted**.
 ## Logging
 Only the following is logged:
 - Bot information, including bot administrators' IDs

@@ -91,7 +91,7 @@ class WarnCommand : AbstractCommand(
                                 guild,
                                 firstMember = context.member.get(),
                                 secondMember = member
-                            ).filter { !it }
+                            ).filter { it }
                                 .switchIfEmpty(context.channel.flatMap {
                                     it.createMessage("Cannot warn member because the member is higher than or equal to you!")
                                 }.thenReturn(false))
@@ -111,7 +111,7 @@ class WarnCommand : AbstractCommand(
                                     it.createEmbed { embedCreateSpec: EmbedCreateSpec ->
                                         embedCreateSpec.setTitle("You were warned!")
                                             .setFooter(
-                                                "Warned by: " + context.member.get().tagWithDisplayName,
+                                                "Warned by: ${context.member.get().tagWithDisplayName}",
                                                 context.member.get().avatarUrl
                                             )
                                             .addField("Server", guild.name, false)
@@ -133,7 +133,7 @@ class WarnCommand : AbstractCommand(
                             ).toMono()
                                 .then(privateChannelMono)
                                 .then(context.channel.flatMap {
-                                    it.createMessage("Successfully warned " + member.displayName + ".")
+                                    it.createMessage("Successfully warned ${member.displayName}.")
                                 }).then()
                         }.then()
                 }

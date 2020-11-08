@@ -95,7 +95,7 @@ class KickCommand : AbstractCommand(
                         }
                         .filterWhen { member ->
                             isMemberHigherOrEqual(xf8bot, guild, context.member.get(), member)
-                                .filter { !it }
+                                .filter { it }
                                 .switchIfEmpty(context.channel.flatMap {
                                     it.createMessage("Cannot kick member because the member is equal to or higher than you!")
                                 }.thenReturn(false))
@@ -108,7 +108,7 @@ class KickCommand : AbstractCommand(
                                     privateChannel.createEmbed { embedCreateSpec ->
                                         embedCreateSpec.setTitle("You were kicked!")
                                             .setFooter(
-                                                "Kicked by: " + context.member.get().tagWithDisplayName,
+                                                "Kicked by: ${context.member.get().tagWithDisplayName}",
                                                 context.member.get().avatarUrl
                                             )
                                             .addField("Server", guild.name, false)

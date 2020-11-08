@@ -65,39 +65,41 @@ class NicknameCommand : AbstractCommand(
                 .cast())
             .map(Snowflake::of)
             .flatMap { userId: Snowflake ->
-                context.guild.flatMap { guild: Guild ->
-                    guild.getMemberById(userId).onErrorResume(isClientExceptionWithCode(10007), {
-                        context.channel
-                            .flatMap { it.createMessage("The member is not in the guild!") }
-                            .then()
-                            .cast()
-                    })
-                }
-            } // unknown member
-            .filterWhen { member: Member ->
-                context.guild.flatMap { guild: Guild ->
-                    guild.selfMember
-                        .flatMap { otherMember: Member -> member.isHigher(otherMember) }
-                        .filter { !it }
-                        .switchIfEmpty(context.channel
-                            .flatMap { it.createMessage("Cannot nickname member because the member is higher than me!") }
-                            .thenReturn(false))
-                }
-            }
-            .flatMap { member: Member ->
-                val nickname = context.getValueOfFlag(NICKNAME).orElse("")
-                val reset = nickname == ""
-                Mono.just(member)
-                    .filter { it.id != context.client.selfId }
-                    .flatMap { it.edit { spec: GuildMemberEditSpec -> spec.setNickname(nickname) } }
-                    .switchIfEmpty(context.guild
-                        .flatMap { it.changeSelfNickname(nickname) }
-                        .thenReturn(member))
-                    .flatMap {
-                        context.channel.flatMap {
-                            it.createMessage("Successfully " + (if (reset) "re" else "") + "set nickname of " + member.displayName + "!")
+                context.guild
+                    .flatMap { guild: Guild ->
+                        guild.getMemberById(userId).onErrorResume(isClientExceptionWithCode(10007), {
+                            context.channel
+                                .flatMap { it.createMessage("The member is not in the guild!") }
+                                .then()
+                                .cast()
+                        })
+                    } // unknown member
+                    .filterWhen { member: Member ->
+                        context.guild.flatMap { guild: Guild ->
+                            guild.selfMember
+                                .flatMap { self -> member.isHigher(self) }
+                                .filter { !it }
+                                .switchIfEmpty(context.channel
+                                    .flatMap { it.createMessage("Cannot nickname member because the member is higher than me!") }
+                                    .thenReturn(false))
                         }
                     }
-                    .then()
+                    .flatMap { member: Member ->
+                        val nickname = context.getValueOfFlag(NICKNAME).orElse("")
+                        val reset = nickname.isBlank()
+                        Mono.just(member)
+                            .filter { it.id != context.client.selfId }
+                            .flatMap { it.edit { spec: GuildMemberEditSpec -> spec.setNickname(nickname) } }
+                            .switchIfEmpty(context.guild
+                                .flatMap { it.changeSelfNickname(nickname) }
+                                .thenReturn(member))
+                            // FIXME not working
+                            .flatMap {
+                                context.channel.flatMap {
+                                    it.createMessage("Successfully ${if (reset) "re" else ""}set nickname of ${member.displayName}!")
+                                }
+                            }
+                            .then()
+                    }
             }
 }

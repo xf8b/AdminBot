@@ -63,7 +63,7 @@ class UnbanCommand : AbstractCommand(
             }.take(1).flatMap { ban ->
                 guild.unban(ban.user.id)
                     .then(context.channel.flatMap {
-                        it.createMessage("Successfully unbanned " + ban.user.username + "!")
+                        it.createMessage("Successfully unbanned ${ban.user.username}!")
                     }).switchIfEmpty(context.channel.flatMap {
                         it.createMessage("The member does not exist or is not banned!")
                     })

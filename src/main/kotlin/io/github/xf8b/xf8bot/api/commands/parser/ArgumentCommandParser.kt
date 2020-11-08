@@ -60,19 +60,23 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
                     var i = index
 
                     while (true) {
-                        val atIndexOfI = toParseSplit[i]
+                        try {
+                            val atIndexOfI = toParseSplit[i]
 
-                        if (atIndexOfI.endsWith('"')) {
-                            while (true) {
-                                if (i == index) break
-                                toParseSplit.removeAt(i)
-                                i--
+                            if (atIndexOfI.endsWith('"')) {
+                                while (true) {
+                                    if (i == index) break
+                                    toParseSplit.removeAt(i)
+                                    i--
+                                }
+
+                                break
+                            } else {
+                                i++
+                                continue
                             }
-
+                        } catch (exception: IndexOutOfBoundsException) {
                             break
-                        } else {
-                            i++
-                            continue
                         }
                     }
                 } else {

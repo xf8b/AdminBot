@@ -81,7 +81,10 @@ class RemoveWarnCommand : AbstractCommand(
             memberWhoWarnedId.flux().count().map { it == 0L },
             userId.flux().count().map { it == 0L },
             (reason == null).toMono()
-        ).filter { !it.t1 && !it.t2 && !it.t3 && !it.t4 }
+        ).filter { !it.t1 || !it.t2 || !it.t3 || !it.t4 }
+            .switchIfEmpty(context.channel.flatMap {
+                it.createMessage("You must have at least 1 search query!")
+            }.then().cast())
             .flatMap {
                 if (reason != null && reason.equals("all", ignoreCase = true)) {
                     userId.flatMap { userId ->
@@ -138,14 +141,9 @@ class RemoveWarnCommand : AbstractCommand(
                         }
                         .switchIfEmpty(context.channel.flatMap {
                             it.createMessage("The user does not have a warn with that reason!")
-                        })
-                        .then()
+                        }).then()
                 }
             }
-            .switchIfEmpty(context.channel.flatMap {
-                it.createMessage("You must have at least 1 search query!")
-            }.then())
-
     }
 
     companion object {

@@ -26,7 +26,10 @@ import discord4j.rest.util.Permission
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.flags.Flag
+import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
+import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
 import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
 import reactor.core.publisher.Mono
@@ -38,7 +41,7 @@ class BanCommand : AbstractCommand(
     description = "Bans the specified member with the specified reason, or `No ban reason was provided` if there was none.",
     commandType = CommandType.ADMINISTRATION,
     minimumAmountOfArgs = 1,
-    flags = (MEMBER and REASON).toImmutableList(),
+    flags = (MEMBER and REASON and MESSAGE_DELETE_DAYS).toImmutableList(),
     botRequiredPermissions = Permission.BAN_MEMBERS.toSingletonPermissionSet(),
     administratorLevelRequired = 3
 ) {
@@ -50,6 +53,27 @@ class BanCommand : AbstractCommand(
         private val REASON = StringFlag(
             shortName = "r",
             longName = "reason",
+            required = false
+        )
+        private val MESSAGE_DELETE_DAYS = IntegerFlag(
+            shortName = "d",
+            longName = "messagesDeleteDays",
+            validityPredicate = IntegerFlag.DEFAULT_VALIDITY_PREDICATE.and {
+                val value = (it as String).toInt()
+                value in 0..7
+            },
+            invalidValueErrorMessageFunction = { value: String ->
+                try {
+                    val level = value.toInt()
+                    when {
+                        level > 7 -> "The maximum amount of message delete days is 7!"
+                        level < 0 -> "The minimum amount of message delete days is 0!"
+                        else -> throw ThisShouldNotHaveBeenThrownException()
+                    }
+                } catch (exception: NumberFormatException) {
+                    Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
+                }
+            },
             required = false
         )
     }
@@ -98,7 +122,7 @@ class BanCommand : AbstractCommand(
                             }
                             .filterWhen { member ->
                                 isMemberHigherOrEqual(context.xf8bot, guild, context.member.get(), member)
-                                    .filter { !it }
+                                    .filter { it }
                                     .switchIfEmpty(context.channel.flatMap {
                                         it.createMessage("Cannot ban member because the member is equal to or higher than you!")
                                     }.thenReturn(false))
@@ -108,24 +132,27 @@ class BanCommand : AbstractCommand(
                                 member.privateChannel
                                     .filter { member.isNotBot }
                                     .flatMap sendDM@{ privateChannel ->
-                                        privateChannel.createEmbed { embedCreateSpec ->
-                                            embedCreateSpec.setTitle("You were banned!")
-                                                .setFooter(
-                                                    "Banned by: " + context.member.get().tagWithDisplayName,
-                                                    context.member.get().avatarUrl
-                                                )
-                                                .addField("Server", guild.name, false)
-                                                .addField("Reason", reason, false)
-                                                .setTimestampToNow()
-                                                .setColor(Color.RED)
-                                        }
+                                        privateChannel
+                                            .createEmbed { embedCreateSpec ->
+                                                embedCreateSpec.setTitle("You were banned!")
+                                                    .setFooter(
+                                                        "Banned by: ${context.member.get().tagWithDisplayName}",
+                                                        context.member.get().avatarUrl
+                                                    )
+                                                    .addField("Server", guild.name, false)
+                                                    .addField("Reason", reason, false)
+                                                    .setTimestampToNow()
+                                                    .setColor(Color.RED)
+                                            }
+                                            .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send messages to user
                                     }
-                                    .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send messages to user
-                                    .then(member.ban { it.setDeleteMessageDays(0).reason = reason })
+                                    .then(member.ban {
+                                        it.setDeleteMessageDays(context.getValueOfFlag(MESSAGE_DELETE_DAYS).orElse(0))
+                                        it.reason = reason
+                                    })
                                     .then(context.channel.flatMap { it.createMessage("Successfully banned $username!") })
                             }
                     })
-            }
-            .then()
+            }.then()
     }
 }

@@ -51,7 +51,7 @@ class FindAdministratorRoleLevelAction(
             val encryptedValue = it.getString("level")
             aead.decrypt(encryptedValue.toByteArray(), null).toString(UTF_8).toInt()
         } else {*/
-        it.getInteger("level")
+            it.getInteger("level")
         //}
     }.defaultIfEmpty(0)
 }

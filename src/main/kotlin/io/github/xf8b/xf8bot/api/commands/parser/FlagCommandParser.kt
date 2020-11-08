@@ -40,6 +40,49 @@ class FlagCommandParser : CommandParser<Flag<*>> {
         val missingFlags: MutableList<Flag<*>> = ArrayList()
         val invalidValues: MutableMap<Flag<*>, String> = HashMap()
 
+        /*
+        val toParseSplit = toParse.split(" ")
+
+        for (flag in command.flags) {
+            val index = toParseSplit.indexOf("--${flag.longName}").takeIf { it != -1 }
+                ?: toParseSplit.indexOf("-${flag.shortName}").takeIf { it != -1 }
+
+            if (index == null) {
+                if (flag.required) missingFlags.add(flag)
+                continue
+            }
+
+            var i = index
+            var amountOfQuotesSeen = 0
+            var collectedValue = ""
+
+            while (true) {
+                try {
+                    val atIndex = toParseSplit[i]
+                    collectedValue += when {
+                        atIndex.startsWith('"') && amountOfQuotesSeen == 0 && i == index -> {
+                            amountOfQuotesSeen++
+                            atIndex.substring(0)
+                        }
+                        atIndex.endsWith('"') && amountOfQuotesSeen == 1 -> {
+                            atIndex.substring(0, atIndex.length)
+                            break
+                        }
+                        else -> atIndex
+                    }
+                    i++
+                } catch (exception: IndexOutOfBoundsException) {
+                    if (collectedValue.isEmpty()) {
+                        if (flag.requiresValue) missingFlags.add(flag)
+                        else flagMap[flag] = flag.defaultValue.get()
+                    }
+                    break
+                }
+            }
+        }
+        //TODO make new parser
+        */
+
         for (flag in command.flags) {
             val index = toParse.indexOf("--${flag.longName}").let { index ->
                 if (index == -1) {
@@ -56,71 +99,68 @@ class FlagCommandParser : CommandParser<Flag<*>> {
                 if (flag.required) missingFlags.add(flag)
                 continue
             } else {
-                if (flag.requiresValue) {
-                    var i = index
-                    var amountOfQuotesSeen = 0
-                    var farEnough = false
-                    var collectedValue = ""
-                    parseValue@ while (true) {
-                        try {
-                            when (val char = toParse[i]) {
-                                ' ', '=' -> {
-                                    if (farEnough) {
-                                        collectedValue += char
-                                    }
-                                }
-
-                                '"' -> {
-                                    if (!farEnough) {
-                                        if (amountOfQuotesSeen != 2) {
-                                            amountOfQuotesSeen++
-                                        } else {
-                                            break@parseValue
-                                        }
-                                    } else {
-                                        if (amountOfQuotesSeen == 1) {
-                                            break@parseValue
-                                        }
-                                        collectedValue += char
-                                    }
-                                }
-
-                                '-' -> {
-                                    if (amountOfQuotesSeen != 0) {
-                                        collectedValue += char
-                                    } else {
-                                        break@parseValue
-                                    }
-                                }
-
-                                else -> {
-                                    farEnough = true
+                var i = index
+                var amountOfQuotesSeen = 0
+                var farEnough = false
+                var collectedValue = ""
+                parseValue@ while (true) {
+                    try {
+                        when (val char = toParse[i]) {
+                            ' ', '=' -> {
+                                if (farEnough) {
                                     collectedValue += char
                                 }
                             }
-                            i++
-                        } catch (exception: IndexOutOfBoundsException) {
-                            break@parseValue
+
+                            '"' -> {
+                                if (!farEnough) {
+                                    if (amountOfQuotesSeen != 2) {
+                                        amountOfQuotesSeen++
+                                    } else {
+                                        break@parseValue
+                                    }
+                                } else {
+                                    if (amountOfQuotesSeen == 1) {
+                                        break@parseValue
+                                    }
+                                    collectedValue += char
+                                }
+                            }
+
+                            '-' -> {
+                                if (amountOfQuotesSeen != 0) {
+                                    collectedValue += char
+                                } else {
+                                    break@parseValue
+                                }
+                            }
+
+                            else -> {
+                                farEnough = true
+                                collectedValue += char
+                            }
                         }
+                        i++
+                    } catch (exception: IndexOutOfBoundsException) {
+                        break@parseValue
                     }
+                }
 
-                    collectedValue = collectedValue.trim()
+                collectedValue = collectedValue.trim()
 
-                    if (collectedValue.isNotEmpty()) {
-                        if (collectedValue[0] == '"' && collectedValue[collectedValue.length - 1] == '=') {
-                            collectedValue = collectedValue.substring(1, collectedValue.length - 1)
-                        }
-                        if (flag.isValidValue(collectedValue)) {
-                            flagMap[flag] = flag.parse(collectedValue)
-                        } else {
-                            invalidValues[flag] = collectedValue
-                        }
+                if (collectedValue.isNotEmpty()) {
+                    if (collectedValue[0] == '"' && collectedValue[collectedValue.length - 1] == '=') {
+                        collectedValue = collectedValue.substring(1, collectedValue.length - 1)
+                    }
+                    if (flag.isValidValue(collectedValue)) {
+                        flagMap[flag] = flag.parse(collectedValue)
                     } else {
-                        missingFlags.add(flag)
-                        continue
+                        invalidValues[flag] = collectedValue
                     }
                 } else {
-                    flagMap[flag] = flag.defaultValue.get()
+                    if (flag.requiresValue) missingFlags.add(flag)
+                    else flagMap[flag] = flag.defaultValue.get()
+                    continue
                 }
             }
         }
