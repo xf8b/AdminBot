@@ -19,8 +19,10 @@
 
 package io.github.xf8b.xf8bot.commands.botadministrator
 
+import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.util.toImmutableList
 import reactor.core.publisher.Mono
 import kotlin.system.exitProcess
 
@@ -28,6 +30,7 @@ class ShutdownCommand : AbstractCommand(
     name = "\${prefix}shutdown",
     description = "Shuts down the bot. Bot administrators only!",
     commandType = CommandType.BOT_ADMINISTRATOR,
+    aliases = ("\${prefix}poweroff" and "\${prefix}turnoff").toImmutableList(),
     isBotAdministratorOnly = true
 ) {
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel
