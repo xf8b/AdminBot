@@ -4,26 +4,26 @@
  * This file is part of xf8bot.
  *
  * xf8bot is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * xf8bot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 package io.github.xf8b.xf8bot.commands.administration
 
+import com.google.common.collect.ImmutableList
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.User
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
-import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
@@ -41,7 +41,7 @@ class BanCommand : AbstractCommand(
     description = "Bans the specified member with the specified reason, or `No ban reason was provided` if there was none.",
     commandType = CommandType.ADMINISTRATION,
     minimumAmountOfArgs = 1,
-    flags = (MEMBER and REASON and MESSAGE_DELETE_DAYS).toImmutableList(),
+    flags = ImmutableList.of(MEMBER, REASON, MESSAGE_DELETE_DAYS),
     botRequiredPermissions = Permission.BAN_MEMBERS.toSingletonPermissionSet(),
     administratorLevelRequired = 3
 ) {

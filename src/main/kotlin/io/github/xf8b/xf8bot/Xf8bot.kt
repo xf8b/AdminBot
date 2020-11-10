@@ -4,16 +4,16 @@
  * This file is part of xf8bot.
  *
  * xf8bot is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * xf8bot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
@@ -30,8 +30,6 @@ import com.google.crypto.tink.JsonKeysetWriter
 import com.google.crypto.tink.KeysetHandle
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.aead.AesGcmKeyManager
-import com.mojang.brigadier.CommandDispatcher
-import com.mojang.brigadier.exceptions.CommandSyntaxException
 import com.mongodb.reactivestreams.client.MongoClient
 import com.mongodb.reactivestreams.client.MongoClients
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
@@ -57,7 +55,6 @@ import discord4j.rest.util.Color
 import io.github.xf8b.utils.semver.SemanticVersion
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.findAndRegister
-import io.github.xf8b.xf8bot.commands.other.SlapBrigadierCommand
 import io.github.xf8b.xf8bot.data.PrefixCache
 import io.github.xf8b.xf8bot.database.BotMongoDatabase
 import io.github.xf8b.xf8bot.listeners.MessageListener
@@ -138,7 +135,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
                     Intent.GUILDS,
                     Intent.GUILD_MEMBERS,
                     Intent.GUILD_MESSAGES,
-                    //Intent.GUILD_VOICE_STATES
+                    Intent.GUILD_VOICE_STATES
                 )
             )
             .login()
@@ -208,25 +205,6 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
             } // TODO remove
         val roleDeletePublisher: Publisher<*> = client.on<RoleDeleteEvent>()
             .flatMap { roleDeleteListener.onEventFired(it) }
-        val commandDispatcher = CommandDispatcher<MessageCreateEvent>()
-        SlapBrigadierCommand.register(commandDispatcher)
-        val brigadierMessageCreatePublisher: Publisher<*> = client.on<MessageCreateEvent>()
-            .filter { it.message.content.isNotEmpty() }
-            .filter { it.member.isPresent }
-            .filter { it.message.author.isPresent }
-            .filter { it.message.author.get().isNotBot }
-            .filter { it.message.content.startsWith(">slap") }
-            .flatMap {
-                Mono.defer {
-                    try {
-                        Mono.fromRunnable { commandDispatcher.execute(it.message.content, it) }
-                    } catch (exception: CommandSyntaxException) {
-                        it.message.channel.flatMap {
-                            it.createMessage("CommandSyntaxException: $exception")
-                        }
-                    }
-                }
-            }
         val webhookPublisher: Publisher<*> = client.self.flatMap { self: User ->
             val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
             val discordAsync = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
@@ -269,7 +247,6 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
             readyPublisher,
             messageCreateEventPublisher,
             roleDeletePublisher,
-            brigadierMessageCreatePublisher,
             webhookPublisher,
             disconnectPublisher
         )

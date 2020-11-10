@@ -10,7 +10,7 @@ plugins {
     id("com.github.ben-manes.versions") version "0.35.0"
 }
 
-infix fun Project.property(name: String): Any = findProperty(name)!!
+infix fun Project.property(name: String): Any = this.findProperty(name)!!
 
 group = project property "mavenGroup"
 version = project property "currentVersion"
@@ -39,9 +39,6 @@ dependencies {
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:${project property "reactorKotlinExtensions"}")
     //music
     implementation("com.sedmelluq:lavaplayer:${project property "lavaplayerVersion"}")
-    //command libs
-    //TODO: remove?
-    implementation("com.mojang:brigadier:${project property "brigadierVersion"}")
     //parsing libs
     implementation("com.beust:jcommander:${project property "jCommanderVersion"}")
     //logging
@@ -67,7 +64,6 @@ dependencies {
     implementation("org.reflections:reflections:${project property "reflectionsVersion"}")
     implementation("com.google.guava:guava:${project property "guavaVersion"}")
     implementation("io.github.xf8b:utils:${project property "utilsVersion"}")
-    implementation("io.micrometer:micrometer-registry-prometheus:${project property "micrometerRegistryVersion"}")
 }
 
 tasks {

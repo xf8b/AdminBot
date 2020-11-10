@@ -4,16 +4,16 @@
  * This file is part of xf8bot.
  *
  * xf8bot is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * xf8bot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
@@ -35,6 +35,9 @@ import io.github.xf8b.xf8bot.util.toSnowflake
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.mono
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.cast
+import reactor.kotlin.extra.bool.logicalAnd
+import reactor.kotlin.extra.bool.not
 import java.time.Duration
 import java.time.Instant
 
@@ -80,16 +83,35 @@ class ClearCommand : AbstractCommand(
             .orElseThrow { ThisShouldNotHaveBeenThrownException() }
         val messagesToDelete = context.channel.flux().flatMap {
             it.getMessagesBefore(Instant.now().toSnowflake())
-        }.take(amountToClear.toLong())
-        val count = messagesToDelete.count()
-        messagesToDelete.transform { (context.channel.block() as TextChannel).bulkDeleteMessages(it) }
-            .flatMap(Message::delete)
+        }.take(amountToClear.toLong()).cache()
+        val count = messagesToDelete.count().cache()
+        val leftoverMessages = messagesToDelete
+            .transform { messages ->
+                context.channel.cast<TextChannel>().flatMapMany {
+                    it.bulkDeleteMessages(messages)
+                        .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10008)) {
+                            Mono.empty()
+                        } // unknown message
+                }
+            }
+        val leftoverCount = leftoverMessages.count()
+        // FIXME
+        leftoverMessages
+            .repeatWhen {
+                leftoverCount.map {
+                    it != 1L && it != 0L
+                }.logicalAnd(
+                    leftoverMessages.all {
+                        it.id.timestamp.isBefore(Instant.now().minus(Duration.ofDays(14L)))
+                    }.not()
+                )
+            }
+            .flatMap { it.delete() }
             .then(count.flatMap { amountDeleted ->
                 context.channel.flatMap {
                     it.createMessage("Successfully purged $amountDeleted message(s).")
-                }
-            }.delayElement(Duration.ofSeconds(3)).flatMap(Message::delete))
-            .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10008)) { Mono.empty() } // unknown message
+                }.delayElement(Duration.ofSeconds(3)).flatMap(Message::delete)
+            })
             .awaitFirstOrNull()
     }
 }

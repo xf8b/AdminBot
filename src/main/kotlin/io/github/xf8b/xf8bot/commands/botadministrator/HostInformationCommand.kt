@@ -4,21 +4,22 @@
  * This file is part of xf8bot.
  *
  * xf8bot is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * xf8bot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 package io.github.xf8b.xf8bot.commands.botadministrator
 
+import com.sun.management.OperatingSystemMXBean
 import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
@@ -27,7 +28,6 @@ import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import org.apache.commons.lang3.time.DurationFormatUtils
 import reactor.core.publisher.Mono
 import java.lang.management.ManagementFactory
-import java.lang.management.OperatingSystemMXBean
 
 class HostInformationCommand : AbstractCommand(
     name = "\${prefix}hostinformation",
@@ -37,7 +37,7 @@ class HostInformationCommand : AbstractCommand(
     isBotAdministratorOnly = true
 ) {
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val operatingSystemMXBean: OperatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean()
+        val operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean() as OperatingSystemMXBean
         val runtimeMXBean = ManagementFactory.getRuntimeMXBean()
         val memoryMXBean = ManagementFactory.getMemoryMXBean()
         val threadMXBean = ManagementFactory.getThreadMXBean()
@@ -45,6 +45,14 @@ class HostInformationCommand : AbstractCommand(
         val os = operatingSystemMXBean.name
         val osVersion = operatingSystemMXBean.version
         val availableProcessors = operatingSystemMXBean.availableProcessors
+        val cpuLoad = operatingSystemMXBean.cpuLoad.let {
+            if (it < 0) "Not available"
+            else "${it * 100}%"
+        }
+        val freeMemory = operatingSystemMXBean.freeMemorySize / (1024 * 1024)
+        val totalMemory = operatingSystemMXBean.totalMemorySize / (1024 * 1024)
+        val freeSwap = operatingSystemMXBean.freeSwapSpaceSize / (1024 * 1024)
+        val totalSwap = operatingSystemMXBean.totalSwapSpaceSize / (1024 * 1024)
         val uptime = DurationFormatUtils.formatDurationHMS(runtimeMXBean.uptime)
         val jvmVendor = runtimeMXBean.vmVendor
         val jvmVersion = runtimeMXBean.vmVersion
@@ -64,6 +72,9 @@ class HostInformationCommand : AbstractCommand(
                     .addField("Arch", arch, true)
                     .addField("Uptime", uptime, false)
                     .addField("Available Processors", availableProcessors.toString(), false)
+                    .addField("Memory", "${freeMemory}MB free, ${totalMemory}MB total", false)
+                    .addField("Swap", "${freeSwap}MB free, ${totalSwap}MB total", true)
+                    .addField("CPU Load", cpuLoad, false)
                     .addField("JVM Vendor", jvmVendor, true)
                     .addField("JVM Version", jvmVersion, true)
                     .addField("JVM Spec", "$jvmSpecName version $jvmSpecVersion by $jvmSpecVendor", false)

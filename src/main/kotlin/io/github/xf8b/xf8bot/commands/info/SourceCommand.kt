@@ -17,24 +17,20 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.commands.botadministrator
+package io.github.xf8b.xf8bot.commands.info
 
-import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
-import io.github.xf8b.xf8bot.util.toImmutableList
+import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
-import kotlin.system.exitProcess
 
-class ShutdownCommand : AbstractCommand(
-    name = "\${prefix}shutdown",
-    description = "Shuts down the bot. Bot administrators only!",
-    commandType = CommandType.BOT_ADMINISTRATOR,
-    aliases = ("\${prefix}poweroff" and "\${prefix}turnoff").toImmutableList(),
-    isBotAdministratorOnly = true
+class SourceCommand : AbstractCommand(
+    name = "\${prefix}source",
+    description = "The source code of xf8bot",
+    commandType = CommandType.INFO,
+    aliases = "\${prefix}github".toSingletonImmutableList()
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel
-        .flatMap { it.createMessage("Shutting down!") }
-        .doOnSuccess { exitProcess(0) }
-        .then()
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel.flatMap {
+        it.createMessage("https://github.com/xf8b/xf8bot/ (there are multiple branches)")
+    }.then()
 }

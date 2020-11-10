@@ -28,6 +28,6 @@ You must go to `config.toml` and fill out the fields that are under `required`.
 ## Docs
 See [the documentation](https://xf8b.github.io/documentation/xf8bot/).
 ## License  
-xf8bot is licensed under GPL v3. You can see details at [COPYING.md](COPYING.md).  
+xf8bot is licensed under AGPL v3, or at your option, any later version. You can see details at [COPYING.md](COPYING.md).  
 ## Notices
 The command handler for `>ping` is licensed under Apache 2.0. The file contains a notice.
