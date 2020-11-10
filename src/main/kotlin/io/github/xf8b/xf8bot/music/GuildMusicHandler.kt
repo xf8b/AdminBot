@@ -26,6 +26,7 @@ import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.channel.MessageChannel
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.data.Cache
+import io.github.xf8b.xf8bot.util.toMono
 import reactor.core.publisher.Mono
 import java.util.concurrent.TimeUnit
 
@@ -39,6 +40,14 @@ class GuildMusicHandler(
         it.subscribe()
     }
     val lavaPlayerAudioProvider: LavaPlayerAudioProvider = LavaPlayerAudioProvider(audioPlayer)
+
+    val currentlyPlaying get() = audioPlayer.playingTrack.toMono()
+
+    var paused: Boolean
+        get() = audioPlayer.isPaused
+        set(value) {
+            audioPlayer.isPaused = value
+        }
 
     init {
         audioPlayer.addListener(musicTrackScheduler.createListener())

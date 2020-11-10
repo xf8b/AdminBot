@@ -66,7 +66,6 @@ import org.reactivestreams.Publisher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
-import reactor.core.scheduler.Schedulers
 import java.io.File
 import java.io.IOException
 import java.net.URISyntaxException
@@ -82,7 +81,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
     val botMongoDatabase: BotMongoDatabase
     val prefixCache: PrefixCache
     val audioPlayerManager: AudioPlayerManager
-    val keysetHandle: KeysetHandle
+    private val keySetHandle: KeysetHandle
 
     companion object {
         const val DEFAULT_PREFIX = ">"
@@ -92,7 +91,6 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         @JvmStatic
         fun main(vararg args: String) {
             AeadConfig.register()
-            Schedulers.enableMetrics()
             val classLoader = Thread.currentThread().contextClassLoader
             val url = classLoader.getResource("baseConfig.toml")
                 ?: throw NullPointerException("The base config file does not exist!")
@@ -150,15 +148,15 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
             )
         )
         if (File("encryption_keyset.json").exists()) {
-            keysetHandle = CleartextKeysetHandle.read(
+            keySetHandle = CleartextKeysetHandle.read(
                 JsonKeysetReader.withPath(
                     getUserDirAndResolve("encryption_keyset.json")
                 )
             )
         } else {
-            keysetHandle = KeysetHandle.generateNew(AesGcmKeyManager.aes256GcmTemplate())
+            keySetHandle = KeysetHandle.generateNew(AesGcmKeyManager.aes256GcmTemplate())
             CleartextKeysetHandle.write(
-                keysetHandle, JsonKeysetWriter.withPath(
+                keySetHandle, JsonKeysetWriter.withPath(
                     getUserDirAndResolve("encryption_keyset.json")
                 )
             )
@@ -169,7 +167,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
             ),
             botConfiguration.mongoDatabaseName,
             if (botConfiguration.encryptionEnabled) {
-                keysetHandle
+                keySetHandle
             } else {
                 null
             }
