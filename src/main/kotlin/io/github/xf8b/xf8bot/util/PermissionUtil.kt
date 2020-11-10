@@ -32,14 +32,6 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 
 object PermissionUtil {
-    /**
-     * Returns a [Boolean] that represents if [firstMember] has a higher administrator level than [secondMember].
-     */
-    fun isMemberHigher(xf8bot: Xf8bot, guild: Guild, firstMember: Member, secondMember: Member): Mono<Boolean> =
-        Mono.zip(
-            getAdministratorLevel(xf8bot, guild, firstMember),
-            getAdministratorLevel(xf8bot, guild, secondMember)
-        ).map { it.t1 > it.t2 }
 
     /**
      * Returns a [Boolean] that represents if [firstMember] has a higher or same administrator level than/with [secondMember].

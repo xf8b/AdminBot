@@ -218,7 +218,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
                     FilterReply.NEUTRAL
                 }
             })
-            if (!webhookUrl.isBlank()) {
+            if (webhookUrl.isNotBlank()) {
                 discordAppender.webhookUri = webhookUrl
                 val webhookIdAndToken = ParsingUtil.parseWebhookUrl(webhookUrl)
                 // TODO: move logging to webhooks

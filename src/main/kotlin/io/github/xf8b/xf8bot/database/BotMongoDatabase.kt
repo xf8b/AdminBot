@@ -26,7 +26,7 @@ import com.mongodb.reactivestreams.client.MongoClients
 class BotMongoDatabase(
     connectionUrl: String,
     private val databaseName: String,
-    val keySetHandle: KeysetHandle?
+    private val keySetHandle: KeysetHandle?
 ) : Database {
     private val client: MongoClient = MongoClients.create(connectionUrl)
 
