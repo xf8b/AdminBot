@@ -26,6 +26,7 @@ import discord4j.common.util.Snowflake
 import discord4j.core.shard.ShardingStrategy
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.settings.converter.ShardingStrategyConverter
+import io.github.xf8b.xf8bot.settings.converter.SnowflakeConverter
 import io.github.xf8b.xf8bot.util.env
 import io.github.xf8b.xf8bot.util.envOrElse
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
@@ -85,7 +86,7 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configur
         botAdministrators = env("BOT_ADMINISTRATOR")
             ?.toSnowflake()
             ?.toSingletonImmutableList()
-            ?: getAndMap<Long, Snowflake>("admins", Snowflake::of)
+            ?: get<List<Long>>("admins").map { it.toSnowflake() }
         shardingStrategy = ShardingStrategyConverter().convert(envOrElse("BOT_SHARDING_STRATEGY", get("sharding")))
         mongoConnectionUrl = envOrElse("BOT_DATABASE_URL", get("mongoConnectionUrl"))
         mongoDatabaseName = envOrElse("BOT_DATABASE_NAME", get("mongoDatabaseName"))
@@ -100,6 +101,4 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configur
         throw UnsupportedOperationException("Cannot set value of field when config is closed!")
 
     private fun <T> getOrNull(name: String): T? = config.get<T?>(name)
-
-    private fun <T, E> getAndMap(name: String, mapClosure: (T) -> E): List<E> = get<List<T>>(name).map(mapClosure)
 }
