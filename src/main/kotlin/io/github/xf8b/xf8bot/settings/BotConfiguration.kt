@@ -26,7 +26,10 @@ import discord4j.common.util.Snowflake
 import discord4j.core.shard.ShardingStrategy
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.settings.converter.ShardingStrategyConverter
-import io.github.xf8b.xf8bot.settings.converter.SnowflakeConverter
+import io.github.xf8b.xf8bot.util.env
+import io.github.xf8b.xf8bot.util.envOrElse
+import io.github.xf8b.xf8bot.util.toSingletonImmutableList
+import io.github.xf8b.xf8bot.util.toSnowflake
 import java.net.URL
 import java.nio.file.Path
 
@@ -71,14 +74,22 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configur
         // config is closed after this point
         // can still be used to get values, but save and load will throw an exception
         config.use { it.load() }
-        token = get("token")
-        activity = get<String>("activity").replace("\${defaultPrefix}", Xf8bot.DEFAULT_PREFIX)
-        logDumpWebhook = get("logDumpWebhook")
-        botAdministrators = getAndMap<Long, Snowflake>("admins", Snowflake::of)
-        shardingStrategy = ShardingStrategyConverter().convert(get("sharding"))
-        mongoConnectionUrl = get("mongoConnectionUrl")
-        mongoDatabaseName = get("mongoDatabaseName")
-        encryptionEnabled = get("enableEncryption")
+        token = envOrElse("BOT_TOKEN", get("token"))
+        activity = envOrElse(
+            "BOT_ACTIVITY", get<String>("activity").replace(
+                "\${defaultPrefix}",
+                Xf8bot.DEFAULT_PREFIX
+            )
+        )
+        logDumpWebhook = envOrElse("BOT_LOG_DUMP_WEBHOOK", get("logDumpWebhook"))
+        botAdministrators = env("BOT_ADMINISTRATOR")
+            ?.toSnowflake()
+            ?.toSingletonImmutableList()
+            ?: getAndMap<Long, Snowflake>("admins", Snowflake::of)
+        shardingStrategy = ShardingStrategyConverter().convert(envOrElse("BOT_SHARDING_STRATEGY", get("sharding")))
+        mongoConnectionUrl = envOrElse("BOT_DATABASE_URL", get("mongoConnectionUrl"))
+        mongoDatabaseName = envOrElse("BOT_DATABASE_NAME", get("mongoDatabaseName"))
+        encryptionEnabled = envOrElse("BOT_ENCRYPTION_ENABLED", get("enableEncryption")).toBoolean()
     }
 
     override fun <T> get(name: String): T = checkNotNull(getOrNull(name)) {

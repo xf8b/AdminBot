@@ -24,3 +24,7 @@ import com.beust.jcommander.IStringConverter
 typealias Converter<T> = IStringConverter<T>
 
 typealias Double<A, B> = Pair<A, B>
+
+fun env(name: String): String? = System.getenv(name)
+
+fun envOrElse(name: String, default: String): String = env(name) ?: default

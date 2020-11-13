@@ -56,7 +56,7 @@ class MessageListener(
         val content = message.content
         val guildId = event.guildId.get().asString()
 
-        if (content.trim() == "<@!${event.client.selfId.asString()}> help") {
+        if (content.trim() matches "<@!?${event.client.selfId.asString()}> help".toRegex()) {
             val infoCommand: InfoCommand = commandRegistry.findRegisteredWithType()
             return onCommandFired(event, infoCommand, guildId, content).thenReturn(event)
         }

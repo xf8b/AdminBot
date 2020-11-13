@@ -25,8 +25,9 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.rest.util.Color
+import io.github.xf8b.xf8bot.util.setTimestampToNow
+import org.apache.commons.lang3.time.DurationFormatUtils
 import reactor.core.publisher.Mono
-import java.time.Instant
 import kotlin.reflect.KMutableProperty0
 
 class MusicAudioPlayerListener(
@@ -45,18 +46,17 @@ class MusicAudioPlayerListener(
         messageCallback.invoke(messageChannelProperty.get().createEmbed {
             it.setTitle("Now Playing")
                 .addField("Title", track.info.title, true)
-                .addField("Length", "${track.info.length}", true)
+                .addField("Length", DurationFormatUtils.formatDurationHMS(track.info.length), true)
                 .addField("Author", track.info.author, true)
                 .setUrl(track.info.uri)
                 .setColor(Color.BLUE)
-                .setTimestamp(Instant.now())
+                .setTimestampToNow()
         })
     }
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
         messageCallback.invoke(
-            messageChannelProperty.get()
-                .createMessage("Track ${track.info.title} got stuck!")
+            messageChannelProperty.get().createMessage("Track ${track.info.title} got stuck!")
         )
     }
 }
