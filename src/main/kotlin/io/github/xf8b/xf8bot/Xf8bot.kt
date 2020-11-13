@@ -66,9 +66,9 @@ import org.reactivestreams.Publisher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
-import java.io.File
 import java.io.IOException
 import java.net.URISyntaxException
+import java.nio.file.Files
 import java.util.*
 import kotlin.system.exitProcess
 
@@ -108,10 +108,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
 
     init {
         audioPlayerManager = DefaultAudioPlayerManager()
-        audioPlayerManager.configuration.frameBufferFactory =
-            AudioFrameBufferFactory { bufferDuration, format, stopping ->
-                NonAllocatingAudioFrameBuffer(bufferDuration, format, stopping)
-            }
+        audioPlayerManager.configuration.frameBufferFactory = AudioFrameBufferFactory(::NonAllocatingAudioFrameBuffer)
         AudioSourceManagers.registerRemoteSources(audioPlayerManager)
         // TODO: bass and loop commands
         // TODO: subcommands
@@ -147,7 +144,7 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
                 botConfiguration.mongoConnectionUrl
             )
         )
-        if (File("encryption_keyset.json").exists()) {
+        if (Files.exists(getUserDirAndResolve("encryption_keyset.json"))) {
             keySetHandle = CleartextKeysetHandle.read(
                 JsonKeysetReader.withPath(
                     getUserDirAndResolve("encryption_keyset.json")
