@@ -90,7 +90,7 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configur
         shardingStrategy = ShardingStrategyConverter().convert(envOrElse("BOT_SHARDING_STRATEGY", get("sharding")))
         mongoConnectionUrl = envOrElse("BOT_DATABASE_URL", get("mongoConnectionUrl"))
         mongoDatabaseName = envOrElse("BOT_DATABASE_NAME", get("mongoDatabaseName"))
-        encryptionEnabled = envOrElse("BOT_ENCRYPTION_ENABLED", get("enableEncryption")).toBoolean()
+        encryptionEnabled = env("BOT_ENCRYPTION_ENABLED")?.toBoolean() ?: get("enableEncryption")
     }
 
     override fun <T> get(name: String): T = checkNotNull(getOrNull(name)) {
