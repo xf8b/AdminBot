@@ -28,13 +28,10 @@ import reactor.core.publisher.Mono
 class RoleDeleteListener(
     private val botMongoDatabase: BotMongoDatabase
 ) : EventListener<RoleDeleteEvent> {
-    override fun onEventFired(event: RoleDeleteEvent): Mono<RoleDeleteEvent> {
-        botMongoDatabase.execute(
-            RemoveAdministratorRoleAction(
-                event.guildId,
-                event.roleId
-            )
+    override fun onEventFired(event: RoleDeleteEvent): Mono<RoleDeleteEvent> = botMongoDatabase.execute(
+        RemoveAdministratorRoleAction(
+            event.guildId,
+            event.roleId
         )
-        return event.toMono()
-    }
+    ).toMono().thenReturn(event)
 }
