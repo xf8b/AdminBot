@@ -28,8 +28,8 @@ import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.DisableChecks
-import io.github.xf8b.xf8bot.api.commands.parser.ArgumentCommandParser
-import io.github.xf8b.xf8bot.api.commands.parser.FlagCommandParser
+import io.github.xf8b.xf8bot.api.commands.parsers.ArgumentCommandParser
+import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.LoggerDelegate
@@ -88,6 +88,7 @@ class MessageListener(
     private fun handleLevels() {
         TODO("finish this later")
     }
+
 
     private fun onCommandFired(
         event: MessageCreateEvent,

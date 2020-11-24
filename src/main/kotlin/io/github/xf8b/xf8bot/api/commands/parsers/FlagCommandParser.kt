@@ -17,7 +17,7 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.api.commands.parser
+package io.github.xf8b.xf8bot.api.commands.parsers
 
 import com.google.common.collect.ImmutableMap
 import io.github.xf8b.utils.optional.Result

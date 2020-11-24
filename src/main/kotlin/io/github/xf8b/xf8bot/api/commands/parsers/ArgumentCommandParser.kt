@@ -17,12 +17,13 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.api.commands.parser
+package io.github.xf8b.xf8bot.api.commands.parsers
 
 import com.google.common.collect.ImmutableMap
 import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
+import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import net.jodah.typetools.TypeResolver
 
 class ArgumentCommandParser : CommandParser<Argument<*>> {
@@ -39,66 +40,19 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
         val argumentMap: MutableMap<Argument<*>, Any> = HashMap()
         val missingArguments: MutableList<Argument<*>> = ArrayList()
         val invalidValues: MutableMap<Argument<*>, String> = HashMap()
-
-        val toParseSplit = toParse.split(" ").toMutableList()
-
-        for (flag in command.flags) {
-            val index = if (toParseSplit.contains("--${flag.longName}")) {
-                toParseSplit.indexOf("--${flag.longName}")
-            } else if (toParseSplit.contains("-${flag.shortName}")) {
-                toParseSplit.indexOf("-${flag.shortName}")
-            } else {
-                continue
-            }
-
-            toParseSplit.removeAt(index)
-
-            if (flag.requiresValue) {
-                val valueOfFlag = toParseSplit[index]
-                if (valueOfFlag.startsWith('"')) {
-                    var i = index
-
-                    while (true) {
-                        try {
-                            val atIndexOfI = toParseSplit[i]
-
-                            if (atIndexOfI.endsWith('"')) {
-                                while (true) {
-                                    if (i == index) break
-                                    toParseSplit.removeAt(i)
-                                    i--
-                                }
-
-                                break
-                            } else {
-                                i++
-                                continue
-                            }
-                        } catch (exception: IndexOutOfBoundsException) {
-                            break
-                        }
-                    }
-                } else {
-                    toParseSplit.removeAt(index)
-                }
-            }
-        }
+        val toParseSplit = removeFlags(command.flags, toParse.split(" "))
 
         for (argument in command.arguments) {
             try {
                 val collectedValue = StringBuilder()
 
                 if (!argument.index.hasUpperBound()) {
-                    val sublist = toParseSplit.subList(
-                        argument.index.lowerEndpoint(),
-                        toParseSplit.size
-                    )
+                    val sublist = toParseSplit.subList(argument.index.lowerEndpoint(), toParseSplit.size)
+                        .filter { it.isNotBlank() }
 
-                    if (sublist.isEmpty() || sublist[0].isBlank()) {
-                        if (argument.required) {
-                            missingArguments.add(argument)
-                            continue
-                        }
+                    if (sublist.isEmpty() && argument.required) {
+                        missingArguments.add(argument)
+                        continue
                     } else {
                         collectedValue.append(sublist.joinToString(separator = " "))
                     }
@@ -166,5 +120,40 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
             // send success when there are no errors and when everything is parsed
             else -> Result.success(ImmutableMap.copyOf(argumentMap))
         }
+    }
+
+    fun removeFlags(flags: List<Flag<*>>, splitString: List<String>): List<String> {
+        val splitStringCopy = splitString.toMutableList()
+
+        for (flag in flags) {
+            val index = if (splitStringCopy.contains("--${flag.longName}")) {
+                splitStringCopy.indexOf("--${flag.longName}")
+            } else if (splitStringCopy.contains("-${flag.shortName}")) {
+                splitStringCopy.indexOf("-${flag.shortName}")
+            } else {
+                continue
+            }
+
+            splitStringCopy.removeAt(index)
+
+            if (flag.requiresValue) {
+                val valueOfFlag = splitStringCopy[index]
+
+                if (valueOfFlag.startsWith('"')) {
+                    val toSearch = splitStringCopy.subList(index, splitStringCopy.size)
+                    val toRemove = toSearch.takeWhile {
+                        !it.endsWith('"')
+                    } + (toSearch.find { it.endsWith('"') } ?: '"')
+
+                    for (i in 1..toRemove.size) {
+                        splitStringCopy.removeAt(index)
+                    }
+                } else {
+                    splitStringCopy.removeAt(index)
+                }
+            }
+        }
+
+        return splitStringCopy
     }
 }
