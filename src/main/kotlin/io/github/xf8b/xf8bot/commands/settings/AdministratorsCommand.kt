@@ -28,7 +28,6 @@ import discord4j.rest.util.Permission
 import io.github.xf8b.utils.sorting.sortByValue
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
-import io.github.xf8b.xf8bot.api.commands.DisableChecks
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
@@ -46,11 +45,11 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
+import java.util.*
 import java.util.stream.Collectors
 
-@DisableChecks(AbstractCommand.Checks.IS_ADMINISTRATOR)
 class AdministratorsCommand : AbstractCommand(
-    name = "\${prefix}administators",
+    name = "\${prefix}administrators",
     description = """
     Adds to, removes from, or gets the list of administrator roles.
     The level can be from 1 to 4.
@@ -71,6 +70,7 @@ class AdministratorsCommand : AbstractCommand(
     arguments = ACTION.toSingletonImmutableList(),
     flags = (ROLE to ADMINISTRATOR_LEVEL).toImmutableList(),
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet(),
+    disabledChecks = EnumSet.of(Checks.IS_ADMINISTRATOR),
     administratorLevelRequired = 4
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {

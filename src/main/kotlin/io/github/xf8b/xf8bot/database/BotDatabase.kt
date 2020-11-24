@@ -43,12 +43,12 @@ class BotDatabase(
                     PRIMARY KEY (roleId)
                 );
                 CREATE TABLE IF NOT EXISTS "warns" (
-                --  name                 type       nullability
-                    guildId              bigint     NOT NULL,
-                    userId               bigint     NOT NULL,
-                    memberWhoWarnedId    bigint     NOT NULL,
-                    warnId               uuid       NOT NULL, -- unique id for the warn
-                    reason               text       NOT NULL,
+                --  name         type       nullability
+                    guildId      bigint     NOT NULL,
+                    memberId     bigint     NOT NULL,
+                    warnerId     bigint     NOT NULL,
+                    warnId       uuid       NOT NULL, -- unique id for the warn
+                    reason       text       NOT NULL,
                     PRIMARY KEY (warnId)
                 );
                 CREATE TABLE IF NOT EXISTS "prefixes" (

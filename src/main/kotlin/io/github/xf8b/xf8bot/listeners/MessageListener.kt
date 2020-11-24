@@ -27,7 +27,6 @@ import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
-import io.github.xf8b.xf8bot.api.commands.DisableChecks
 import io.github.xf8b.xf8bot.api.commands.parsers.ArgumentCommandParser
 import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
@@ -90,7 +89,6 @@ class MessageListener(
         TODO("finish this later")
     }
 
-
     private fun onCommandFired(
         event: MessageCreateEvent,
         command: AbstractCommand,
@@ -107,17 +105,11 @@ class MessageListener(
                 flagParseResult.result!!,
                 argumentParseResult.result!!
             )
-            val disabledChecks: List<AbstractCommand.Checks>? = command.javaClass
-                .getAnnotation(DisableChecks::class.java)
-                ?.value
-                ?.asList()
             val commandName = command.name.skip(1)
 
             commandFiredContext.guild.filterWhen { guild ->
-                if (disabledChecks != null) {
-                    if (disabledChecks.contains(AbstractCommand.Checks.BOT_HAS_REQUIRED_PERMISSIONS)) {
-                        return@filterWhen true.toMono()
-                    }
+                if (AbstractCommand.Checks.BOT_HAS_REQUIRED_PERMISSIONS in command.disabledChecks) {
+                    return@filterWhen true.toMono()
                 }
 
                 guild.selfMember
@@ -128,10 +120,8 @@ class MessageListener(
                         it.createMessage("Could not execute command \'$commandName\' because of insufficient permissions!")
                     }.thenReturn(false))
             }.filterWhen { guild ->
-                if (disabledChecks != null) {
-                    if (disabledChecks.contains(AbstractCommand.Checks.IS_ADMINISTRATOR)) {
-                        return@filterWhen true.toMono()
-                    }
+                if (AbstractCommand.Checks.IS_ADMINISTRATOR in command.disabledChecks) {
+                    return@filterWhen true.toMono()
                 }
 
                 if (command.requiresAdministrator()) {
@@ -153,10 +143,8 @@ class MessageListener(
                     true.toMono()
                 }
             }.filterWhen {
-                if (disabledChecks != null) {
-                    if (disabledChecks.contains(AbstractCommand.Checks.IS_BOT_ADMINISTRATOR)) {
-                        return@filterWhen true.toMono()
-                    }
+                if (AbstractCommand.Checks.IS_BOT_ADMINISTRATOR in command.disabledChecks) {
+                    return@filterWhen true.toMono()
                 }
 
                 if (command.botAdministratorOnly
@@ -169,10 +157,8 @@ class MessageListener(
                     true.toMono()
                 }
             }.filterWhen {
-                if (disabledChecks != null) {
-                    if (disabledChecks.contains(AbstractCommand.Checks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS)) {
-                        return@filterWhen true.toMono()
-                    }
+                if (AbstractCommand.Checks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS in command.disabledChecks) {
+                    return@filterWhen true.toMono()
                 }
 
                 @Suppress("DEPRECATION")

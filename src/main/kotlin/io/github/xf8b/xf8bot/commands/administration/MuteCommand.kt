@@ -31,9 +31,9 @@ import reactor.core.publisher.Mono
 class MuteCommand : AbstractCommand(
     name = "\${prefix}mute",
     description = """
-                Mutes the specified member for the specified amount of time. 
-                :warning: Currently incomplete.
-                """.trimIndent(),
+    Mutes the specified member for the specified amount of time. 
+    :warning: Currently incomplete.
+    """.trimIndent(),
     commandType = CommandType.ADMINISTRATION,
     flags = ImmutableList.of(MEMBER, TIME),
     botRequiredPermissions = Permission.MANAGE_ROLES.toSingletonPermissionSet(),

@@ -45,7 +45,7 @@ class RemoveWarnCommand : AbstractCommand(
     """.trimIndent(),
     commandType = CommandType.ADMINISTRATION,
     aliases = ("\${prefix}removewarns" to "\${prefix}rmwarn" and "\${prefix}rmwarns").toImmutableList(),
-    flags = ImmutableList.of(MEMBER, MEMBER_WHO_WARNED, REASON, WARN_ID),
+    flags = ImmutableList.of(MEMBER, WARNER, REASON, WARN_ID),
     minimumAmountOfArgs = 2,
     administratorLevelRequired = 1
 ) {
@@ -57,7 +57,7 @@ class RemoveWarnCommand : AbstractCommand(
                     it.createMessage("The member does not exist!")
                 }.then().cast())
         }
-        val memberWhoWarnedId = Mono.justOrEmpty(event.getValueOfFlag(MEMBER_WHO_WARNED)).flatMap { member ->
+        val warnerId = Mono.justOrEmpty(event.getValueOfFlag(WARNER)).flatMap { member ->
             parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
                 .switchIfEmpty(event.channel.flatMap {
@@ -66,31 +66,19 @@ class RemoveWarnCommand : AbstractCommand(
         }
         val reason = event.getValueOfFlag(REASON).toValueOrNull()
         val warnId = event.getValueOfFlag(WARN_ID).toValueOrNull()
-        val filter = userId.map {
-            mapOf("guildId" to event.guildId.get().asLong(), "userId" to it.asLong())
+        val filterMono = userId.map {
+            mapOf("guildId" to event.guildId.get().asLong(), "memberId" to it.asLong())
         }.defaultIfEmpty(mapOf("guildId" to event.guildId.get().asLong()))
-        val warns = filter.flatMapMany {
+        val warns = filterMono.flatMapMany { filter ->
             event.xf8bot
                 .botDatabase
-                .execute(
-                    SelectAction(
-                        "warns",
-                        listOf(
-                            "guildId",
-                            "userId",
-                            "memberWhoWarnedId",
-                            "warnId",
-                            "reason"
-                        ),
-                        it
-                    )
-                )
+                .execute(SelectAction("warns", listOf("*"), filter))
                 .flatMapMany { it.toFlux() }
         }
         return Mono.zip(
             { array: Array<*> -> array.toList().all { it as Boolean } },
             (warnId == null).toMono(),
-            memberWhoWarnedId.flux().count().map { it == 0L },
+            warnerId.flux().count().map { it == 0L },
             userId.flux().count().map { it == 0L },
             (reason == null).toMono(),
         ).filter { it }
@@ -109,8 +97,8 @@ class RemoveWarnCommand : AbstractCommand(
                                         DeleteAction(
                                             "warns", mapOf(
                                                 "guildId" to it["guildId", Long::class.java],
-                                                "userId" to it["guildId", Long::class.java],
-                                                "memberWhoWarnedId" to it["guildId", Long::class.java],
+                                                "memberId" to it["guildId", Long::class.java],
+                                                "warnerId" to it["guildId", Long::class.java],
                                                 "warnId" to it["guildId", String::class.java],
                                                 "reason" to it["guildId", String::class.java]
                                             )
@@ -138,8 +126,8 @@ class RemoveWarnCommand : AbstractCommand(
 
                     warnId?.let { warnsToDeleteCriteria.add(("warnId" to it).toMono()) }
                     reason?.let { warnsToDeleteCriteria.add(("reason" to it).toMono()) }
-                    warnsToDeleteCriteria.add(userId.map { "userId" to it.asLong() })
-                    warnsToDeleteCriteria.add(memberWhoWarnedId.map { "memberWhoWarnedId" to it.asLong() })
+                    warnsToDeleteCriteria.add(userId.map { "memberId" to it.asLong() })
+                    warnsToDeleteCriteria.add(warnerId.map { "warnerId" to it.asLong() })
 
                     Flux.zip(warnsToDeleteCriteria) {
                         val map = mutableMapOf<String, Any>()
@@ -157,7 +145,7 @@ class RemoveWarnCommand : AbstractCommand(
                             .execute(DeleteAction("warns", criteria))
                     }.cast(Any::class.java)
                         .flatMap {
-                            //context.guild.flatMap { it.getMemberById(userId) }.flatMap { member ->
+                            //context.guild.flatMap { it.getMemberById(memberId) }.flatMap { member ->
                             event.channel.flatMap {
                                 it.createMessage("Successfully removed warn(s)!") // for ${member.displayName}.")
                             }
@@ -177,9 +165,9 @@ class RemoveWarnCommand : AbstractCommand(
             longName = "member",
             required = false
         )
-        private val MEMBER_WHO_WARNED = StringFlag(
-            shortName = "mww",
-            longName = "memberWhoWarned",
+        private val WARNER = StringFlag(
+            shortName = "w",
+            longName = "warner",
             required = false
         )
         private val REASON = StringFlag(

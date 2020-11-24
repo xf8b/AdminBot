@@ -29,18 +29,12 @@ class StringArgument(
     override val index: Range<Int>,
     override val name: String,
     override val required: Boolean = true,
-    override val parseFunction: Function<in String, out String> = DEFAULT_PARSE_FUNCTION,
-    override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val errorMessageFunction: Function<in String, out String> = DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
+    override val parseFunction: Function<in String, out String> = Function.identity(),
+    override val validityPredicate: Predicate<in String> = Predicates.alwaysTrue(),
+    override val errorMessageFunction: Function<in String, out String> = functionReturning(
+        Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
+    )
 ) : Argument<String> {
-    companion object {
-        private val DEFAULT_PARSE_FUNCTION: Function<in String, out String> = Function.identity()
-        private val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicates.alwaysTrue()
-        private val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> = functionReturning(
-            Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-        )
-    }
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

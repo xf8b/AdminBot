@@ -27,21 +27,36 @@ import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.util.toSnowflake
 import reactor.core.publisher.Mono
+import java.util.*
 
 abstract class AbstractCommand(
+    /** What triggers this command */
     val name: String,
+    /** The description of this command, shown on the help page */
     val description: String,
+    /** The type of this command, to dictate where the command is put in the help page */
     val commandType: CommandType,
+    /** Actions that you can use for this command (>command ${action} ${other args}) */
     val actions: Map<String, String> = ImmutableMap.of(),
+    /** Aliases for this command. Works the same as [name]. */
     val aliases: List<String> = ImmutableList.of(),
+    /** Flags that this command takes in (optionally or mandatory) */
     val flags: List<Flag<*>> = ImmutableList.of(),
+    /** Arguments that this command takes in (optionally or mandatory) */
     val arguments: List<Argument<*>> = ImmutableList.of(),
+    /** Minimum amount of arguments required to use this command. Automatically set, do not set this */
     @Deprecated("Do not set this, rather use the automatically generated one. Getting is fine.")
     val minimumAmountOfArgs: Int = arguments.filter { it.required }.size,
+    /** Usage for this command shown on the help page. Automatically set, do not set this */
     @Deprecated("Do not set this, rather use the automatically generated usage. Getting is fine.")
     val usage: String = generateUsage(name, flags, arguments),
+    /** Permissions that the bot requires before this command be ran */
     val botRequiredPermissions: PermissionSet = PermissionSet.none(),
+    /** Checks ran during command handling that are disabled */
+    val disabledChecks: EnumSet<Checks> = EnumSet.noneOf(Checks::class.java),
+    /** Administrator level required to run this command according to [io.github.xf8b.xf8bot.commands.settings.AdministratorsCommand] */
     val administratorLevelRequired: Int = 0,
+    /** If this command is only to be run by bot administrators */
     val botAdministratorOnly: Boolean = false
 ) {
     companion object {

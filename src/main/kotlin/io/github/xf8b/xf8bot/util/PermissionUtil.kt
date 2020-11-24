@@ -40,17 +40,17 @@ object PermissionUtil {
         firstMember: Member,
         secondMember: Member
     ): Mono<Boolean> = Mono.zip(
-        { array ->
-            array[1] as Int >= array[2] as Int
-        },
+        { it[1] as Int >= it[2] as Int },
         getAdministratorLevel(xf8bot, guild, firstMember),
         getAdministratorLevel(xf8bot, guild, secondMember)
     )
 
-    fun canMemberUseCommand(xf8bot: Xf8bot, guild: Guild, member: Member, command: AbstractCommand): Mono<Boolean> =
-        getAdministratorLevel(xf8bot, guild, member).map {
-            it >= command.administratorLevelRequired
-        }
+    fun canMemberUseCommand(
+        xf8bot: Xf8bot,
+        guild: Guild,
+        member: Member,
+        command: AbstractCommand
+    ): Mono<Boolean> = getAdministratorLevel(xf8bot, guild, member).map { it >= command.administratorLevelRequired }
 
     fun getAdministratorLevel(xf8bot: Xf8bot, guild: Guild, member: Member): Mono<Int> {
         if (member.id == guild.ownerId) return 4.toMono()

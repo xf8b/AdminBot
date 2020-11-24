@@ -30,14 +30,12 @@ import com.google.crypto.tink.JsonKeysetWriter
 import com.google.crypto.tink.KeysetHandle
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.aead.AesGcmKeyManager
-import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrameBufferFactory
 import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer
 import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
-import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
 import discord4j.gateway.intent.Intent
@@ -57,14 +55,12 @@ import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.pool.ConnectionPoolConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionFactory
-import org.reactivestreams.Publisher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import java.nio.file.Files
 import java.util.*
 import kotlin.system.exitProcess
-
 
 // TODO: bass and loop commands
 // TODO: subcommands
@@ -77,18 +73,17 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         Thread.currentThread()
             .contextClassLoader
             .getResourceAsStream("version.txt")
-            ?: throw NullPointerException("The version file does not exist!")
+            ?: error("The version file does not exist!")
     ).use { SemanticVersion(it.nextLine()) }
-    private val keySetHandle: KeysetHandle = if (Files.exists(getUserDirAndResolve("encryption_keyset.json"))) {
+    private val keySetHandle = if (Files.exists(getUserDirAndResolve("encryption_keyset.json"))) {
         CleartextKeysetHandle.read(JsonKeysetReader.withPath(getUserDirAndResolve("encryption_keyset.json")))
     } else {
-        KeysetHandle.generateNew(AesGcmKeyManager.aes256GcmTemplate())
-            .also {
-                CleartextKeysetHandle.write(
-                    it,
-                    JsonKeysetWriter.withPath(getUserDirAndResolve("encryption_keyset.json"))
-                )
-            }
+        KeysetHandle.generateNew(AesGcmKeyManager.aes256GcmTemplate()).also {
+            CleartextKeysetHandle.write(
+                it,
+                JsonKeysetWriter.withPath(getUserDirAndResolve("encryption_keyset.json"))
+            )
+        }
     }
     val botDatabase = BotDatabase(
         ConnectionPool(
@@ -129,13 +124,13 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
             )
         )
         .login()
-        .doOnError { throwable ->
-            LOGGER.error("Could not login!", throwable)
+        .doOnError {
+            LOGGER.error("Could not login!", it)
             exitProcess(1)
         }
         .block()!!
-    val prefixCache: PrefixCache = PrefixCache(botDatabase, "prefixes")
-    val audioPlayerManager: AudioPlayerManager = DefaultAudioPlayerManager()
+    val prefixCache = PrefixCache(botDatabase, "prefixes")
+    val audioPlayerManager = DefaultAudioPlayerManager()
         .apply {
             configuration.frameBufferFactory = AudioFrameBufferFactory(::NonAllocatingAudioFrameBuffer)
         }
@@ -177,10 +172,9 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         val readyPublisher = client.on(readyListener)
         val messageCreateEventPublisher = client.on(messageListener)
         val roleDeletePublisher = client.on(roleDeleteListener)
-        val webhookPublisher: Publisher<*> = client.self.flatMap { self: User ->
+        val webhookPublisher = client.self.flatMap { self ->
             val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
-            val discordAsync = loggerContext
-                .getLogger(Logger.ROOT_LOGGER_NAME)
+            val discordAsync = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
                 .getAppender("ASYNC_DISCORD") as AsyncAppender
             val discordAppender = discordAsync.getAppender("DISCORD") as DiscordAppender
             discordAppender.username = self.username
@@ -216,7 +210,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
                 Mono.empty()
             }
         }
-        val disconnectPublisher: Publisher<*> = client.onDisconnect().doOnSuccess {
+        val disconnectPublisher = client.onDisconnect().doOnSuccess {
             LOGGER.info("Successfully disconnected!")
         }
 

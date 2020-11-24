@@ -80,39 +80,26 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
         return when {
             // send failure when there are missing arguments
             missingArguments.isNotEmpty() -> {
-                val invalidArgumentsNames = StringBuilder()
+                val invalidArgumentsNames = missingArguments.joinToString { "`${it.name}`" }
 
-                for (argument in missingArguments) {
-                    invalidArgumentsNames
-                        .append("`").append(argument.name).append("`")
-                        .append(" ")
-                }
-
-                Result.failure("Missing argument(s) ${invalidArgumentsNames.toString().trim()}!")
+                Result.failure("Missing argument(s) ${invalidArgumentsNames.trim()}!")
             }
 
             // send failure when argument values are invalid
             invalidValues.isNotEmpty() -> {
-                val invalidValuesFormatted = StringBuilder()
-
-                for ((argument, invalidValue) in invalidValues) {
+                val invalidValuesFormatted = invalidValues.map { (argument, invalidValue) ->
                     val requiredType = TypeResolver.resolveRawArgument(
                         Argument::class.java,
                         argument.javaClass
                     ).simpleName
-                    invalidValuesFormatted
-                        .append("Argument: ")
-                        .append("`").append(argument.name).append("`")
-                        .append(", Error message: ")
-                        .append(
-                            argument.getErrorMessage(invalidValue).format(
-                                invalidValue.trim(),
-                                argument.index.toString(),
-                                requiredType
-                            )
-                        )
-                        .append(" ")
-                }
+                    val errorMessage = argument.getErrorMessage(invalidValue).format(
+                        invalidValue.trim(),
+                        argument.index.toString(),
+                        requiredType
+                    )
+
+                    "Argument: `${argument.name}`, Error message: $errorMessage"
+                }.joinToString(separator = " ")
 
                 Result.failure("Invalid value(s): $invalidValuesFormatted")
             }
@@ -122,7 +109,7 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
         }
     }
 
-    fun removeFlags(flags: List<Flag<*>>, splitString: List<String>): List<String> {
+    private fun removeFlags(flags: List<Flag<*>>, splitString: List<String>): List<String> {
         val splitStringCopy = splitString.toMutableList()
 
         for (flag in flags) {

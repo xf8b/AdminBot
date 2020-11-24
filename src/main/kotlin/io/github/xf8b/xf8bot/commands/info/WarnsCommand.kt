@@ -78,14 +78,14 @@ class WarnsCommand : AbstractCommand(
                                     table = "warns",
                                     listOf(
                                         "guildId",
-                                        "userId",
-                                        "memberWhoWarnedId",
+                                        "memberId",
+                                        "warnerId",
                                         "reason",
                                         "warnId"
                                     ),
                                     mapOf(
                                         "guildId" to event.guildId.get().asLong(),
-                                        "userId" to member.id.asLong()
+                                        "memberId" to member.id.asLong()
                                     )
                                 )
                             )
@@ -94,8 +94,8 @@ class WarnsCommand : AbstractCommand(
                             .map { row ->
                                 Warn(
                                     row["guildId", Long::class.java]!!.toSnowflake(),
-                                    row["userId", Long::class.java]!!.toSnowflake(),
-                                    row["memberWhoWarnedId", Long::class.java]!!.toSnowflake(),
+                                    row["memberId", Long::class.java]!!.toSnowflake(),
+                                    row["warnerId", Long::class.java]!!.toSnowflake(),
                                     row["reason", String::class.java]!!,
                                     row["warnId", UUID::class.java]!!
                                 )
@@ -104,7 +104,7 @@ class WarnsCommand : AbstractCommand(
                             .flatMap { warns ->
                                 warns.toFlux().flatMap {
                                     mono {
-                                        it.getMemberWhoWarnedAsMember(event.client)
+                                        it.getWarnerMember(event.client)
                                             .map { it.nicknameMention }
                                             .block()!! to it.reason and it.warnId
                                     }

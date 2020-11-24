@@ -65,7 +65,7 @@ class WarnCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val memberWhoWarnedId = event.member.orElseThrow().id
+        val warnerId = event.member.orElseThrow().id
         val reason = event.getValueOfFlag(REASON).orElse("No warn reason was provided.")
 
         return parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
@@ -123,7 +123,7 @@ class WarnCommand : AbstractCommand(
                                 .onErrorResume(isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send to user
                             event.xf8bot
                                 .botDatabase
-                                .execute(AddWarningAction(Warn(guild.id, member.id, memberWhoWarnedId, reason)))
+                                .execute(AddWarningAction(Warn(guild.id, member.id, warnerId, reason)))
                                 .toMono()
                                 .then(privateChannelMono)
                                 .then(event.channel.flatMap {

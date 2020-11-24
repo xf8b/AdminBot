@@ -87,7 +87,7 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) {
         activity = config
             .getOrElse("required.activity", env("BOT_ACTIVITY")) ?: error("A activity is required!")
             .replace("\${defaultPrefix}", Xf8bot.DEFAULT_PREFIX)
-        logDumpWebhook = config.getOrElse("notrequired.logDumpWebhook", env("BOT_LOG_DUMP_WEBHOOK"))
+        logDumpWebhook = config.getOrElse("notRequired.logDumpWebhook", env("BOT_LOG_DUMP_WEBHOOK"))
             ?: ""
         botAdministrators = config
             .get<List<Long>?>("required.admins")

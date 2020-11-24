@@ -100,7 +100,8 @@ class MemberInfoCommand : AbstractCommand(
                                 .map { it.mention }
                                 .collectList()
                                 .map { it.joinToString(separator = " ") }
-                                .defaultIfEmpty("No roles")
+                                .defaultIfEmpty("No roles"),
+                            event.guild.flatMap { PermissionUtil.getAdministratorLevel(event.xf8bot, it, member) }
                         )
                         otherInfo.flatMap { info ->
                             event.channel.flatMap {
@@ -110,8 +111,9 @@ class MemberInfoCommand : AbstractCommand(
 
                                     field("Is Owner", info.t4.toString(), true)
                                     field("Is Bot", member.isBot.toString(), true)
+                                    field("Administrator Level", info.t5, true)
 
-                                    field("Roles", info.t5, true)
+                                    field("Roles", info.t5, false)
 
                                     field(
                                         "Status:",

@@ -28,6 +28,7 @@ import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import org.apache.commons.lang3.time.DurationFormatUtils
 import reactor.core.publisher.Mono
 import java.lang.management.ManagementFactory
+import java.lang.management.MemoryUsage
 
 class HostInformationCommand : AbstractCommand(
     name = "\${prefix}hostinformation",
@@ -81,26 +82,8 @@ class HostInformationCommand : AbstractCommand(
                 field("JVM Version", jvmVersion, true)
                 field("JVM Spec", "$jvmSpecName version $jvmSpecVersion by $jvmSpecVendor", false)
                 field("Thread Count", threadCount.toString(), false)
-                field(
-                    "Heap Memory Usage",
-                    "${heapMemoryUsage.used / (1024 * 1024)}MB used, ${
-                        heapMemoryUsage.max.let {
-                            if (it == -1L) "no maximum"
-                            else "${it / (1024 * 1024)}MB maximum"
-                        }
-                    }",
-                    true
-                )
-                field(
-                    "Non Heap Memory Usage",
-                    "${nonHeapMemoryUsage.used / (1024 * 1024)}MB used, ${
-                        nonHeapMemoryUsage.max.let {
-                            if (it == -1L) "no maximum"
-                            else "${it / (1024 * 1024)}MB maximum"
-                        }
-                    }",
-                    true
-                )
+                field("Heap Memory Usage", formatMemory(heapMemoryUsage), true)
+                field("Non Heap Memory Usage", formatMemory(nonHeapMemoryUsage), true)
 
                 footer(
                     """
@@ -113,5 +96,19 @@ class HostInformationCommand : AbstractCommand(
                 color(Color.BLUE)
             }
         }.then()
+    }
+
+    companion object {
+        private fun formatMemory(memoryUsage: MemoryUsage): String {
+            val usedMemory = bytesToMegaBytes(memoryUsage.used)
+            val maxMemory = memoryUsage.max
+                .takeUnless((-1L)::equals)
+                ?.let { "${it / (1024 * 1024)}MB maximum" }
+                ?: "no maximum"
+
+            return "${usedMemory}MB used out of $maxMemory"
+        }
+
+        private fun bytesToMegaBytes(bytes: Long) = bytes / (1024 * 1024)
     }
 }

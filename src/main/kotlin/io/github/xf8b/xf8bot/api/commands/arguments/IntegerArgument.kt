@@ -28,18 +28,12 @@ class IntegerArgument(
     override val name: String,
     override val index: Range<Int>,
     override val required: Boolean = true,
-    override val parseFunction: Function<in String, out Int> = DEFAULT_PARSE_FUNCTION,
-    override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val errorMessageFunction: Function<in String, out String> = DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION,
+    override val parseFunction: Function<in String, out Int> = Function(String::toInt),
+    override val validityPredicate: Predicate<in String> = Predicate { it.toIntOrNull() != null },
+    override val errorMessageFunction: Function<in String, out String> = functionReturning(
+        Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
+    ),
 ) : Argument<Int> {
-    companion object {
-        private val DEFAULT_PARSE_FUNCTION: Function<in String, out Int> = Function { it.toInt() }
-        private val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicate { it.toIntOrNull() != null }
-        private val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> = functionReturning(
-            Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-        )
-    }
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -63,6 +57,7 @@ class IntegerArgument(
         result = 31 * result + parseFunction.hashCode()
         result = 31 * result + validityPredicate.hashCode()
         result = 31 * result + errorMessageFunction.hashCode()
+
         return result
     }
 

@@ -34,8 +34,8 @@ import java.util.*
 class CommandFiredEvent(
     event: MessageCreateEvent,
     val xf8bot: Xf8bot,
-    private val flagMap: Map<Flag<*>, Any>,
-    private val argumentsMap: Map<Argument<*>, Any>
+    private val flagToValueMap: Map<Flag<*>, Any>,
+    private val argumentToValueMap: Map<Argument<*>, Any>
 ) : MessageCreateEvent(
     event.client,
     event.shardInfo,
@@ -53,10 +53,16 @@ class CommandFiredEvent(
         get() = message.author
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getValueOfFlag(flag: Flag<T>): Optional<T> = (flagMap[flag] as T?).toOptional()
+    fun <T : Any> getValueOfFlagNullable(flag: Flag<T>) = flagToValueMap[flag] as T?
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getValueOfArgument(argument: Argument<T>): Optional<T> = (argumentsMap[argument] as T?).toOptional()
+    fun <T : Any> getValueOfFlag(flag: Flag<T>) = getValueOfFlagNullable(flag).toOptional()
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> getValueOfArgumentNullable(argument: Argument<T>) = argumentToValueMap[argument] as T?
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> getValueOfArgument(argument: Argument<T>) = getValueOfArgumentNullable(argument).toOptional()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -69,8 +75,8 @@ class CommandFiredEvent(
         if (message != other.message) return false
         if (guildId != other.guildId) return false
         if (member != other.member) return false
-        if (flagMap != other.flagMap) return false
-        if (argumentsMap != other.argumentsMap) return false
+        if (flagToValueMap != other.flagToValueMap) return false
+        if (argumentToValueMap != other.argumentToValueMap) return false
         if (prefix != other.prefix) return false
 
         return true
@@ -83,8 +89,8 @@ class CommandFiredEvent(
         result = 31 * result + message.hashCode()
         result = 31 * result + guildId.hashCode()
         result = 31 * result + member.hashCode()
-        result = 31 * result + flagMap.hashCode()
-        result = 31 * result + argumentsMap.hashCode()
+        result = 31 * result + flagToValueMap.hashCode()
+        result = 31 * result + argumentToValueMap.hashCode()
         result = 31 * result + prefix.hashCode()
 
         return result

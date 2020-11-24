@@ -25,8 +25,8 @@ class AddWarningAction(warn: Warn) : InsertAction(
     "warns",
     listOf(
         warn.guildId,
-        warn.userId.asLong(),
-        warn.memberWhoWarnedId.asLong(),
+        warn.memberId.asLong(),
+        warn.warnerId.asLong(),
         warn.warnId,
         warn.reason
     )
