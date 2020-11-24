@@ -24,13 +24,11 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.entity.Member
 import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
-import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
-import org.apache.commons.lang3.StringUtils
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import java.time.ZoneOffset
@@ -86,15 +84,23 @@ class MemberInfoCommand : AbstractCommand(
                         val memberJoinDiscordTime = member.id.timestamp
                         val memberJoinServerTime = member.joinTime
                         val id = member.id.asString()
+                        /*
+                         * index   type
+                         * t1      color
+                         * t2      status
+                         * t3      activity
+                         * t4      is owner
+                         * t5      roles
+                         * t6      administrator level
+                         */
                         val otherInfo = Mono.zip(
                             member.color,
                             member.presence.map { it.status },
-                            member.presence.map { it.activity }.map { optional ->
-                                optional
-                                    ?.map { it.name }
-                                    ?.toValueOrNull()
-                                    ?: "No activity."
-                            },
+                            member.presence
+                                .map { it.activity }
+                                .flatMap { it.toMono() }
+                                .map { it.name }
+                                .defaultIfEmpty("No activity."),
                             event.guild.map { member.id == it.ownerId },
                             OrderUtil.orderRoles(member.roles)
                                 .map { it.mention }
@@ -106,47 +112,40 @@ class MemberInfoCommand : AbstractCommand(
                         otherInfo.flatMap { info ->
                             event.channel.flatMap {
                                 it.createEmbedDsl {
-                                    title("Info For Member `${member.tagWithDisplayName}`")
+                                    title("Info For `${member.tagWithDisplayName}`")
                                     author(name = displayName, iconUrl = avatarUrl)
 
-                                    field("Is Owner", info.t4.toString(), true)
-                                    field("Is Bot", member.isBot.toString(), true)
-                                    field("Administrator Level", info.t5, true)
+                                    field("Username", member.username, inline = true)
+                                    field("Nickname", member.nickname.orElse("No nickname"), inline = true)
+                                    field("Discriminator", member.discriminator.toString(), inline = true)
 
-                                    field("Roles", info.t5, false)
+                                    field("ID:", id, inline = false)
 
-                                    field(
-                                        "Status:",
-                                        StringUtils.capitalize(
-                                            info.t2
-                                                .name
-                                                .toLowerCase()
-                                                .replace("_", " ")
-                                        ),
-                                        true
-                                    )
-                                    field("Activity:", info.t3, true)
+                                    field("Administrator Level", info.t6.toString(), inline = false)
+
+                                    field("Is Owner", info.t4.toString(), inline = true)
+                                    field("Is Bot", member.isBot.toString(), inline = true)
+
+                                    field("Roles", info.t5, inline = false)
 
                                     field(
                                         "Joined Discord (UTC):",
-                                        FORMATTER.format(memberJoinDiscordTime),
-                                        true
+                                        FORMATTER.format(memberJoinDiscordTime).substring(0),
+                                        inline = true
                                     )
                                     field(
                                         "Joined Server (UTC):",
                                         FORMATTER.format(memberJoinServerTime),
-                                        true
+                                        inline = true
                                     )
-
-                                    field("ID:", id, true)
 
                                     field(
                                         "Role Color RGB:",
                                         "Red: ${info.t1.red}, Green: ${info.t1.green}, Blue: ${info.t1.blue}",
-                                        true
+                                        inline = true
                                     )
 
-                                    field("Avatar URL:", avatarUrl, true)
+                                    field("Avatar URL:", avatarUrl, inline = true)
 
                                     timestamp()
                                 }
