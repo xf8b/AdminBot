@@ -25,7 +25,7 @@ import discord4j.core.`object`.entity.User
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
@@ -78,43 +78,43 @@ class BanCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val reason = context.getValueOfFlag(REASON).orElse("No ban reason was provided.")
-        return InputParsing.parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val reason = event.getValueOfFlag(REASON).orElse("No ban reason was provided.")
+        return InputParsing.parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
             .map { it.toSnowflake() }
-            .switchIfEmpty(context.channel
+            .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId: Snowflake ->
-                context.guild.flatMap { guild ->
+                event.guild.flatMap { guild ->
                     guild.bans.filter { it.user.id == userId }.singleOrEmpty()
-                }.flatMap { context.channel.flatMap { it.createMessage("The user is already banned!") } }
-                    .switchIfEmpty(context.guild.flatMap { guild ->
+                }.flatMap { event.channel.flatMap { it.createMessage("The user is already banned!") } }
+                    .switchIfEmpty(event.guild.flatMap { guild ->
                         guild.getMemberById(userId)
                             .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
-                                context.channel
+                                event.channel
                                     .flatMap { it.createMessage("The member is not in the guild!") }
                                     .then() // yes i know, very hacky
                                     .cast()
                             } // unknown member
                             .filterWhen { member ->
-                                (member == context.member.get()).toMono()
+                                (member == event.member.get()).toMono()
                                     .filter { !it }
                                     .not()
-                                    .switchIfEmpty(context.channel.flatMap {
+                                    .switchIfEmpty(event.channel.flatMap {
                                         it.createMessage("You cannot ban yourself!")
                                     }.thenReturn(false))
                             }
                             .filterWhen { member ->
-                                context.client.self
+                                event.client.self
                                     .filterWhen { selfMember: User ->
                                         (selfMember == member).toMono()
                                             .filter { !it }
                                             .not()
                                     }
                                     .map { true }
-                                    .switchIfEmpty(context.channel.flatMap {
+                                    .switchIfEmpty(event.channel.flatMap {
                                         it.createMessage("You cannot ban xf8bot!")
                                     }.thenReturn(false))
                             }
@@ -122,15 +122,15 @@ class BanCommand : AbstractCommand(
                                 guild.selfMember.flatMap { member.isHigher(it) }
                                     .filter { !it }
                                     .not()
-                                    .switchIfEmpty(context.channel.flatMap {
+                                    .switchIfEmpty(event.channel.flatMap {
                                         it.createMessage("Cannot ban member because the member is higher than me!")
                                     }.thenReturn(false))
                             }
                             .filterWhen { member ->
-                                isMemberHigherOrEqual(context.xf8bot, guild, member, context.member.get())
+                                isMemberHigherOrEqual(event.xf8bot, guild, member, event.member.get())
                                     .filter { !it }
                                     .not()
-                                    .switchIfEmpty(context.channel.flatMap {
+                                    .switchIfEmpty(event.channel.flatMap {
                                         it.createMessage("Cannot ban member because the member is equal to or higher than you!")
                                     }.thenReturn(false))
                             }
@@ -146,8 +146,8 @@ class BanCommand : AbstractCommand(
                                             field("Reason", reason, false)
 
                                             footer(
-                                                "Banned by: ${context.member.get().tagWithDisplayName}",
-                                                context.member.get().avatarUrl
+                                                "Banned by: ${event.member.get().tagWithDisplayName}",
+                                                event.member.get().avatarUrl
                                             )
                                             timestamp()
                                             color(Color.RED)
@@ -157,10 +157,10 @@ class BanCommand : AbstractCommand(
                                         Mono.empty()
                                     } // cannot send messages to user
                                     .then(member.ban {
-                                        it.setDeleteMessageDays(context.getValueOfFlag(MESSAGE_DELETE_DAYS).orElse(0))
+                                        it.setDeleteMessageDays(event.getValueOfFlag(MESSAGE_DELETE_DAYS).orElse(0))
                                         it.reason = reason
                                     })
-                                    .then(context.channel.flatMap { it.createMessage("Successfully banned $username!") })
+                                    .then(event.channel.flatMap { it.createMessage("Successfully banned $username!") })
                             }
                     })
             }.then()

@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.botadministrator
 import com.sun.management.OperatingSystemMXBean
 import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import org.apache.commons.lang3.time.DurationFormatUtils
@@ -36,7 +36,7 @@ class HostInformationCommand : AbstractCommand(
     aliases = "\${prefix}hostinfo".toSingletonImmutableList(),
     botAdministratorOnly = true
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean() as OperatingSystemMXBean
         val runtimeMXBean = ManagementFactory.getRuntimeMXBean()
         val memoryMXBean = ManagementFactory.getMemoryMXBean()
@@ -63,7 +63,7 @@ class HostInformationCommand : AbstractCommand(
         val nonHeapMemoryUsage = memoryMXBean.nonHeapMemoryUsage
         val threadCount = threadMXBean.threadCount
 
-        return context.channel.flatMap { channel ->
+        return event.channel.flatMap { channel ->
             channel.createEmbedDsl {
                 title("Host Information")
                 url("https://stackoverflow.com/a/15733233")

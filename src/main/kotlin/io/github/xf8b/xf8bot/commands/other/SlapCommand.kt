@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.commands.other
 
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
@@ -39,19 +39,19 @@ class SlapCommand : AbstractCommand(
     commandType = CommandType.OTHER,
     arguments = PERSON.toSingletonImmutableList()
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.guild
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.guild
         .flatMap { it.selfMember }
         .map { it.displayName }
         .flatMap { selfDisplayName ->
-            var senderUsername = context.member.get().displayName
-            var personToSlap = context.getValueOfArgument(PERSON)
+            var senderUsername = event.member.get().displayName
+            var personToSlap = event.getValueOfArgument(PERSON)
                 .orElseThrow(::ThisShouldNotHaveBeenThrownException)
             val itemToUse = ITEMS[ThreadLocalRandom.current().nextInt(ITEMS.size)]
             if (personToSlap.equals(selfDisplayName, ignoreCase = true)) {
                 personToSlap = senderUsername
                 senderUsername = selfDisplayName
             }
-            context.channel.flatMap {
+            event.channel.flatMap {
                 it.createMessage("$senderUsername slapped $personToSlap with a $itemToUse!")
             }
         }.then()

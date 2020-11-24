@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.music
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 
@@ -29,23 +29,23 @@ class ClearQueueCommand : AbstractCommand(
     description = "Clears the queue of songs to play",
     commandType = CommandType.MUSIC
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val guildId = context.guildId.get()
-        return context.channel.flatMap { channel ->
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val guildId = event.guildId.get()
+        return event.channel.flatMap { channel ->
             val guildMusicHandler = GuildMusicHandler.get(
                 guildId,
-                context.xf8bot.audioPlayerManager,
+                event.xf8bot.audioPlayerManager,
                 channel
             )
-            context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+            event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
                 .flatMap {
                     Mono.fromRunnable<Void> {
                         guildMusicHandler.musicTrackScheduler.queue.clear()
-                    }.then(context.channel.flatMap {
+                    }.then(event.channel.flatMap {
                         it.createMessage("Successfully cleared the queue!")
                     })
                 }
-                .switchIfEmpty(context.channel.flatMap { it.createMessage("I am not connected to a VC!") })
+                .switchIfEmpty(event.channel.flatMap { it.createMessage("I am not connected to a VC!") })
                 .then()
         }
     }

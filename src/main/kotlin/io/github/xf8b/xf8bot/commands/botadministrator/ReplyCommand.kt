@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.botadministrator
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.createMessageDsl
 import io.github.xf8b.xf8bot.util.toSnowflake
@@ -47,11 +47,11 @@ class ReplyCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel.flatMap {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap {
         it.createMessageDsl {
-            content(context.getValueOfArgument(CONTENT).get())
+            content(event.getValueOfArgument(CONTENT).get())
 
-            messageReference(context.getValueOfArgument(MESSAGE_ID).get().toSnowflake())
+            messageReference(event.getValueOfArgument(MESSAGE_ID).get().toSnowflake())
         }
-    }.then(context.message.delete())
+    }.then(event.message.delete())
 }

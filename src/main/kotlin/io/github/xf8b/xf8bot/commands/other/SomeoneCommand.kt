@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.other
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.BooleanFlag
 import io.github.xf8b.xf8bot.util.isNotBot
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
@@ -33,9 +33,9 @@ class SomeoneCommand : AbstractCommand(
     aliases = "@someone".toSingletonImmutableList(),
     flags = IGNORE_BOTS.toSingletonImmutableList()
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val membersToPickFrom = context.guild.flatMap { guild ->
-            if (context.getValueOfFlag(IGNORE_BOTS).isEmpty || !context.getValueOfFlag(IGNORE_BOTS).get()) {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val membersToPickFrom = event.guild.flatMap { guild ->
+            if (event.getValueOfFlag(IGNORE_BOTS).isEmpty || !event.getValueOfFlag(IGNORE_BOTS).get()) {
                 guild.requestMembers()
                     .collectList()
             } else {
@@ -49,7 +49,7 @@ class SomeoneCommand : AbstractCommand(
                 it.shuffle()
                 it[0]
             }
-            .flatMap { member -> context.channel.flatMap { it.createMessage(member.nicknameMention) } }
+            .flatMap { member -> event.channel.flatMap { it.createMessage(member.nicknameMention) } }
             .then()
     }
 

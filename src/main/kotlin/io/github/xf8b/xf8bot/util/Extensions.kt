@@ -69,3 +69,10 @@ inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTy
 
 // reduce boilerplate
 fun <I, R> functionReturning(returnedValue: R): Function<I, R> = Function { returnedValue }
+
+fun <T> List<T>.skip(amount: Int) = if (this.isNotEmpty()) this.subList(1, amount) else this
+
+/**
+ * Skips the first *[n]* characters in this string, unless `this` is empty.
+ */
+fun String.skip(n: Int) = if (this.isNotEmpty()) this.substring(1, n) else this

@@ -24,7 +24,7 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.entity.channel.MessageChannel
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import reactor.core.publisher.Mono
@@ -45,12 +45,12 @@ class PrefixCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val channelMono: Mono<MessageChannel> = context.channel
-        val guildId = context.guildId.orElseThrow { ThisShouldNotHaveBeenThrownException() }
-        val previousPrefix = context.prefix.block()!!
-        val newPrefix = context.getValueOfArgument(NEW_PREFIX)
-        val xf8bot = context.xf8bot
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val channelMono: Mono<MessageChannel> = event.channel
+        val guildId = event.guildId.orElseThrow { ThisShouldNotHaveBeenThrownException() }
+        val previousPrefix = event.prefix.block()!!
+        val newPrefix = event.getValueOfArgument(NEW_PREFIX)
+        val xf8bot = event.xf8bot
         return when {
             // reset prefix
             newPrefix.isEmpty -> xf8bot.prefixCache.set(guildId, Xf8bot.DEFAULT_PREFIX).then(channelMono.flatMap {

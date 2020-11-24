@@ -25,7 +25,7 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
@@ -47,12 +47,12 @@ class HelpCommand : AbstractCommand(
     arguments = (SECTION_OR_COMMAND to PAGE).toImmutableList(),
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet()
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val guildId = context.guildId.orElseThrow().asString()
-        val commandOrSection = context.getValueOfArgument(SECTION_OR_COMMAND)
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val guildId = event.guildId.orElseThrow().asString()
+        val commandOrSection = event.getValueOfArgument(SECTION_OR_COMMAND)
         if (commandOrSection.isEmpty) {
-            return context.prefix.flatMap { prefix ->
-                context.channel.flatMap {
+            return event.prefix.flatMap { prefix ->
+                event.channel.flatMap {
                     it.createEmbedDsl {
                         title("Help Page")
                         color(Color.BLUE)
@@ -82,24 +82,24 @@ class HelpCommand : AbstractCommand(
         } else {
             for (commandType in CommandType.values()) {
                 if (commandOrSection.get().equals(commandType.name, ignoreCase = true)) {
-                    val pageNumber = context.getValueOfArgument(PAGE).orElse(0)
-                    val commandsWithCurrentCommandType = context.xf8bot
+                    val pageNumber = event.getValueOfArgument(PAGE).orElse(0)
+                    val commandsWithCurrentCommandType = event.xf8bot
                         .commandRegistry
                         .getCommandsWithCommandType(commandType)
                     if (commandsWithCurrentCommandType.size > 6) {
                         if (!(0 until commandsWithCurrentCommandType.size % 6).contains(pageNumber)) {
-                            return context.channel
+                            return event.channel
                                 .flatMap {
                                     it.createMessage("No page with the index ${pageNumber + 1} exists!")
                                 }
                                 .then()
                         }
                     }
-                    return context.prefix.flatMap { prefix ->
-                        context.channel.flatMap {
+                    return event.prefix.flatMap { prefix ->
+                        event.channel.flatMap {
                             generateCommandTypeEmbed(
-                                context,
-                                context.xf8bot.commandRegistry,
+                                event,
+                                event.xf8bot.commandRegistry,
                                 it,
                                 commandType,
                                 guildId,
@@ -111,16 +111,16 @@ class HelpCommand : AbstractCommand(
                 }
             }
 
-            for (command in context.xf8bot.commandRegistry) {
+            for (command in event.xf8bot.commandRegistry) {
                 val name = command.name
-                val nameWithPrefix = command.getNameWithPrefix(context.xf8bot, guildId)
+                val nameWithPrefix = command.getNameWithPrefix(event.xf8bot, guildId)
                 val aliases = command.aliases
-                val aliasesWithPrefixes = command.getAliasesWithPrefixes(context.xf8bot, guildId)
+                val aliasesWithPrefixes = command.getAliasesWithPrefixes(event.xf8bot, guildId)
                 if (commandOrSection.get() == name.replace("\${prefix}", "")) {
                     val description = command.description
-                    val usage = command.getUsageWithPrefix(context.xf8bot, guildId)
+                    val usage = command.getUsageWithPrefix(event.xf8bot, guildId)
                     val actions = command.actions
-                    return context.channel.flatMap {
+                    return event.channel.flatMap {
                         generateCommandEmbed(
                             it,
                             nameWithPrefix,
@@ -134,9 +134,9 @@ class HelpCommand : AbstractCommand(
                     for (alias in aliases) {
                         if (commandOrSection.get() == alias.replace("\${prefix}", "")) {
                             val description = command.description
-                            val usage = command.getUsageWithPrefix(context.xf8bot, guildId)
+                            val usage = command.getUsageWithPrefix(event.xf8bot, guildId)
                             val actions = command.actions
-                            return context.channel.flatMap {
+                            return event.channel.flatMap {
                                 generateCommandEmbed(
                                     it,
                                     nameWithPrefix,
@@ -151,13 +151,13 @@ class HelpCommand : AbstractCommand(
                 }
             }
         }
-        return context.channel.flatMap {
+        return event.channel.flatMap {
             it.createMessage("Could not find command/section ${commandOrSection.get()}!")
         }.then()
     }
 
     private fun generateCommandTypeEmbed(
-        context: CommandFiredContext,
+        event: CommandFiredEvent,
         commandRegistry: CommandRegistry,
         messageChannel: MessageChannel,
         commandType: CommandType,
@@ -182,10 +182,10 @@ class HelpCommand : AbstractCommand(
                 break
             }
 
-            val name = command.getNameWithPrefix(context.xf8bot, guildId)
+            val name = command.getNameWithPrefix(event.xf8bot, guildId)
             val nameWithPrefixRemoved = command.name.replace("\${prefix}", "")
             val description = command.description
-            val usage = command.getUsageWithPrefix(context.xf8bot, guildId)
+            val usage = command.getUsageWithPrefix(event.xf8bot, guildId)
             field(
                 "`$name`",
                 """

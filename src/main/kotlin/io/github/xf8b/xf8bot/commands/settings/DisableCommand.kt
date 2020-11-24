@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
@@ -33,7 +33,7 @@ class DisableCommand : AbstractCommand(
     arguments = COMMAND.toSingletonImmutableList(),
     administratorLevelRequired = 4
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         //val command = context.getValueOfArgument(COMMAND).orElseThrow(::ThisShouldNotHaveBeenThrownException)
 
         TODO("gotta finish this later")

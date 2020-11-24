@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList
 import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.database.actions.delete.DeleteAction
 import io.github.xf8b.xf8bot.database.actions.find.SelectAction
@@ -49,28 +49,28 @@ class RemoveWarnCommand : AbstractCommand(
     minimumAmountOfArgs = 2,
     administratorLevelRequired = 1
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val userId = Mono.justOrEmpty(context.getValueOfFlag(MEMBER)).flatMap { member ->
-            parseUserId(context.guild, member)
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val userId = Mono.justOrEmpty(event.getValueOfFlag(MEMBER)).flatMap { member ->
+            parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
-                .switchIfEmpty(context.channel.flatMap {
+                .switchIfEmpty(event.channel.flatMap {
                     it.createMessage("The member does not exist!")
                 }.then().cast())
         }
-        val memberWhoWarnedId = Mono.justOrEmpty(context.getValueOfFlag(MEMBER_WHO_WARNED)).flatMap { member ->
-            parseUserId(context.guild, member)
+        val memberWhoWarnedId = Mono.justOrEmpty(event.getValueOfFlag(MEMBER_WHO_WARNED)).flatMap { member ->
+            parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
-                .switchIfEmpty(context.channel.flatMap {
+                .switchIfEmpty(event.channel.flatMap {
                     it.createMessage("The member who warned does not exist!")
                 }.then().cast())
         }
-        val reason = context.getValueOfFlag(REASON).toValueOrNull()
-        val warnId = context.getValueOfFlag(WARN_ID).toValueOrNull()
+        val reason = event.getValueOfFlag(REASON).toValueOrNull()
+        val warnId = event.getValueOfFlag(WARN_ID).toValueOrNull()
         val filter = userId.map {
-            mapOf("guildId" to context.guildId.get().asLong(), "userId" to it.asLong())
-        }.defaultIfEmpty(mapOf("guildId" to context.guildId.get().asLong()))
+            mapOf("guildId" to event.guildId.get().asLong(), "userId" to it.asLong())
+        }.defaultIfEmpty(mapOf("guildId" to event.guildId.get().asLong()))
         val warns = filter.flatMapMany {
-            context.xf8bot
+            event.xf8bot
                 .botDatabase
                 .execute(
                     SelectAction(
@@ -94,7 +94,7 @@ class RemoveWarnCommand : AbstractCommand(
             userId.flux().count().map { it == 0L },
             (reason == null).toMono(),
         ).filter { it }
-            .switchIfEmpty(context.channel.flatMap {
+            .switchIfEmpty(event.channel.flatMap {
                 it.createMessage("You must have at least 1 search query!")
             }.then().cast())
             .flatMap {
@@ -103,7 +103,7 @@ class RemoveWarnCommand : AbstractCommand(
                         warns
                             .flatMap { it.map { row, _ -> row } }
                             .flatMap {
-                                context.xf8bot
+                                event.xf8bot
                                     .botDatabase
                                     .execute(
                                         DeleteAction(
@@ -119,16 +119,16 @@ class RemoveWarnCommand : AbstractCommand(
                                     .toMono()
                             }
                             .flatMap {
-                                context.guild.flatMap {
+                                event.guild.flatMap {
                                     it.getMemberById(userId)
                                 }
                             }
                             .flatMap { member ->
-                                context.channel.flatMap {
+                                event.channel.flatMap {
                                     it.createMessage("Successfully removed warn(s) for ${member.displayName}.")
                                 }
                             }
-                            .switchIfEmpty(context.channel.flatMap {
+                            .switchIfEmpty(event.channel.flatMap {
                                 it.createMessage("Cannot remove all warns without a user!")
                             })
                             .then()
@@ -152,18 +152,18 @@ class RemoveWarnCommand : AbstractCommand(
 
                         map
                     }.flatMap { criteria ->
-                        context.xf8bot
+                        event.xf8bot
                             .botDatabase
                             .execute(DeleteAction("warns", criteria))
                     }.cast(Any::class.java)
                         .flatMap {
                             //context.guild.flatMap { it.getMemberById(userId) }.flatMap { member ->
-                            context.channel.flatMap {
+                            event.channel.flatMap {
                                 it.createMessage("Successfully removed warn(s)!") // for ${member.displayName}.")
                             }
                             //}
                         }
-                        .switchIfEmpty(context.channel.flatMap {
+                        .switchIfEmpty(event.channel.flatMap {
                             it.createMessage("The user does not have a warn with that reason!")
                         }).then()
                 }

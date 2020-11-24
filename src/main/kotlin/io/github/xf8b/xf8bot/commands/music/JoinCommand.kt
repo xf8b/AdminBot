@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.music
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 import reactor.util.retry.Retry
@@ -33,30 +33,30 @@ class JoinCommand : AbstractCommand(
     description = "Joins your current VC.",
     commandType = CommandType.MUSIC
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val guildId = context.guildId.get()
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
-            context.xf8bot.audioPlayerManager,
-            context.channel.block()!!
+            event.xf8bot.audioPlayerManager,
+            event.channel.block()!!
         )
-        return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
-                context.channel.flatMap { it.createMessage("I am already connected to a VC!") }
+                event.channel.flatMap { it.createMessage("I am already connected to a VC!") }
             }
-            .switchIfEmpty(Mono.justOrEmpty(context.member)
+            .switchIfEmpty(Mono.justOrEmpty(event.member)
                 .flatMap(Member::getVoiceState)
                 .flatMap(VoiceState::getChannel)
                 .flatMap { voiceChannel ->
                     voiceChannel.join { spec ->
                         spec.setProvider(guildMusicHandler.lavaPlayerAudioProvider)
-                    }.then(context.channel.flatMap {
+                    }.then(event.channel.flatMap {
                         it.createMessage("Successfully connected to your VC!")
                     })
                 }
                 .retryWhen(Retry.backoff(2, Duration.ofSeconds(2L)))
             )
-            .switchIfEmpty(context.channel.flatMap { it.createMessage("You are not in a VC!") })
+            .switchIfEmpty(event.channel.flatMap { it.createMessage("You are not in a VC!") })
             .then()
     }
 }

@@ -24,7 +24,7 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import io.github.xf8b.xf8bot.util.toMono
@@ -46,14 +46,14 @@ class PlayCommand : AbstractCommand(
         private const val OTHER_YOUTUBE_URL_REGEX = "https://(www\\.)?youtu\\.be/watch\\?v=.+"
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val guildId = context.guildId.get()
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
-            context.xf8bot.audioPlayerManager,
-            context.channel.block()!!
+            event.xf8bot.audioPlayerManager,
+            event.channel.block()!!
         )
-        val temp = context.getValueOfArgument(YOUTUBE_VIDEO_NAME_OR_LINK).get()
+        val temp = event.getValueOfArgument(YOUTUBE_VIDEO_NAME_OR_LINK).get()
         val videoUrlOrSearch: String = when {
             temp.matches(YOUTUBE_URL_REGEX.toRegex()) -> temp
             temp.matches(OTHER_YOUTUBE_URL_REGEX.toRegex()) -> temp
@@ -62,18 +62,18 @@ class PlayCommand : AbstractCommand(
 
         val playMono: Mono<Void> = guildMusicHandler.playYoutubeVideo(videoUrlOrSearch)
 
-        return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap { playMono }
-            .switchIfEmpty(context.member.toMono()
+            .switchIfEmpty(event.member.toMono()
                 .flatMap(Member::getVoiceState)
                 .flatMap(VoiceState::getChannel)
-                .switchIfEmpty(context.channel
+                .switchIfEmpty(event.channel
                     .flatMap { it.createMessage("You are not in a VC!") }
                     .then()
                     .cast())
                 .flatMap { voiceChannel ->
                     voiceChannel.join { it.setProvider(guildMusicHandler.lavaPlayerAudioProvider) }
-                        .then(context.channel.flatMap {
+                        .then(event.channel.flatMap {
                             it.createMessage("Successfully connected to your VC!")
                         })
                         .then(playMono)

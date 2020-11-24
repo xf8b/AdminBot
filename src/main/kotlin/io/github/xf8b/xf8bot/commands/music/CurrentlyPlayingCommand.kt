@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.music
 import discord4j.rest.util.Color
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import io.github.xf8b.xf8bot.util.toImmutableList
 import org.apache.commons.lang3.time.DurationFormatUtils
@@ -34,12 +34,12 @@ class CurrentlyPlayingCommand : AbstractCommand(
     commandType = CommandType.MUSIC,
     aliases = ("\${prefix}np" to "\${prefix}nowplaying" and "\${prefix}playing").toImmutableList()
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val guildId = context.guildId.get()
-        return context.channel.flatMap { channel ->
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val guildId = event.guildId.get()
+        return event.channel.flatMap { channel ->
             val guildMusicHandler = GuildMusicHandler.get(
                 guildId,
-                context.xf8bot.audioPlayerManager,
+                event.xf8bot.audioPlayerManager,
                 channel
             )
 

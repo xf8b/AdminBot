@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.administration
 import com.google.common.collect.ImmutableList
 import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.data.Warn
@@ -64,33 +64,33 @@ class WarnCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val memberWhoWarnedId = context.member.orElseThrow().id
-        val reason = context.getValueOfFlag(REASON).orElse("No warn reason was provided.")
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val memberWhoWarnedId = event.member.orElseThrow().id
+        val reason = event.getValueOfFlag(REASON).orElse("No warn reason was provided.")
 
-        return parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
+        return parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
             .map { it.toSnowflake() }
-            .switchIfEmpty(context.channel
+            .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap {
-                context.guild.flatMap { guild ->
+                event.guild.flatMap { guild ->
                     guild.getMemberById(it)
                         .onErrorResume(isClientExceptionWithCode(10007)) {
-                            context.channel
+                            event.channel
                                 .flatMap { it.createMessage("The member is not in the guild!") }
                                 .then() // yes i know, very hacky
                                 .cast()
                         } // unknown member
                         .filterWhen { member ->
                             isMemberHigherOrEqual(
-                                context.xf8bot,
+                                event.xf8bot,
                                 guild,
-                                firstMember = context.member.get(),
+                                firstMember = event.member.get(),
                                 secondMember = member
                             ).filter { it }
-                                .switchIfEmpty(context.channel.flatMap {
+                                .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("Cannot warn member because the member is higher than or equal to you!")
                                 }.thenReturn(false))
                         }
@@ -100,7 +100,7 @@ class WarnCommand : AbstractCommand(
                                     if (member.isBot) {
                                         false.toMono()
                                     } else {
-                                        context.client.self.map { self ->
+                                        event.client.self.map { self ->
                                             member != self
                                         }
                                     }
@@ -113,20 +113,20 @@ class WarnCommand : AbstractCommand(
                                         field("Reason", reason, false)
 
                                         footer(
-                                            "Warned by: ${context.member.get().tagWithDisplayName}",
-                                            context.member.get().avatarUrl
+                                            "Warned by: ${event.member.get().tagWithDisplayName}",
+                                            event.member.get().avatarUrl
                                         )
                                         timestamp()
                                         color(Color.RED)
                                     }
                                 }
                                 .onErrorResume(isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send to user
-                            context.xf8bot
+                            event.xf8bot
                                 .botDatabase
                                 .execute(AddWarningAction(Warn(guild.id, member.id, memberWhoWarnedId, reason)))
                                 .toMono()
                                 .then(privateChannelMono)
-                                .then(context.channel.flatMap {
+                                .then(event.channel.flatMap {
                                     it.createMessage("Successfully warned ${member.displayName}.")
                                 }).then()
                         }.then()

@@ -26,7 +26,7 @@ import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
@@ -57,25 +57,25 @@ class MemberInfoCommand : AbstractCommand(
             .withZone(ZoneOffset.UTC)
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> =
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
         InputParsing.parseUserId(
-            context.guild,
-            context.getValueOfArgument(MEMBER).orElse(
-                context.author
+            event.guild,
+            event.getValueOfArgument(MEMBER).orElse(
+                event.author
                     .orElseThrow(::ThisShouldNotHaveBeenThrownException)
                     .id
                     .asString()
             )
         ).map(Long::toSnowflake)
-            .switchIfEmpty(context.channel
+            .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->
-                context.guild
+                event.guild
                     .flatMap { it.getMemberById(userId) }
                     .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
-                        context.channel
+                        event.channel
                             .flatMap { it.createMessage("The member is not in the guild!") }
                             .then() // yes i know, very hacky
                             .cast()
@@ -95,7 +95,7 @@ class MemberInfoCommand : AbstractCommand(
                                     ?.toValueOrNull()
                                     ?: "No activity."
                             },
-                            context.guild.map { member.id == it.ownerId },
+                            event.guild.map { member.id == it.ownerId },
                             OrderUtil.orderRoles(member.roles)
                                 .map { it.mention }
                                 .collectList()
@@ -103,7 +103,7 @@ class MemberInfoCommand : AbstractCommand(
                                 .defaultIfEmpty("No roles")
                         )
                         otherInfo.flatMap { info ->
-                            context.channel.flatMap {
+                            event.channel.flatMap {
                                 it.createEmbedDsl {
                                     title("Info For Member `${member.tagWithDisplayName}`")
                                     author(name = displayName, iconUrl = avatarUrl)

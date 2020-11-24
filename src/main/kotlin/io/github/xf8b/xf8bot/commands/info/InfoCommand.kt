@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.info
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
@@ -34,27 +34,27 @@ class InfoCommand : AbstractCommand(
     aliases = "\${prefix}info".toSingletonImmutableList(),
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet()
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.prefix.flatMap { prefix ->
-        context.channel.flatMap { channel ->
-            context.client.self.flatMap { self ->
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.prefix.flatMap { prefix ->
+        event.channel.flatMap { channel ->
+            event.client.self.flatMap { self ->
                 channel.createEmbed { embedCreateSpec ->
                     embedCreateSpec.setTitle("Information")
                         .setAuthor(self.username, "https://github.com/xf8b/xf8bot/", self.avatarUrl)
                         .setDescription("xf8bot is a general purpose bot. Originally known as AdminBot.")
-                        .addField("Current Version", context.xf8bot.version.toStringVersion(), true)
-                        .addField("Build Metadata", context.xf8bot.version.buildMetadata.let {
+                        .addField("Current Version", event.xf8bot.version.toStringVersion(), true)
+                        .addField("Build Metadata", event.xf8bot.version.buildMetadata.let {
                             if (it.isBlank()) {
                                 "No build metadata"
                             } else {
                                 it
                             }
                         }, true)
-                        .addField("Pre Release", context.xf8bot.version.preRelease.isNotBlank().toString(), true)
+                        .addField("Pre Release", event.xf8bot.version.preRelease.isNotBlank().toString(), true)
                         .addField("License", "GNU AGPL v3, or at your option, any later version", false)
                         .addField("Current Prefix", "`$prefix`", false)
                         .addField("Discord Framework", "Discord4J (https://discord4j.com)", true)
                         .addField("Discord4J Version", "3.2.0-SNAPSHOT", true)
-                        .addField("Total Amount of Commands", context.xf8bot.commandRegistry.size.toString(), false)
+                        .addField("Total Amount of Commands", event.xf8bot.commandRegistry.size.toString(), false)
                         .addField("Documentation", "https://xf8b.github.io/documentation/xf8bot/", true)
                         .addField("GitHub Repository", "https://github.com/xf8b/xf8bot/", true)
                         .setFooter(

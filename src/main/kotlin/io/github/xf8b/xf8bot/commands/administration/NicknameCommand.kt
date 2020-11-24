@@ -24,7 +24,7 @@ import discord4j.common.util.Snowflake
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.ExceptionPredicates
 import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
@@ -55,21 +55,21 @@ class NicknameCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val nickname = context.getValueOfFlag(NICKNAME).toValueOrNull()
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val nickname = event.getValueOfFlag(NICKNAME).toValueOrNull()
         val reset = nickname?.isBlank() ?: true
 
-        return parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
-            .switchIfEmpty(context.channel
+        return parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
+            .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
                 .then() // yes i know, very hacky
                 .cast())
             .map(Snowflake::of)
             .flatMap { userId ->
-                context.guild.flatMap { guild ->
+                event.guild.flatMap { guild ->
                     guild.getMemberById(userId)
                         .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
-                            context.channel
+                            event.channel
                                 .flatMap { it.createMessage("The member is not in the guild!") }
                                 .then() // yes i know, very hacky
                                 .cast()
@@ -78,14 +78,14 @@ class NicknameCommand : AbstractCommand(
                             guild.selfMember.flatMap { member.isHigher(it) }
                                 .filter { !it }
                                 .not()
-                                .switchIfEmpty(context.channel.flatMap {
+                                .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("Cannot kick member because the member is higher than me!")
                                 }.thenReturn(false))
                         }
                         .filterWhen { member -> guild.selfMember.map { it.id != member.id } }
                         .flatMap { member ->
                             member.edit { it.setNickname(nickname) }.flatMap {
-                                context.channel.flatMap {
+                                event.channel.flatMap {
                                     it.createMessage("Successfully ${if (reset) "re" else ""}set nickname of ${member.displayName}!")
                                 }.then()
                             }

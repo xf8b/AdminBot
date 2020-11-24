@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.botadministrator
 import com.google.common.collect.ImmutableList.of
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.LoggerDelegate
 import kotlinx.coroutines.reactive.awaitSingle
@@ -50,13 +50,13 @@ class EvalCommand : AbstractCommand(
         private val LOGGER: Logger by LoggerDelegate()
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = mono {
-        val thingToEval = context.getValueOfArgument(CODE_TO_EVAL).get()
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
+        val thingToEval = event.getValueOfArgument(CODE_TO_EVAL).get()
         val engine: ScriptEngine = GroovyScriptEngineImpl()
-        engine.put("context", context)
-        engine.put("guild", context.guild.awaitSingle())
-        engine.put("channel", context.channel.awaitSingle())
-        engine.put("member", context.member.get())
+        engine.put("context", event)
+        engine.put("guild", event.guild.awaitSingle())
+        engine.put("channel", event.channel.awaitSingle())
+        engine.put("member", event.member.get())
         engine.eval(
             """
             import discord4j.common.util.Snowflake;
@@ -64,19 +64,19 @@ class EvalCommand : AbstractCommand(
             """.trimIndent()
         )?.toString() ?: "null result"
     }.flatMap { result ->
-        context.message
+        event.message
             .channel
             .flatMap { it.createMessage("Result: $result") }
             .then()
     }.onErrorResume(ScriptException::class) { exception ->
         Mono.fromRunnable<Void> { LOGGER.error("Script exception happened during evaluation of code!", exception) }
-            .then(context.message
+            .then(event.message
                 .channel
                 .flatMap { it.createMessage("ScriptException: $exception") }
                 .then())
     }.onErrorResume { throwable ->
         Mono.fromRunnable<Void> { LOGGER.error("Error happened during evaluation of code!", throwable) }
-            .then(context.message
+            .then(event.message
                 .channel
                 .flatMap { it.createMessage("${throwable::class.java.simpleName}: ${throwable.message}") }
                 .then())

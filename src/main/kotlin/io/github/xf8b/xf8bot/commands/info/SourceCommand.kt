@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.commands.info
 
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.util.toImmutableList
 import reactor.core.publisher.Mono
 
@@ -31,7 +31,7 @@ class SourceCommand : AbstractCommand(
     commandType = CommandType.INFO,
     aliases = ("\${prefix}github" and "\${prefix}sourcecode").toImmutableList()
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel.flatMap {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap {
         it.createMessage("https://github.com/xf8b/xf8bot/ (there are multiple branches)")
     }.then()
 }

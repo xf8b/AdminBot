@@ -25,7 +25,7 @@ import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
 import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
@@ -67,35 +67,35 @@ class VolumeCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = Mono.defer {
-        val guildId = context.guildId.get()
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = Mono.defer {
+        val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
-            context.xf8bot.audioPlayerManager,
-            context.channel.block()!!
+            event.xf8bot.audioPlayerManager,
+            event.channel.block()!!
         )
-        val volume = context.getValueOfArgument(VOLUME).toValueOrNull()
+        val volume = event.getValueOfArgument(VOLUME).toValueOrNull()
 
         if (volume == null) {
-            context.channel.flatMap {
+            event.channel.flatMap {
                 it.createMessage("The current volume is ${guildMusicHandler.volume}.")
             }
         } else {
-            context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+            event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
                 .flatMap {
                     guildMusicHandler.volume = volume
 
-                    context.channel.flatMap {
+                    event.channel.flatMap {
                         it.createMessage("Successfully set volume to $volume!")
                     }
                 }
-                .switchIfEmpty(Mono.justOrEmpty(context.member)
+                .switchIfEmpty(Mono.justOrEmpty(event.member)
                     .flatMap(Member::getVoiceState)
                     .flatMap(VoiceState::getChannel)
                     .flatMap {
-                        context.channel.flatMap { it.createMessage("I am not in a VC!") }
+                        event.channel.flatMap { it.createMessage("I am not in a VC!") }
                     }
-                    .switchIfEmpty(context.channel.flatMap {
+                    .switchIfEmpty(event.channel.flatMap {
                         it.createMessage("You are not in a VC!")
                     })
                 )

@@ -25,7 +25,7 @@ import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
@@ -76,16 +76,16 @@ class ClearCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> = mono {
-        val amountToClear = context.getValueOfArgument(AMOUNT)
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
+        val amountToClear = event.getValueOfArgument(AMOUNT)
             .orElseThrow { ThisShouldNotHaveBeenThrownException() }
-        val messagesToDelete = context.channel.flux().flatMap {
+        val messagesToDelete = event.channel.flux().flatMap {
             it.getMessagesBefore(Instant.now().toSnowflake())
         }.take(amountToClear.toLong()).cache()
         val count = messagesToDelete.count().cache()
         val leftoverMessages = messagesToDelete
             .transform { messages ->
-                context.channel.cast<TextChannel>().flatMapMany {
+                event.channel.cast<TextChannel>().flatMapMany {
                     it.bulkDeleteMessages(messages)
                         .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10008)) {
                             Mono.empty()
@@ -109,7 +109,7 @@ class ClearCommand : AbstractCommand(
                 it.delete()
             }
             .then(count.flatMap { amountDeleted ->
-                context.channel.flatMap {
+                event.channel.flatMap {
                     it.createMessage("Successfully purged $amountDeleted message(s).")
                 }.delayElement(Duration.ofSeconds(3)).flatMap(Message::delete)
             })

@@ -24,7 +24,7 @@ import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.data.Warn
 import io.github.xf8b.xf8bot.database.actions.find.SelectAction
@@ -51,18 +51,18 @@ class WarnsCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> =
-        parseUserId(context.guild, context.getValueOfArgument(MEMBER).get())
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
+        parseUserId(event.guild, event.getValueOfArgument(MEMBER).get())
             .map { it.toSnowflake() }
-            .switchIfEmpty(context.channel
+            .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->
-                context.guild.flatMap { guild ->
+                event.guild.flatMap { guild ->
                     guild.getMemberById(userId)
                         .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
-                            context.channel
+                            event.channel
                                 .flatMap { it.createMessage("The member is not in the guild!") }
                                 .then() // yes i know, very hacky
                                 .cast()
@@ -70,9 +70,9 @@ class WarnsCommand : AbstractCommand(
                 }
             }
             .flatMap { member ->
-                context.guild
+                event.guild
                     .flatMap {
-                        val warnsMono = context.xf8bot.botDatabase
+                        val warnsMono = event.xf8bot.botDatabase
                             .execute(
                                 SelectAction(
                                     table = "warns",
@@ -84,7 +84,7 @@ class WarnsCommand : AbstractCommand(
                                         "warnId"
                                     ),
                                     mapOf(
-                                        "guildId" to context.guildId.get().asLong(),
+                                        "guildId" to event.guildId.get().asLong(),
                                         "userId" to member.id.asLong()
                                     )
                                 )
@@ -104,7 +104,7 @@ class WarnsCommand : AbstractCommand(
                             .flatMap { warns ->
                                 warns.toFlux().flatMap {
                                     mono {
-                                        it.getMemberWhoWarnedAsMember(context.client)
+                                        it.getMemberWhoWarnedAsMember(event.client)
                                             .map { it.nicknameMention }
                                             .block()!! to it.reason and it.warnId
                                     }
@@ -113,7 +113,7 @@ class WarnsCommand : AbstractCommand(
 
                         warnsMono.flatMap sendWarns@{ warns ->
                             if (warns.isNotEmpty()) {
-                                context.channel.flatMap {
+                                event.channel.flatMap {
                                     it.createEmbedDsl {
                                         title("Warnings For `${member.username}`")
 
@@ -132,7 +132,7 @@ class WarnsCommand : AbstractCommand(
                                     }
                                 }
                             } else {
-                                context.channel.flatMap { it.createMessage("The member has no warns.") }
+                                event.channel.flatMap { it.createMessage("The member has no warns.") }
                             }
                         }
                     }

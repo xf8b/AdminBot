@@ -24,7 +24,7 @@ import discord4j.core.`object`.entity.User
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.*
 import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
@@ -53,40 +53,40 @@ class KickCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val reason = context.getValueOfFlag(REASON).orElse("No kick reason was provided.")
-        return InputParsing.parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val reason = event.getValueOfFlag(REASON).orElse("No kick reason was provided.")
+        return InputParsing.parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
             .map { it.toSnowflake() }
-            .switchIfEmpty(context.channel
+            .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->
-                context.guild.flatMap { guild ->
+                event.guild.flatMap { guild ->
                     guild.getMemberById(userId)
                         .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
-                            context.channel
+                            event.channel
                                 .flatMap { it.createMessage("The member is not in the guild!") }
                                 .then() // yes i know, very hacky
                                 .cast()
                         } // unknown member
                         .filterWhen { member ->
-                            (member == context.member.get()).toMono()
+                            (member == event.member.get()).toMono()
                                 .filter { !it }
                                 .not()
-                                .switchIfEmpty(context.channel.flatMap {
+                                .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("You cannot kick yourself!")
                                 }.thenReturn(false))
                         }
                         .filterWhen { member ->
-                            context.client.self
+                            event.client.self
                                 .filterWhen { selfMember: User ->
                                     (selfMember == member).toMono()
                                         .filter { !it }
                                         .not()
                                 }
                                 .map { true }
-                                .switchIfEmpty(context.channel.flatMap {
+                                .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("You cannot kick xf8bot!")
                                 }.thenReturn(false))
                         }
@@ -94,15 +94,15 @@ class KickCommand : AbstractCommand(
                             guild.selfMember.flatMap { member.isHigher(it) }
                                 .filter { !it }
                                 .not()
-                                .switchIfEmpty(context.channel.flatMap {
+                                .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("Cannot kick member because the member is higher than me!")
                                 }.thenReturn(false))
                         }
                         .filterWhen { member ->
-                            isMemberHigherOrEqual(context.xf8bot, guild, member, context.member.get())
+                            isMemberHigherOrEqual(event.xf8bot, guild, member, event.member.get())
                                 .filter { !it }
                                 .not()
-                                .switchIfEmpty(context.channel.flatMap {
+                                .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("Cannot kick member because the member is equal to or higher than you!")
                                 }.thenReturn(false))
                         }
@@ -117,8 +117,8 @@ class KickCommand : AbstractCommand(
                                         field("Reason", reason, false)
 
                                         footer(
-                                            "Kicked by: ${context.member.get().tagWithDisplayName}",
-                                            context.member.get().avatarUrl
+                                            "Kicked by: ${event.member.get().tagWithDisplayName}",
+                                            event.member.get().avatarUrl
                                         )
                                         timestamp()
                                         color(Color.RED)
@@ -128,7 +128,7 @@ class KickCommand : AbstractCommand(
                                     Mono.empty()
                                 } // cannot send messages to user
                                 .then(member.kick(reason))
-                                .then(context.channel.flatMap {
+                                .then(event.channel.flatMap {
                                     it.createMessage("Successfully kicked ${member.displayName}!")
                                 })
                         }

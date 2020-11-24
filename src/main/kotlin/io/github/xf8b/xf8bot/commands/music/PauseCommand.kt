@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.music
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 
@@ -29,18 +29,18 @@ class PauseCommand : AbstractCommand(
     description = "Pauses the current audio playing.",
     commandType = CommandType.MUSIC
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val guildId = context.guildId.get()
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
-            context.xf8bot.audioPlayerManager,
-            context.channel.block()!!
+            event.xf8bot.audioPlayerManager,
+            event.channel.block()!!
         )
-        return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
                 guildMusicHandler.paused = !guildMusicHandler.paused
 
-                context.channel.flatMap {
+                event.channel.flatMap {
                     it.createMessage(
                         if (guildMusicHandler.paused) {
                             "Successfully paused the current video!"
@@ -50,7 +50,7 @@ class PauseCommand : AbstractCommand(
                     )
                 }
             }
-            .switchIfEmpty(context.channel.flatMap { it.createMessage("I am not connected to a VC!") })
+            .switchIfEmpty(event.channel.flatMap { it.createMessage("I am not connected to a VC!") })
             .then()
     }
 }

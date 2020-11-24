@@ -20,51 +20,29 @@
 package io.github.xf8b.xf8bot.api.commands
 
 import discord4j.common.util.Snowflake
-import discord4j.core.GatewayDiscordClient
-import discord4j.core.`object`.entity.Guild
-import discord4j.core.`object`.entity.Member
-import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.gateway.ShardInfo
 import io.github.xf8b.utils.optional.toOptional
 import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
-import io.github.xf8b.xf8bot.util.toMono
 import reactor.core.publisher.Mono
 import java.util.*
 
-class CommandFiredContext(
-    val client: GatewayDiscordClient,
-    val shardInfo: ShardInfo,
+class CommandFiredEvent(
+    event: MessageCreateEvent,
     val xf8bot: Xf8bot,
-    val message: Message,
-    val guildId: Optional<Snowflake>,
-    val member: Optional<Member>,
     private val flagMap: Map<Flag<*>, Any>,
     private val argumentsMap: Map<Argument<*>, Any>
+) : MessageCreateEvent(
+    event.client,
+    event.shardInfo,
+    event.message,
+    event.guildId.map(Snowflake::asLong).toValueOrNull(),
+    event.member.toValueOrNull()
 ) {
-    companion object {
-        fun of(
-            xf8bot: Xf8bot,
-            event: MessageCreateEvent,
-            flagMap: Map<Flag<*>, Any>,
-            argumentsMap: Map<Argument<*>, Any>
-        ) = CommandFiredContext(
-            event.client,
-            event.shardInfo,
-            xf8bot,
-            event.message,
-            event.guildId,
-            event.member,
-            flagMap,
-            argumentsMap
-        )
-    }
-
     val prefix: Mono<String> = guildId.let {
         if (it.isEmpty) Mono.empty()
         else xf8bot.prefixCache.get(it.get())
@@ -73,10 +51,6 @@ class CommandFiredContext(
         get() = message.channel
     val author: Optional<User>
         get() = message.author
-    val guild: Mono<Guild>
-        get() = guildId.toValueOrNull()
-            .toMono()
-            .flatMap(client::getGuildById)
 
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> getValueOfFlag(flag: Flag<T>): Optional<T> = (flagMap[flag] as T?).toOptional()
@@ -88,7 +62,7 @@ class CommandFiredContext(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as CommandFiredContext
+        other as CommandFiredEvent
 
         if (client != other.client) return false
         if (xf8bot != other.xf8bot) return false
@@ -104,6 +78,7 @@ class CommandFiredContext(
 
     override fun hashCode(): Int {
         var result = client.hashCode()
+
         result = 31 * result + xf8bot.hashCode()
         result = 31 * result + message.hashCode()
         result = 31 * result + guildId.hashCode()
@@ -111,15 +86,9 @@ class CommandFiredContext(
         result = 31 * result + flagMap.hashCode()
         result = 31 * result + argumentsMap.hashCode()
         result = 31 * result + prefix.hashCode()
+
         return result
     }
 
-    override fun toString(): String = "CommandFiredContext(" +
-            "message=$message, " +
-            "guildId=$guildId, " +
-            "member=$member, " +
-            "flagMap=$flagMap, " +
-            "argumentsMap=$argumentsMap, " +
-            "prefix=$prefix" +
-            ")"
+    override fun toString() = "CommandFiredContext(message=$message, guildId=$guildId, member=$member)"
 }

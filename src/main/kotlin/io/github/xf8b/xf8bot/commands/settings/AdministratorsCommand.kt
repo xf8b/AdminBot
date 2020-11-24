@@ -27,7 +27,7 @@ import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.sorting.sortByValue
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.DisableChecks
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
@@ -73,70 +73,70 @@ class AdministratorsCommand : AbstractCommand(
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet(),
     administratorLevelRequired = 4
 ) {
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val guildId: Snowflake = context.guildId.get()
-        val member: Member = context.member.get()
-        val action: String = context.getValueOfArgument(ACTION).get()
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+        val guildId: Snowflake = event.guildId.get()
+        val member: Member = event.member.get()
+        val action: String = event.getValueOfArgument(ACTION).get()
 
-        return context.guild.flatMap { guild ->
-            val isAdministrator = canMemberUseCommand(context.xf8bot, guild, member, this)
+        return event.guild.flatMap { guild ->
+            val isAdministrator = canMemberUseCommand(event.xf8bot, guild, member, this)
 
             return@flatMap when (action) {
                 "add", "addrole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
-                    if (context.getValueOfFlag(ROLE).isEmpty || context.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty) {
-                        return@ifAdministratorRun context.channel.flatMap {
+                    if (event.getValueOfFlag(ROLE).isEmpty || event.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty) {
+                        return@ifAdministratorRun event.channel.flatMap {
                             it.createMessage(
                                 "Huh? Could you repeat that? The usage of this command is: `${
                                     getUsageWithPrefix(
-                                        context.xf8bot,
+                                        event.xf8bot,
                                         guildId.asString()
                                     )
                                 }`."
                             )
                         }.then()
                     }
-                    parseRoleId(context.guild, context.getValueOfFlag(ROLE).get())
+                    parseRoleId(event.guild, event.getValueOfFlag(ROLE).get())
                         .map { it.toSnowflake() }
-                        .switchIfEmpty(context.channel.flatMap {
+                        .switchIfEmpty(event.channel.flatMap {
                             it.createMessage("The role does not exist!")
                         }.then().cast())
                         .flatMap { roleId: Snowflake ->
-                            val level: Int = context.getValueOfFlag(ADMINISTRATOR_LEVEL).get()
-                            context.xf8bot.botDatabase
+                            val level: Int = event.getValueOfFlag(ADMINISTRATOR_LEVEL).get()
+                            event.xf8bot.botDatabase
                                 .execute(FindAdministratorRoleAction(guildId, roleId))
                                 .toMono()
                                 .filter { it.isNotEmpty() }
                                 .filterWhen { it[0].map { row, _ -> row[0] != null } }
                                 .cast(Any::class.java)
                                 .flatMap {
-                                    context.channel.flatMap {
+                                    event.channel.flatMap {
                                         it.createMessage("The role already has been added as an administrator role.")
                                     }
                                 }
-                                .switchIfEmpty(context.xf8bot.botDatabase
+                                .switchIfEmpty(event.xf8bot.botDatabase
                                     .execute(AddAdministratorRoleAction(guildId, roleId, level))
                                     .toMono()
                                     .then(guild.getRoleById(roleId)
                                         .map { it.name }
                                         .flatMap { roleName: String ->
-                                            context.channel.flatMap {
+                                            event.channel.flatMap {
                                                 it.createMessage("Successfully added $roleName to the list of administrator roles.")
                                             }
                                         })
                                 )
                         }
-                }.switchIfEmpty(context.channel.flatMap {
+                }.switchIfEmpty(event.channel.flatMap {
                     it.createMessage("Sorry, you don't have high enough permissions.")
                 }).then()
 
 
                 "rm", "remove", "removerole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
-                    if (context.getValueOfFlag(ROLE).isEmpty) {
-                        return@ifAdministratorRun context.channel.flatMap {
+                    if (event.getValueOfFlag(ROLE).isEmpty) {
+                        return@ifAdministratorRun event.channel.flatMap {
                             it.createMessage(
                                 "Huh? Could you repeat that? The usage of this command is: `${
                                     getUsageWithPrefix(
-                                        context.xf8bot,
+                                        event.xf8bot,
                                         guildId.asString()
                                     )
                                 }`."
@@ -144,13 +144,13 @@ class AdministratorsCommand : AbstractCommand(
                         }.then()
                     }
                     // FIXME: not recognizing already added roles
-                    parseRoleId(context.guild, context.getValueOfFlag(ROLE).get())
+                    parseRoleId(event.guild, event.getValueOfFlag(ROLE).get())
                         .map { it.toSnowflake() }
-                        .switchIfEmpty(context.channel.flatMap {
+                        .switchIfEmpty(event.channel.flatMap {
                             it.createMessage("The role does not exist!")
                         }.then().cast())
                         .flatMap { roleId: Snowflake ->
-                            context.xf8bot
+                            event.xf8bot
                                 .botDatabase
                                 .execute(RemoveAdministratorRoleAction(guildId, roleId))
                                 .toMono()
@@ -159,20 +159,20 @@ class AdministratorsCommand : AbstractCommand(
                                     guild.getRoleById(roleId)
                                         .map { it.name }
                                         .flatMap { roleName: String ->
-                                            context.channel.flatMap {
+                                            event.channel.flatMap {
                                                 it.createMessage("Successfully removed $roleName from the list of administrator roles.")
                                             }
                                         }
                                 }
-                                .switchIfEmpty(context.channel.flatMap {
+                                .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("The role has not been added as an administrator role!")
                                 })
                         }
-                }.switchIfEmpty(context.channel.flatMap {
+                }.switchIfEmpty(event.channel.flatMap {
                     it.createMessage("Sorry, you don't have high enough permissions.")
                 }).then()
 
-                "ls", "list", "listroles", "get", "getroles" -> context.xf8bot
+                "ls", "list", "listroles", "get", "getroles" -> event.xf8bot
                     .botDatabase
                     .execute(GetGuildAdministratorRolesAction(guildId))
                     .flatMapMany { it.toFlux() }
@@ -197,7 +197,7 @@ class AdministratorsCommand : AbstractCommand(
                             .map { it.toString() }
                             .collect(Collectors.joining("\n"))
                             .replace("\n$".toRegex(), "")
-                        context.channel.flatMap {
+                        event.channel.flatMap {
                             it.createEmbedDsl {
                                 title("Administrator Roles")
 
@@ -208,7 +208,7 @@ class AdministratorsCommand : AbstractCommand(
                             }
                         }
                     }
-                    .switchIfEmpty(context.channel.flatMap {
+                    .switchIfEmpty(event.channel.flatMap {
                         it.createMessage("The only administrator is the owner.")
                     })
                     .then()
