@@ -52,7 +52,7 @@ class InfoCommand : AbstractCommand(
                         .addField("Pre Release", context.xf8bot.version.preRelease.isNotBlank().toString(), true)
                         .addField("License", "GNU AGPL v3, or at your option, any later version", false)
                         .addField("Current Prefix", "`$prefix`", false)
-                        .addField("Discord Framework", "Discord4J, https://discord4j.com", true)
+                        .addField("Discord Framework", "Discord4J (https://discord4j.com)", true)
                         .addField("Discord4J Version", "3.2.0-SNAPSHOT", true)
                         .addField("Total Amount of Commands", context.xf8bot.commandRegistry.size.toString(), false)
                         .addField("Documentation", "https://xf8b.github.io/documentation/xf8bot/", true)

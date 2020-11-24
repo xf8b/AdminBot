@@ -27,6 +27,7 @@ import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
+import io.github.xf8b.xf8bot.util.toMono
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 
@@ -34,7 +35,6 @@ class PlayCommand : AbstractCommand(
     name = "\${prefix}play",
     description = "Plays the specified music in the current VC.",
     commandType = CommandType.MUSIC,
-    minimumAmountOfArgs = 1,
     arguments = ImmutableList.of(YOUTUBE_VIDEO_NAME_OR_LINK)
 ) {
     companion object {
@@ -64,22 +64,19 @@ class PlayCommand : AbstractCommand(
 
         return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap { playMono }
-            .switchIfEmpty(
-                Mono.justOrEmpty(context.member)
-                    .flatMap(Member::getVoiceState)
-                    .flatMap(VoiceState::getChannel)
-                    .switchIfEmpty(context.channel.flatMap {
-                        it.createMessage("You are not in a VC!")
-                    }.then().cast())
-                    .flatMap { voiceChannel ->
-                        voiceChannel.join { spec ->
-                            spec.setProvider(guildMusicHandler.lavaPlayerAudioProvider)
-                        }.flatMap {
-                            context.channel.flatMap {
-                                it.createMessage("Successfully connected to your VC!")
-                            }
-                        }.flatMap { playMono }
-                    }.then()
-            )
+            .switchIfEmpty(context.member.toMono()
+                .flatMap(Member::getVoiceState)
+                .flatMap(VoiceState::getChannel)
+                .switchIfEmpty(context.channel
+                    .flatMap { it.createMessage("You are not in a VC!") }
+                    .then()
+                    .cast())
+                .flatMap { voiceChannel ->
+                    voiceChannel.join { it.setProvider(guildMusicHandler.lavaPlayerAudioProvider) }
+                        .then(context.channel.flatMap {
+                            it.createMessage("Successfully connected to your VC!")
+                        })
+                        .then(playMono)
+                })
     }
 }

@@ -20,19 +20,9 @@
 package io.github.xf8b.xf8bot.database.actions.add
 
 import discord4j.common.util.Snowflake
-import org.bson.Document
 
 class AddAdministratorRoleAction(
-    val guildId: Snowflake,
-    val roleId: Snowflake,
-    val administratorLevel: Int
-) : AddDocumentAction(
-    "administratorRoles",
-    Document(
-        mapOf(
-            "guildId" to guildId.asLong(),
-            "roleId" to roleId.asLong(),
-            "level" to administratorLevel
-        )
-    )
-)
+    guildId: Snowflake,
+    roleId: Snowflake,
+    administratorLevel: Int
+) : InsertAction("administratorRoles", listOf(guildId.asLong(), roleId.asLong(), administratorLevel))

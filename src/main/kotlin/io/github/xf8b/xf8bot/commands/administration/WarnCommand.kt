@@ -20,7 +20,6 @@
 package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
-import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
@@ -29,20 +28,19 @@ import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.data.Warn
 import io.github.xf8b.xf8bot.database.actions.add.AddWarningAction
 import io.github.xf8b.xf8bot.util.ExceptionPredicates.isClientExceptionWithCode
-import io.github.xf8b.xf8bot.util.ParsingUtil.parseUserId
+import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
+import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.tagWithDisplayName
 import io.github.xf8b.xf8bot.util.toSnowflake
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
-import java.time.Instant
 
 class WarnCommand : AbstractCommand(
     name = "\${prefix}warn",
     description = "Warns the specified member with the specified reason, or `No warn reason was provided` if there was none.",
     commandType = CommandType.ADMINISTRATION,
-    minimumAmountOfArgs = 1,
     flags = ImmutableList.of(MEMBER, REASON),
     administratorLevelRequired = 1
 ) {
@@ -55,7 +53,7 @@ class WarnCommand : AbstractCommand(
             shortName = "r",
             longName = "reason",
             validityPredicate = { it != "all" },
-            invalidValueErrorMessageFunction = {
+            errorMessageFunction = {
                 if (it == "all") {
                     "Sorry, but this warn reason is reserved."
                 } else {
@@ -102,35 +100,31 @@ class WarnCommand : AbstractCommand(
                                     if (member.isBot) {
                                         false.toMono()
                                     } else {
-                                        context.client.self.map {
-                                            member != it
+                                        context.client.self.map { self ->
+                                            member != self
                                         }
                                     }
                                 }
                                 .flatMap {
-                                    it.createEmbed { embedCreateSpec: EmbedCreateSpec ->
-                                        embedCreateSpec.setTitle("You were warned!")
-                                            .setFooter(
-                                                "Warned by: ${context.member.get().tagWithDisplayName}",
-                                                context.member.get().avatarUrl
-                                            )
-                                            .addField("Server", guild.name, false)
-                                            .addField("Reason", reason, false)
-                                            .setTimestamp(Instant.now())
-                                            .setColor(Color.RED)
+                                    it.createEmbedDsl {
+                                        title("You were warned!")
+
+                                        field("Server", guild.name, false)
+                                        field("Reason", reason, false)
+
+                                        footer(
+                                            "Warned by: ${context.member.get().tagWithDisplayName}",
+                                            context.member.get().avatarUrl
+                                        )
+                                        timestamp()
+                                        color(Color.RED)
                                     }
                                 }
                                 .onErrorResume(isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send to user
-                            context.xf8bot.botMongoDatabase.execute(
-                                AddWarningAction(
-                                    Warn(
-                                        guild.id,
-                                        member.id,
-                                        memberWhoWarnedId,
-                                        reason
-                                    )
-                                )
-                            ).toMono()
+                            context.xf8bot
+                                .botDatabase
+                                .execute(AddWarningAction(Warn(guild.id, member.id, memberWhoWarnedId, reason)))
+                                .toMono()
                                 .then(privateChannelMono)
                                 .then(context.channel.flatMap {
                                     it.createMessage("Successfully warned ${member.displayName}.")

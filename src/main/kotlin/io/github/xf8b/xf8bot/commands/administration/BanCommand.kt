@@ -35,12 +35,12 @@ import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
+import reactor.kotlin.extra.bool.not
 
 class BanCommand : AbstractCommand(
     name = "\${prefix}ban",
     description = "Bans the specified member with the specified reason, or `No ban reason was provided` if there was none.",
     commandType = CommandType.ADMINISTRATION,
-    minimumAmountOfArgs = 1,
     flags = ImmutableList.of(MEMBER, REASON, MESSAGE_DELETE_DAYS),
     botRequiredPermissions = Permission.BAN_MEMBERS.toSingletonPermissionSet(),
     administratorLevelRequired = 3
@@ -62,7 +62,7 @@ class BanCommand : AbstractCommand(
                 val value = (it as String).toInt()
                 value in 0..7
             },
-            invalidValueErrorMessageFunction = { value: String ->
+            errorMessageFunction = { value: String ->
                 try {
                     val level = value.toInt()
                     when {
@@ -80,7 +80,7 @@ class BanCommand : AbstractCommand(
 
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
         val reason = context.getValueOfFlag(REASON).orElse("No ban reason was provided.")
-        return ParsingUtil.parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
+        return InputParsing.parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
             .map { it.toSnowflake() }
             .switchIfEmpty(context.channel
                 .flatMap { it.createMessage("No member found!") }
@@ -101,28 +101,35 @@ class BanCommand : AbstractCommand(
                             .filterWhen { member ->
                                 (member == context.member.get()).toMono()
                                     .filter { !it }
+                                    .not()
                                     .switchIfEmpty(context.channel.flatMap {
                                         it.createMessage("You cannot ban yourself!")
                                     }.thenReturn(false))
                             }
                             .filterWhen { member ->
-                                context.client.self.filterWhen { selfMember: User ->
-                                    (selfMember == member).toMono()
-                                        .filter { !it }
-                                }.map { true }.switchIfEmpty(context.channel.flatMap {
-                                    it.createMessage("You cannot ban xf8bot!")
-                                }.thenReturn(false))
+                                context.client.self
+                                    .filterWhen { selfMember: User ->
+                                        (selfMember == member).toMono()
+                                            .filter { !it }
+                                            .not()
+                                    }
+                                    .map { true }
+                                    .switchIfEmpty(context.channel.flatMap {
+                                        it.createMessage("You cannot ban xf8bot!")
+                                    }.thenReturn(false))
                             }
                             .filterWhen { member ->
                                 guild.selfMember.flatMap { member.isHigher(it) }
                                     .filter { !it }
+                                    .not()
                                     .switchIfEmpty(context.channel.flatMap {
                                         it.createMessage("Cannot ban member because the member is higher than me!")
                                     }.thenReturn(false))
                             }
                             .filterWhen { member ->
-                                isMemberHigherOrEqual(context.xf8bot, guild, context.member.get(), member)
-                                    .filter { it }
+                                isMemberHigherOrEqual(context.xf8bot, guild, member, context.member.get())
+                                    .filter { !it }
+                                    .not()
                                     .switchIfEmpty(context.channel.flatMap {
                                         it.createMessage("Cannot ban member because the member is equal to or higher than you!")
                                     }.thenReturn(false))
@@ -132,20 +139,23 @@ class BanCommand : AbstractCommand(
                                 member.privateChannel
                                     .filter { member.isNotBot }
                                     .flatMap sendDM@{ privateChannel ->
-                                        privateChannel
-                                            .createEmbed { embedCreateSpec ->
-                                                embedCreateSpec.setTitle("You were banned!")
-                                                    .setFooter(
-                                                        "Banned by: ${context.member.get().tagWithDisplayName}",
-                                                        context.member.get().avatarUrl
-                                                    )
-                                                    .addField("Server", guild.name, false)
-                                                    .addField("Reason", reason, false)
-                                                    .setTimestampToNow()
-                                                    .setColor(Color.RED)
-                                            }
-                                            .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send messages to user
+                                        privateChannel.createEmbedDsl {
+                                            title("You were banned!")
+
+                                            field("Server", guild.name, false)
+                                            field("Reason", reason, false)
+
+                                            footer(
+                                                "Banned by: ${context.member.get().tagWithDisplayName}",
+                                                context.member.get().avatarUrl
+                                            )
+                                            timestamp()
+                                            color(Color.RED)
+                                        }
                                     }
+                                    .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(50007)) {
+                                        Mono.empty()
+                                    } // cannot send messages to user
                                     .then(member.ban {
                                         it.setDeleteMessageDays(context.getValueOfFlag(MESSAGE_DELETE_DAYS).orElse(0))
                                         it.reason = reason

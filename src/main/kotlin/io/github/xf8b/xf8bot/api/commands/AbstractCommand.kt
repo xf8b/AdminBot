@@ -34,14 +34,15 @@ abstract class AbstractCommand(
     val commandType: CommandType,
     val actions: Map<String, String> = ImmutableMap.of(),
     val aliases: List<String> = ImmutableList.of(),
-    val minimumAmountOfArgs: Int = 0,
     val flags: List<Flag<*>> = ImmutableList.of(),
     val arguments: List<Argument<*>> = ImmutableList.of(),
-    // Do not set this, you should use the automatically generated usage.
+    @Deprecated("Do not set this, rather use the automatically generated one. Getting is fine.")
+    val minimumAmountOfArgs: Int = arguments.filter { it.required }.size,
+    @Deprecated("Do not set this, rather use the automatically generated usage. Getting is fine.")
     val usage: String = generateUsage(name, flags, arguments),
     val botRequiredPermissions: PermissionSet = PermissionSet.none(),
     val administratorLevelRequired: Int = 0,
-    val isBotAdministratorOnly: Boolean = false
+    val botAdministratorOnly: Boolean = false
 ) {
     companion object {
         private fun generateUsage(
@@ -50,6 +51,7 @@ abstract class AbstractCommand(
             arguments: List<Argument<*>>
         ): String {
             val generatedUsage = StringBuilder(commandName).append(" ")
+
             for (argument in arguments) {
                 if (argument.required) {
                     generatedUsage.append("<").append(argument.name).append(">")
@@ -59,43 +61,100 @@ abstract class AbstractCommand(
                         .append(" ")
                 }
             }
+
             for (flag in flags) {
                 if (flag.required) {
                     generatedUsage.append("<")
                 } else {
                     generatedUsage.append("[")
                 }
+
                 generatedUsage.append("-").append(flag.shortName)
                     .append(" ")
+
                 if (flag.requiresValue) {
                     generatedUsage.append("<").append(flag.longName).append(">")
                 } else {
                     generatedUsage.append("[").append(flag.longName).append("]")
                 }
+
+                if (flag.defaultValue != null) {
+                    generatedUsage.append(" = ${flag.defaultValue}")
+                }
+
                 if (flag.required) {
                     generatedUsage.append(">")
                 } else {
                     generatedUsage.append("]")
                 }
+
                 generatedUsage.append(" ")
             }
+
             return generatedUsage.toString().trim()
         }
     }
 
     abstract fun onCommandFired(context: CommandFiredContext): Mono<Void>
 
-    fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): String =
-        name.replace("\${prefix}", xf8bot.prefixCache.get(guildId.toSnowflake()).block()!!)
+    fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): String = name.replace(
+        "\${prefix}",
+        xf8bot.prefixCache
+            .get(guildId.toSnowflake())
+            .block()!!
+    )
 
-    fun getUsageWithPrefix(xf8bot: Xf8bot, guildId: String): String =
-        usage.replace("\${prefix}", xf8bot.prefixCache.get(guildId.toSnowflake()).block()!!)
+    @Suppress("DEPRECATION") // usage is deprecated for setting, not getting
+    fun getUsageWithPrefix(xf8bot: Xf8bot, guildId: String): String = usage.replace(
+        "\${prefix}",
+        xf8bot.prefixCache
+            .get(guildId.toSnowflake())
+            .block()!!
+    )
 
     fun getAliasesWithPrefixes(xf8bot: Xf8bot, guildId: String): List<String> = aliases.map {
         it.replace("\${prefix}", xf8bot.prefixCache.get(guildId.toSnowflake()).block()!!)
     }
 
     fun requiresAdministrator(): Boolean = administratorLevelRequired > 0
+
+    @Suppress("DEPRECATION")
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is AbstractCommand) return false
+
+        if (name != other.name) return false
+        if (description != other.description) return false
+        if (commandType != other.commandType) return false
+        if (actions != other.actions) return false
+        if (aliases != other.aliases) return false
+        if (flags != other.flags) return false
+        if (arguments != other.arguments) return false
+        if (minimumAmountOfArgs != other.minimumAmountOfArgs) return false
+        if (usage != other.usage) return false
+        if (botRequiredPermissions != other.botRequiredPermissions) return false
+        if (administratorLevelRequired != other.administratorLevelRequired) return false
+        if (botAdministratorOnly != other.botAdministratorOnly) return false
+
+        return true
+    }
+
+    @Suppress("DEPRECATION")
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + description.hashCode()
+        result = 31 * result + commandType.hashCode()
+        result = 31 * result + actions.hashCode()
+        result = 31 * result + aliases.hashCode()
+        result = 31 * result + flags.hashCode()
+        result = 31 * result + arguments.hashCode()
+        result = 31 * result + minimumAmountOfArgs
+        result = 31 * result + usage.hashCode()
+        result = 31 * result + botRequiredPermissions.hashCode()
+        result = 31 * result + administratorLevelRequired
+        result = 31 * result + botAdministratorOnly.hashCode()
+        return result
+    }
 
     enum class CommandType(val description: String) {
         ADMINISTRATION("Commands related with administration."),

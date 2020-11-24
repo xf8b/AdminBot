@@ -23,7 +23,7 @@ import com.sun.management.OperatingSystemMXBean
 import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
-import io.github.xf8b.xf8bot.util.setTimestampToNow
+import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import org.apache.commons.lang3.time.DurationFormatUtils
 import reactor.core.publisher.Mono
@@ -34,7 +34,7 @@ class HostInformationCommand : AbstractCommand(
     description = "Gets information about the host.",
     commandType = CommandType.BOT_ADMINISTRATOR,
     aliases = "\${prefix}hostinfo".toSingletonImmutableList(),
-    isBotAdministratorOnly = true
+    botAdministratorOnly = true
 ) {
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
         val operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean() as OperatingSystemMXBean
@@ -64,51 +64,53 @@ class HostInformationCommand : AbstractCommand(
         val threadCount = threadMXBean.threadCount
 
         return context.channel.flatMap { channel ->
-            channel.createEmbed { spec ->
-                spec.setTitle("Host Information")
-                    .setDescription("Information about the computer that xf8bot is currently running on.")
-                    .addField("OS", os, true)
-                    .addField("OS Version", osVersion, true)
-                    .addField("Arch", arch, true)
-                    .addField("Uptime", uptime, false)
-                    .addField("Available Processors", availableProcessors.toString(), false)
-                    .addField("Memory", "${freeMemory}MB free, ${totalMemory}MB total", false)
-                    .addField("Swap", "${freeSwap}MB free, ${totalSwap}MB total", true)
-                    .addField("CPU Load", cpuLoad, false)
-                    .addField("JVM Vendor", jvmVendor, true)
-                    .addField("JVM Version", jvmVersion, true)
-                    .addField("JVM Spec", "$jvmSpecName version $jvmSpecVersion by $jvmSpecVendor", false)
-                    .addField("Thread Count", threadCount.toString(), false)
-                    .addField(
-                        "Heap Memory Usage",
-                        "${heapMemoryUsage.used / (1024 * 1024)}MB used, ${
-                            heapMemoryUsage.max.let {
-                                if (it == -1L) "no maximum"
-                                else "${it / (1024 * 1024)}MB maximum"
-                            }
-                        }",
-                        true
-                    )
-                    .addField(
-                        "Non Heap Memory Usage",
-                        "${nonHeapMemoryUsage.used / (1024 * 1024)}MB used, ${
-                            nonHeapMemoryUsage.max.let {
-                                if (it == -1L) "no maximum"
-                                else "${it / (1024 * 1024)}MB maximum"
-                            }
-                        }",
-                        true
-                    )
-                    .setFooter(
-                        """
-                        i took some of the code for this from stack overflow
-                        if you are a fellow java/kotlin programmer see https://stackoverflow.com/a/15733233
-                        """.trimIndent(),
-                        null
-                    )
-                    .setUrl("https://stackoverflow.com/a/15733233")
-                    .setTimestampToNow()
-                    .setColor(Color.BLUE)
+            channel.createEmbedDsl {
+                title("Host Information")
+                url("https://stackoverflow.com/a/15733233")
+                description("Information about the computer that xf8bot is currently running on.")
+
+                field("OS", os, true)
+                field("OS Version", osVersion, true)
+                field("Arch", arch, true)
+                field("Uptime", uptime, false)
+                field("Available Processors", availableProcessors.toString(), false)
+                field("Memory", "${freeMemory}MB free, ${totalMemory}MB total", false)
+                field("Swap", "${freeSwap}MB free, ${totalSwap}MB total", true)
+                field("CPU Load", cpuLoad, false)
+                field("JVM Vendor", jvmVendor, true)
+                field("JVM Version", jvmVersion, true)
+                field("JVM Spec", "$jvmSpecName version $jvmSpecVersion by $jvmSpecVendor", false)
+                field("Thread Count", threadCount.toString(), false)
+                field(
+                    "Heap Memory Usage",
+                    "${heapMemoryUsage.used / (1024 * 1024)}MB used, ${
+                        heapMemoryUsage.max.let {
+                            if (it == -1L) "no maximum"
+                            else "${it / (1024 * 1024)}MB maximum"
+                        }
+                    }",
+                    true
+                )
+                field(
+                    "Non Heap Memory Usage",
+                    "${nonHeapMemoryUsage.used / (1024 * 1024)}MB used, ${
+                        nonHeapMemoryUsage.max.let {
+                            if (it == -1L) "no maximum"
+                            else "${it / (1024 * 1024)}MB maximum"
+                        }
+                    }",
+                    true
+                )
+
+                footer(
+                    """
+                    i took some of the code for this from stack overflow
+                    if you are a fellow java/kotlin programmer see https://stackoverflow.com/a/15733233
+                    """.trimIndent(),
+                    null
+                )
+                timestamp()
+                color(Color.BLUE)
             }
         }.then()
     }

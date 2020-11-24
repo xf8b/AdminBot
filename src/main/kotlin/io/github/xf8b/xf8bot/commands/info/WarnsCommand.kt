@@ -1,0 +1,140 @@
+/*
+ * Copyright (c) 2020 xf8b.
+ *
+ * This file is part of xf8bot.
+ *
+ * xf8bot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * xf8bot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.xf8b.xf8bot.commands.info
+
+import com.google.common.collect.Range
+import discord4j.rest.util.Color
+import discord4j.rest.util.Permission
+import io.github.xf8b.utils.tuples.and
+import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
+import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
+import io.github.xf8b.xf8bot.data.Warn
+import io.github.xf8b.xf8bot.database.actions.find.SelectAction
+import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
+import kotlinx.coroutines.reactor.mono
+import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.cast
+import reactor.kotlin.core.publisher.toFlux
+import java.util.*
+
+class WarnsCommand : AbstractCommand(
+    name = "\${prefix}warns",
+    description = "Gets the warns for the specified member.",
+    commandType = CommandType.INFO,
+    arguments = MEMBER.toSingletonImmutableList(),
+    botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet(),
+    administratorLevelRequired = 1
+) {
+    companion object {
+        private val MEMBER = StringArgument(
+            name = "member",
+            index = Range.atLeast(1)
+        )
+    }
+
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> =
+        parseUserId(context.guild, context.getValueOfArgument(MEMBER).get())
+            .map { it.toSnowflake() }
+            .switchIfEmpty(context.channel
+                .flatMap { it.createMessage("No member found!") }
+                .then() // yes i know, very hacky
+                .cast())
+            .flatMap { userId ->
+                context.guild.flatMap { guild ->
+                    guild.getMemberById(userId)
+                        .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
+                            context.channel
+                                .flatMap { it.createMessage("The member is not in the guild!") }
+                                .then() // yes i know, very hacky
+                                .cast()
+                        } // unknown member
+                }
+            }
+            .flatMap { member ->
+                context.guild
+                    .flatMap {
+                        val warnsMono = context.xf8bot.botDatabase
+                            .execute(
+                                SelectAction(
+                                    table = "warns",
+                                    listOf(
+                                        "guildId",
+                                        "userId",
+                                        "memberWhoWarnedId",
+                                        "reason",
+                                        "warnId"
+                                    ),
+                                    mapOf(
+                                        "guildId" to context.guildId.get().asLong(),
+                                        "userId" to member.id.asLong()
+                                    )
+                                )
+                            )
+                            .flatMapMany { it.toFlux() }
+                            .flatMap { it.map { row, _ -> row } }
+                            .map { row ->
+                                Warn(
+                                    row["guildId", Long::class.java]!!.toSnowflake(),
+                                    row["userId", Long::class.java]!!.toSnowflake(),
+                                    row["memberWhoWarnedId", Long::class.java]!!.toSnowflake(),
+                                    row["reason", String::class.java]!!,
+                                    row["warnId", UUID::class.java]!!
+                                )
+                            }
+                            .collectList()
+                            .flatMap { warns ->
+                                warns.toFlux().flatMap {
+                                    mono {
+                                        it.getMemberWhoWarnedAsMember(context.client)
+                                            .map { it.nicknameMention }
+                                            .block()!! to it.reason and it.warnId
+                                    }
+                                }.collectList()
+                            }
+
+                        warnsMono.flatMap sendWarns@{ warns ->
+                            if (warns.isNotEmpty()) {
+                                context.channel.flatMap {
+                                    it.createEmbedDsl {
+                                        title("Warnings For `${member.username}`")
+
+                                        warns.forEach { (memberWhoWarnedMention, reason, warnId) ->
+                                            field(
+                                                "`$reason`",
+                                                """
+                                                Warn ID: $warnId
+                                                Member Who Warned: $memberWhoWarnedMention
+                                                """.trimIndent(),
+                                                true
+                                            )
+                                        }
+
+                                        color(Color.BLUE)
+                                    }
+                                }
+                            } else {
+                                context.channel.flatMap { it.createMessage("The member has no warns.") }
+                            }
+                        }
+                    }
+            }.then()
+}

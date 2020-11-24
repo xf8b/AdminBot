@@ -19,11 +19,11 @@
 
 package io.github.xf8b.xf8bot.listeners
 
+import discord4j.core.event.ReactiveEventAdapter
 import discord4j.core.event.domain.message.ReactionAddEvent
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
 
 @Deprecated("use section numbers for now, have to figure this out")
-class ReactionAddListener : EventListener<ReactionAddEvent> {
-    override fun onEventFired(event: ReactionAddEvent): Mono<ReactionAddEvent> = event.toMono()
+class ReactionAddListener : ReactiveEventAdapter() {
+    override fun onReactionAdd(event: ReactionAddEvent): Mono<Void> = Mono.empty()
 }

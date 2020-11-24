@@ -40,13 +40,16 @@ class GuildMusicHandler(
         it.subscribe()
     }
     val lavaPlayerAudioProvider: LavaPlayerAudioProvider = LavaPlayerAudioProvider(audioPlayer)
-
     val currentlyPlaying get() = audioPlayer.playingTrack.toMono()
-
     var paused: Boolean
         get() = audioPlayer.isPaused
         set(value) {
             audioPlayer.isPaused = value
+        }
+    var volume: Int
+        get() = audioPlayer.volume
+        set(value) {
+            audioPlayer.volume = value
         }
 
     init {
@@ -61,11 +64,8 @@ class GuildMusicHandler(
                 GuildMusicHandler(it.first, it.second, it.third)
             }
 
-        fun get(
-            guildId: Snowflake,
-            audioPlayerManager: AudioPlayerManager,
-            messageChannel: MessageChannel
-        ): GuildMusicHandler = get(guildId to audioPlayerManager and messageChannel)
+        fun get(guildId: Snowflake, audioPlayerManager: AudioPlayerManager, messageChannel: MessageChannel) =
+            get(guildId to audioPlayerManager and messageChannel)
 
         override fun get(key: Triple<Snowflake, AudioPlayerManager, MessageChannel>): GuildMusicHandler =
             CACHE.get(key)!!.apply { messageChannel = key.third }
@@ -73,16 +73,6 @@ class GuildMusicHandler(
 
     fun playYoutubeVideo(identifier: String): Mono<Void> = Mono.fromRunnable {
         audioPlayerManager.loadItemOrdered(guildId, identifier, musicTrackScheduler)
-    }
-
-    fun setVolume(volume: Int): Mono<Void> = Mono.fromRunnable {
-        audioPlayer.volume = volume
-    }
-
-    fun isPaused() = audioPlayer.isPaused
-
-    fun setPaused(paused: Boolean): Mono<Void> = Mono.fromRunnable {
-        audioPlayer.isPaused = paused
     }
 
     fun skip(amountToGoForward: Int): Mono<Void> = Mono.fromRunnable {

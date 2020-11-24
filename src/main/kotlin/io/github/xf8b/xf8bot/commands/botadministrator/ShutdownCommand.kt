@@ -31,7 +31,7 @@ class ShutdownCommand : AbstractCommand(
     description = "Shuts down the bot. Bot administrators only!",
     commandType = CommandType.BOT_ADMINISTRATOR,
     aliases = ("\${prefix}poweroff" and "\${prefix}turnoff").toImmutableList(),
-    isBotAdministratorOnly = true
+    botAdministratorOnly = true
 ) {
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> = context.channel
         .flatMap { it.createMessage("Shutting down!") }

@@ -20,19 +20,20 @@
 package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
-import com.mongodb.client.model.Filters
 import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
-import io.github.xf8b.xf8bot.database.actions.delete.DeleteDocumentAction
-import io.github.xf8b.xf8bot.database.actions.find.FindAllMatchingAction
-import io.github.xf8b.xf8bot.util.ParsingUtil.parseUserId
+import io.github.xf8b.xf8bot.database.actions.delete.DeleteAction
+import io.github.xf8b.xf8bot.database.actions.find.SelectAction
+import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import io.github.xf8b.xf8bot.util.toImmutableList
 import io.github.xf8b.xf8bot.util.toSnowflake
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
+import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 
 class RemoveWarnCommand : AbstractCommand(
@@ -66,33 +67,55 @@ class RemoveWarnCommand : AbstractCommand(
         val reason = context.getValueOfFlag(REASON).toValueOrNull()
         val warnId = context.getValueOfFlag(WARN_ID).toValueOrNull()
         val filter = userId.map {
-            Filters.and(
-                Filters.eq("guildId", context.guildId.get().asLong()),
-                Filters.eq("userId", it.asLong())
-            )
-        }.defaultIfEmpty(Filters.eq("guildId", context.guildId.get().asLong()))
-        val warnDocuments = filter.flatMapMany {
+            mapOf("guildId" to context.guildId.get().asLong(), "userId" to it.asLong())
+        }.defaultIfEmpty(mapOf("guildId" to context.guildId.get().asLong()))
+        val warns = filter.flatMapMany {
             context.xf8bot
-                .botMongoDatabase
-                .execute(FindAllMatchingAction("warns", it))
+                .botDatabase
+                .execute(
+                    SelectAction(
+                        "warns",
+                        listOf(
+                            "guildId",
+                            "userId",
+                            "memberWhoWarnedId",
+                            "warnId",
+                            "reason"
+                        ),
+                        it
+                    )
+                )
+                .flatMapMany { it.toFlux() }
         }
         return Mono.zip(
+            { array: Array<*> -> array.toList().all { it as Boolean } },
             (warnId == null).toMono(),
             memberWhoWarnedId.flux().count().map { it == 0L },
             userId.flux().count().map { it == 0L },
-            (reason == null).toMono()
-        ).filter { !it.t1 || !it.t2 || !it.t3 || !it.t4 }
+            (reason == null).toMono(),
+        ).filter { it }
             .switchIfEmpty(context.channel.flatMap {
                 it.createMessage("You must have at least 1 search query!")
             }.then().cast())
             .flatMap {
                 if (reason != null && reason.equals("all", ignoreCase = true)) {
                     userId.flatMap { userId ->
-                        warnDocuments
+                        warns
+                            .flatMap { it.map { row, _ -> row } }
                             .flatMap {
                                 context.xf8bot
-                                    .botMongoDatabase
-                                    .execute(DeleteDocumentAction("warns", it))
+                                    .botDatabase
+                                    .execute(
+                                        DeleteAction(
+                                            "warns", mapOf(
+                                                "guildId" to it["guildId", Long::class.java],
+                                                "userId" to it["guildId", Long::class.java],
+                                                "memberWhoWarnedId" to it["guildId", Long::class.java],
+                                                "warnId" to it["guildId", String::class.java],
+                                                "reason" to it["guildId", String::class.java]
+                                            )
+                                        )
+                                    )
                                     .toMono()
                             }
                             .flatMap {
@@ -111,33 +134,34 @@ class RemoveWarnCommand : AbstractCommand(
                             .then()
                     }
                 } else {
-                    warnDocuments
-                        .filter { document ->
-                            warnId?.let { document.getString("warnId") == it } ?: true
+                    val warnsToDeleteCriteria = mutableListOf<Mono<Pair<String, Any>>>()
+
+                    warnId?.let { warnsToDeleteCriteria.add(("warnId" to it).toMono()) }
+                    reason?.let { warnsToDeleteCriteria.add(("reason" to it).toMono()) }
+                    warnsToDeleteCriteria.add(userId.map { "userId" to it.asLong() })
+                    warnsToDeleteCriteria.add(memberWhoWarnedId.map { "memberWhoWarnedId" to it.asLong() })
+
+                    Flux.zip(warnsToDeleteCriteria) {
+                        val map = mutableMapOf<String, Any>()
+
+                        for (any in it) {
+                            val pair = any as Pair<*, *>
+
+                            map[pair.first as String] = pair.second as Any
                         }
-                        .filter { document ->
-                            reason?.let { document.getString("reason") == it } ?: true
-                        }
-                        .filterWhen { document ->
-                            userId.map {
-                                document.getLong("userId") == it.asLong()
-                            }.defaultIfEmpty(true)
-                        }
-                        .filterWhen { document ->
-                            memberWhoWarnedId.map {
-                                document.getLong("memberWhoWarnedId") == it.asLong()
-                            }.defaultIfEmpty(true)
-                        }
+
+                        map
+                    }.flatMap { criteria ->
+                        context.xf8bot
+                            .botDatabase
+                            .execute(DeleteAction("warns", criteria))
+                    }.cast(Any::class.java)
                         .flatMap {
-                            context.xf8bot
-                                .botMongoDatabase
-                                .execute(DeleteDocumentAction("warns", it))
-                        }
-                        .cast(Any::class.java)
-                        .flatMap { /*guild.getMemberById(userId).flatMap { member -> */
+                            //context.guild.flatMap { it.getMemberById(userId) }.flatMap { member ->
                             context.channel.flatMap {
-                                it.createMessage("Successfully removed warn(s)!" /*for ${member.getDisplayName()}."*/)
+                                it.createMessage("Successfully removed warn(s)!") // for ${member.displayName}.")
                             }
+                            //}
                         }
                         .switchIfEmpty(context.channel.flatMap {
                             it.createMessage("The user does not have a warn with that reason!")
@@ -147,7 +171,7 @@ class RemoveWarnCommand : AbstractCommand(
     }
 
     companion object {
-        private val UUID_REGEX = "\\b[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b".toRegex()
+        private const val UUID_REGEX = "\\b[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b"
         private val MEMBER = StringFlag(
             shortName = "m",
             longName = "member",
@@ -166,8 +190,8 @@ class RemoveWarnCommand : AbstractCommand(
         private val WARN_ID = StringFlag(
             shortName = "i",
             longName = "warnId",
-            validityPredicate = { it matches UUID_REGEX },
-            invalidValueErrorMessageFunction = { "The warn ID must be a UUID!" },
+            validityPredicate = { it matches UUID_REGEX.toRegex() },
+            errorMessageFunction = { "The warn ID must be a UUID!" },
             required = false
         )
     }

@@ -28,13 +28,11 @@ import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.settings.converter.ShardingStrategyConverter
 import io.github.xf8b.xf8bot.settings.converter.SnowflakeConverter
 import io.github.xf8b.xf8bot.util.env
-import io.github.xf8b.xf8bot.util.envOrElse
-import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSnowflake
 import java.net.URL
 import java.nio.file.Path
 
-class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configuration {
+class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) {
     @Parameter(names = ["-t", "--token"], description = "The token for xf8bot to login with", password = true)
     var token: String
 
@@ -58,11 +56,20 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configur
     )
     var shardingStrategy: ShardingStrategy
 
-    @Parameter(names = ["-c", "--mongo-connection-url"], description = "The MongoDB connection url to use")
-    var mongoConnectionUrl: String
+    @Parameter(names = ["-h", "--database-host"], description = "The host of the database server")
+    var databaseHost: String
 
-    @Parameter(names = ["-n", "--mongo-database-name"], description = "The MongoDB database to use")
-    var mongoDatabaseName: String
+    @Parameter(names = ["-p", "--database-port"], description = "The database server's port")
+    var databasePort: Int
+
+    @Parameter(names = ["-u", "--database-username"], description = "The database server's user's username")
+    var databaseUsername: String
+
+    @Parameter(names = ["-P", "--database-password"], description = "The database server's user's password")
+    var databasePassword: String
+
+    @Parameter(names = ["-d", "--database-database"], description = "The database server's name")
+    var databaseDatabase: String
 
     @Parameter(names = ["-e", "--encryption"], description = "Whether to enable encryption for the database")
     var encryptionEnabled: Boolean
@@ -75,30 +82,50 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) : Configur
         // config is closed after this point
         // can still be used to get values, but save and load will throw an exception
         config.use { it.load() }
-        token = envOrElse("BOT_TOKEN", get("token"))
-        activity = envOrElse(
-            "BOT_ACTIVITY", get<String>("activity").replace(
-                "\${defaultPrefix}",
-                Xf8bot.DEFAULT_PREFIX
+        token = config.getOrElse("required.token", env("BOT_TOKEN"))
+            ?: error("A bot token is required!")
+        activity = config
+            .getOrElse("required.activity", env("BOT_ACTIVITY")) ?: error("A activity is required!")
+            .replace("\${defaultPrefix}", Xf8bot.DEFAULT_PREFIX)
+        logDumpWebhook = config.getOrElse("notrequired.logDumpWebhook", env("BOT_LOG_DUMP_WEBHOOK"))
+            ?: ""
+        botAdministrators = config
+            .get<List<Long>?>("required.admins")
+            ?.map(Long::toSnowflake)
+            ?: listOf(
+                env("BOT_ADMINISTRATOR")
+                    ?.toSnowflake()
+                    ?: error("Bot administrator(s) are required!")
             )
+        shardingStrategy = ShardingStrategyConverter().convert(
+            config.getOrElse(
+                "required.sharding",
+                env("BOT_SHARDING_STRATEGY")
+            ) ?: error("A sharding strategy is required!")
         )
-        logDumpWebhook = envOrElse("BOT_LOG_DUMP_WEBHOOK", get("logDumpWebhook"))
-        botAdministrators = env("BOT_ADMINISTRATOR")
-            ?.toSnowflake()
-            ?.toSingletonImmutableList()
-            ?: get<List<Long>>("admins").map { it.toSnowflake() }
-        shardingStrategy = ShardingStrategyConverter().convert(envOrElse("BOT_SHARDING_STRATEGY", get("sharding")))
-        mongoConnectionUrl = envOrElse("BOT_DATABASE_URL", get("mongoConnectionUrl"))
-        mongoDatabaseName = envOrElse("BOT_DATABASE_NAME", get("mongoDatabaseName"))
-        encryptionEnabled = env("BOT_ENCRYPTION_ENABLED")?.toBoolean() ?: get("enableEncryption")
+        databaseHost = config.getOrElse(
+            "required.database.host",
+            env("BOT_DATABASE_HOST")
+        ) ?: error("A database host is required!")
+        databasePort = config.getOrElse(
+            "required.database.port",
+            env("BOT_DATABASE_PORT")?.toInt()
+        ) ?: error("A database port is required!")
+        databaseUsername = config.getOrElse(
+            "required.database.username",
+            env("BOT_DATABASE_USERNAME")
+        ) ?: error("A database username is required!")
+        databasePassword = config.getOrElse(
+            "required.database.password",
+            env("BOT_DATABASE_PASSWORD")
+        ) ?: error("A database password is required!")
+        databaseDatabase = config.getOrElse(
+            "required.database.database",
+            env("BOT_DATABASE_DATABASE")
+        ) ?: error("A database database is required!")
+        encryptionEnabled = config.getOrElse(
+            "required.database.enableEncryption",
+            env("BOT_ENCRYPTION_ENABLED")?.toBoolean()
+        ) ?: error("Bot database encryption setting is required!")
     }
-
-    override fun <T> get(name: String): T = checkNotNull(getOrNull(name)) {
-        "$name does not exist in the config!"
-    }
-
-    override fun <T> set(name: String, newValue: T) =
-        throw UnsupportedOperationException("Cannot set value of field when config is closed!")
-
-    private fun <T> getOrNull(name: String): T? = config.get<T?>(name)
 }

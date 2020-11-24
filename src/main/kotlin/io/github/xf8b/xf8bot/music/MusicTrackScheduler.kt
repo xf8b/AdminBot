@@ -47,6 +47,7 @@ class MusicTrackScheduler(
             playlist.tracks.forEach { queue.add(it) }
             if (player.playingTrack == null) {
                 val track = queue.poll()
+
                 if (track != null) player.playTrack(track)
             }
         }
@@ -54,25 +55,22 @@ class MusicTrackScheduler(
 
     fun playNextAudioTrack(amountToGoForward: Int) {
         for (i in 1..amountToGoForward) {
-            val track = queue.poll()
-            if (i == amountToGoForward) {
-                if (track != null) {
-                    player.playTrack(track)
-                }
+            val track = queue.apply { removeIf { i != amountToGoForward } }.poll()
+
+            if (track != null) {
+                player.playTrack(track)
             }
         }
     }
 
     override fun noMatches() {
-        messageCallback.invoke(
-            messageChannelProperty.get()
-                .createMessage("No results found!")
-        )
+        messageCallback.invoke(messageChannelProperty.get().createMessage("No results found!"))
     }
 
     override fun loadFailed(exception: FriendlyException) {
         messageCallback.invoke(
-            messageChannelProperty.get()
+            messageChannelProperty
+                .get()
                 .createMessage("Could not parse audio: ${exception.severity} - ${exception.message}!")
         )
     }

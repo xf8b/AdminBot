@@ -20,14 +20,14 @@
 package io.github.xf8b.xf8bot.database.actions.add
 
 import io.github.xf8b.xf8bot.data.Warn
-import org.bson.Document
 
-class AddWarningAction(val warn: Warn) : AddDocumentAction(
+class AddWarningAction(warn: Warn) : InsertAction(
     "warns",
-    Document()
-        .append("guildId", warn.guildId.asLong())
-        .append("userId", warn.userId.asLong())
-        .append("memberWhoWarnedId", warn.memberWhoWarnedId.asLong())
-        .append("warnId", warn.warnId)
-        .append("reason", warn.reason)
+    listOf(
+        warn.guildId,
+        warn.userId.asLong(),
+        warn.memberWhoWarnedId.asLong(),
+        warn.warnId,
+        warn.reason
+    )
 )

@@ -22,17 +22,16 @@ package io.github.xf8b.xf8bot.api.commands.flags
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument.Companion.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
 import java.util.function.Function
 import java.util.function.Predicate
-import java.util.function.Supplier
 
 interface Flag<out T : Any> {
     val shortName: String
     val longName: String
     val required: Boolean
     val requiresValue: Boolean
-    val defaultValue: Supplier<out T>
-    val parseFunction: Function<in String, out T>
+    val defaultValue: T?
     val validityPredicate: Predicate<in String>
-    val invalidValueErrorMessageFunction: Function<in String, out String>
+    val parseFunction: Function<in String, out T>
+    val errorMessageFunction: Function<in String, out String>
 
     companion object {
         const val DEFAULT_INVALID_VALUE_ERROR_MESSAGE = "Invalid value `%s`! Required value: %s."
@@ -41,7 +40,7 @@ interface Flag<out T : Any> {
     /**
      * Checks if [value] is valid.
      *
-     * Use this to send an error message from [getInvalidValueErrorMessage] if it is invalid!
+     * Use this to send an error message from [getErrorMessage] if it is invalid!
      *
      * @param value the value to check if it is valid
      * @return if it is valid
@@ -66,5 +65,5 @@ interface Flag<out T : Any> {
      * @param invalidValue the invalid value to get the error message for
      * @return the invalid value error message
      */
-    fun getInvalidValueErrorMessage(invalidValue: String): String = invalidValueErrorMessageFunction.apply(invalidValue)
+    fun getErrorMessage(invalidValue: String): String = errorMessageFunction.apply(invalidValue)
 }

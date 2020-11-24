@@ -40,9 +40,11 @@ open class Registry<T : Any> : AbstractList<T>() {
      */
     open fun register(t: T) {
         if (locked) throw UnsupportedOperationException("Registry is currently locked!")
+
         if (registered.find { it == t } != null) {
             throw IllegalArgumentException("Cannot register same thing twice!")
         }
+
         registered.add(t)
     }
 
@@ -58,7 +60,7 @@ open class Registry<T : Any> : AbstractList<T>() {
 
 inline fun <reified T : Any> Registry<T>.findAndRegister(packagePrefix: String) {
     val reflections = Reflections(packagePrefix, SubTypesScanner())
-    val logger: Logger = logger(this::class.java)
+    val logger: Logger = logger<Registry<T>>()
 
     reflections.getSubTypesOf<T>().forEach {
         try {

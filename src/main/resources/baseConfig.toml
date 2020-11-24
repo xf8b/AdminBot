@@ -1,16 +1,19 @@
-# Required
+[required]
 activity = "${defaultPrefix}help"
 token = "NotARealToken.PleaseFillIn.WithRealToken"
 # User IDs that are admins
-admins = [
-    332600665412993045
-]
+admins = [1234567898765432]
 # Values: RECOMMENDED, SINGLE
 sharding = "SINGLE"
-mongoConnectionUrl = "mongodb+srv://<username>:<password>@<something>"
-mongoDatabaseName = "bot"
+[required.database]
+host = "localhost"
+port = 5432
+username = "postgres"
+password = "myverystrongpassword"
+database = "xf8bot"
 # HIGHLY RECOMMENDED
 enableEncryption = true
+[notrequired]
 # Not required
 # Note: If you don't have a webhook for the log dump, leave the field as "" or remove it.
 logDumpWebhook = "https://discordapp.com/api/webhooks/please/fillinwithwebhook"

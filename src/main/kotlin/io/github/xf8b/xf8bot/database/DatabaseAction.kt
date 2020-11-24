@@ -20,15 +20,11 @@
 package io.github.xf8b.xf8bot.database
 
 import com.google.crypto.tink.KeysetHandle
-import com.mongodb.reactivestreams.client.MongoCollection
-import org.bson.Document
+import io.r2dbc.spi.Connection
+import reactor.core.publisher.Mono
 
 interface DatabaseAction<R> {
-    val collectionName: String
+    val table: String
 
-    fun run(
-        collection: MongoCollection<Document>,
-        keySetHandle: KeysetHandle?,
-        encrypted: Boolean = keySetHandle != null
-    ): R
+    fun run(connection: Connection, keySetHandle: KeysetHandle?): Mono<R>
 }

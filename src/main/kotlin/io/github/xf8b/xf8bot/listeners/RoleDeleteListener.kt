@@ -19,19 +19,17 @@
 
 package io.github.xf8b.xf8bot.listeners
 
+import discord4j.core.event.ReactiveEventAdapter
 import discord4j.core.event.domain.role.RoleDeleteEvent
-import io.github.xf8b.xf8bot.database.BotMongoDatabase
+import io.github.xf8b.xf8bot.database.BotDatabase
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveAdministratorRoleAction
-import io.github.xf8b.xf8bot.util.toMono
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toMono
 
-class RoleDeleteListener(
-    private val botMongoDatabase: BotMongoDatabase
-) : EventListener<RoleDeleteEvent> {
-    override fun onEventFired(event: RoleDeleteEvent): Mono<RoleDeleteEvent> = botMongoDatabase.execute(
-        RemoveAdministratorRoleAction(
-            event.guildId,
-            event.roleId
-        )
-    ).toMono().thenReturn(event)
+// FIXME not removing deleted roles from admin roles
+class RoleDeleteListener(private val botDatabase: BotDatabase) : ReactiveEventAdapter() {
+    override fun onRoleDelete(event: RoleDeleteEvent): Mono<Void> = botDatabase
+        .execute(RemoveAdministratorRoleAction(event.guildId, event.roleId))
+        .toMono()
+        .then()
 }

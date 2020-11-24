@@ -30,8 +30,6 @@ import com.google.crypto.tink.JsonKeysetWriter
 import com.google.crypto.tink.KeysetHandle
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.aead.AesGcmKeyManager
-import com.mongodb.reactivestreams.client.MongoClient
-import com.mongodb.reactivestreams.client.MongoClients
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
@@ -39,16 +37,9 @@ import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrameBufferFactory
 import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer
 import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
-import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.Webhook
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
-import discord4j.core.event.domain.lifecycle.ReadyEvent
-import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.core.event.domain.role.RoleDeleteEvent
-import discord4j.core.spec.EmbedCreateSpec
-import discord4j.core.spec.WebhookExecuteSpec
 import discord4j.gateway.intent.Intent
 import discord4j.gateway.intent.IntentSet
 import discord4j.rest.util.Color
@@ -56,48 +47,111 @@ import io.github.xf8b.utils.semver.SemanticVersion
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.findAndRegister
 import io.github.xf8b.xf8bot.data.PrefixCache
-import io.github.xf8b.xf8bot.database.BotMongoDatabase
+import io.github.xf8b.xf8bot.database.BotDatabase
 import io.github.xf8b.xf8bot.listeners.MessageListener
 import io.github.xf8b.xf8bot.listeners.ReadyListener
 import io.github.xf8b.xf8bot.listeners.RoleDeleteListener
 import io.github.xf8b.xf8bot.settings.BotConfiguration
 import io.github.xf8b.xf8bot.util.*
+import io.r2dbc.pool.ConnectionPool
+import io.r2dbc.pool.ConnectionPoolConfiguration
+import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
+import io.r2dbc.postgresql.PostgresqlConnectionFactory
 import org.reactivestreams.Publisher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
-import java.io.IOException
-import java.net.URISyntaxException
 import java.nio.file.Files
 import java.util.*
 import kotlin.system.exitProcess
 
-class Xf8bot private constructor(botConfiguration: BotConfiguration) {
-    val client: GatewayDiscordClient
-    val version: SemanticVersion
-    private val botConfiguration: BotConfiguration
+
+// TODO: bass and loop commands
+// TODO: subcommands
+// TODO: member verifying system
+// TODO: use optional instead of null?
+// TODO impl encryption
+class Xf8bot private constructor(private val botConfiguration: BotConfiguration) {
     val commandRegistry = CommandRegistry()
-    private val mongoClient: MongoClient
-    val botMongoDatabase: BotMongoDatabase
-    val prefixCache: PrefixCache
-    val audioPlayerManager: AudioPlayerManager
-    private val keySetHandle: KeysetHandle
+    val version = Scanner(
+        Thread.currentThread()
+            .contextClassLoader
+            .getResourceAsStream("version.txt")
+            ?: throw NullPointerException("The version file does not exist!")
+    ).use { SemanticVersion(it.nextLine()) }
+    private val keySetHandle: KeysetHandle = if (Files.exists(getUserDirAndResolve("encryption_keyset.json"))) {
+        CleartextKeysetHandle.read(JsonKeysetReader.withPath(getUserDirAndResolve("encryption_keyset.json")))
+    } else {
+        KeysetHandle.generateNew(AesGcmKeyManager.aes256GcmTemplate())
+            .also {
+                CleartextKeysetHandle.write(
+                    it,
+                    JsonKeysetWriter.withPath(getUserDirAndResolve("encryption_keyset.json"))
+                )
+            }
+    }
+    val botDatabase = BotDatabase(
+        ConnectionPool(
+            ConnectionPoolConfiguration.builder().connectionFactory(
+                PostgresqlConnectionFactory(
+                    PostgresqlConnectionConfiguration.builder()
+                        .host(botConfiguration.databaseHost)
+                        .port(botConfiguration.databasePort)
+                        .username(botConfiguration.databaseUsername)
+                        .password(botConfiguration.databasePassword)
+                        .database(botConfiguration.databaseDatabase)
+                        .build()
+                )
+            ).build()
+        ),
+        if (botConfiguration.encryptionEnabled) {
+            keySetHandle
+        } else {
+            null
+        }
+    )
+    val client = DiscordClient.create(botConfiguration.token)
+        .gateway()
+        .setSharding(botConfiguration.shardingStrategy)
+        .setInitialStatus { shardInfo ->
+            Presence.online(Activity.playing("${botConfiguration.activity} | Shard ID: ${shardInfo.index}"))
+        }
+        .setEnabledIntents(
+            IntentSet.of(
+                // required for: role delete, guilds
+                Intent.GUILDS,
+                // required for: guild members
+                Intent.GUILD_MEMBERS,
+                // required for: message create, bulk delete
+                Intent.GUILD_MESSAGES,
+                // required for: guild voice states
+                Intent.GUILD_VOICE_STATES
+            )
+        )
+        .login()
+        .doOnError { throwable ->
+            LOGGER.error("Could not login!", throwable)
+            exitProcess(1)
+        }
+        .block()!!
+    val prefixCache: PrefixCache = PrefixCache(botDatabase, "prefixes")
+    val audioPlayerManager: AudioPlayerManager = DefaultAudioPlayerManager()
+        .apply {
+            configuration.frameBufferFactory = AudioFrameBufferFactory(::NonAllocatingAudioFrameBuffer)
+        }
+        .also { AudioSourceManagers.registerRemoteSources(it) }
 
     companion object {
         const val DEFAULT_PREFIX = ">"
         private val LOGGER: Logger by LoggerDelegate()
 
-        @Throws(IOException::class, URISyntaxException::class)
         @JvmStatic
         fun main(vararg args: String) {
             AeadConfig.register()
             val classLoader = Thread.currentThread().contextClassLoader
             val url = classLoader.getResource("baseConfig.toml")
                 ?: throw NullPointerException("The base config file does not exist!")
-            val botConfiguration = BotConfiguration(
-                url,
-                getUserDirAndResolve("config.toml")
-            )
+            val botConfiguration = BotConfiguration(url, getUserDirAndResolve("config.toml"))
             JCommander.newBuilder()
                 .addObject(botConfiguration)
                 .build()
@@ -106,76 +160,9 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         }
     }
 
-    init {
-        audioPlayerManager = DefaultAudioPlayerManager()
-        audioPlayerManager.configuration.frameBufferFactory = AudioFrameBufferFactory(::NonAllocatingAudioFrameBuffer)
-        AudioSourceManagers.registerRemoteSources(audioPlayerManager)
-        // TODO: bass and loop commands
-        // TODO: subcommands
-        // TODO: member verifying system
-        // TODO: use optional instead of null?
-        // TODO: leveling system
-        val classLoader = Thread.currentThread().contextClassLoader
-        val inputStream = classLoader.getResourceAsStream("version.txt")
-            ?: throw NullPointerException("The version file does not exist!")
-        Scanner(inputStream).use { version = SemanticVersion(it.nextLine()) }
-        client = DiscordClient.create(botConfiguration.token)
-            .gateway()
-            .setSharding(botConfiguration.shardingStrategy)
-            .setInitialStatus { shardInfo ->
-                Presence.online(Activity.playing("${botConfiguration.activity} | Shard ID: ${shardInfo.index}"))
-            }
-            .setEnabledIntents(
-                IntentSet.of(
-                    Intent.GUILDS,
-                    Intent.GUILD_MEMBERS,
-                    Intent.GUILD_MESSAGES,
-                    Intent.GUILD_VOICE_STATES
-                )
-            )
-            .login()
-            .doOnError { throwable ->
-                LOGGER.error("Could not login!", throwable)
-                exitProcess(1)
-            }.block()!!
-        this.botConfiguration = botConfiguration
-        mongoClient = MongoClients.create(
-            ParsingUtil.fixMongoConnectionUrl(
-                botConfiguration.mongoConnectionUrl
-            )
-        )
-        if (Files.exists(getUserDirAndResolve("encryption_keyset.json"))) {
-            keySetHandle = CleartextKeysetHandle.read(
-                JsonKeysetReader.withPath(
-                    getUserDirAndResolve("encryption_keyset.json")
-                )
-            )
-        } else {
-            keySetHandle = KeysetHandle.generateNew(AesGcmKeyManager.aes256GcmTemplate())
-            CleartextKeysetHandle.write(
-                keySetHandle, JsonKeysetWriter.withPath(
-                    getUserDirAndResolve("encryption_keyset.json")
-                )
-            )
-        }
-        botMongoDatabase = BotMongoDatabase(
-            ParsingUtil.fixMongoConnectionUrl(
-                botConfiguration.mongoConnectionUrl
-            ),
-            botConfiguration.mongoDatabaseName,
-            if (botConfiguration.encryptionEnabled) {
-                keySetHandle
-            } else {
-                null
-            }
-        )
-        prefixCache = PrefixCache(botMongoDatabase, "prefixes")
-    }
-
     private fun start(): Mono<Void> {
         Runtime.getRuntime().addShutdownHook(Thread {
             client.logout().block()
-            mongoClient.close()
             LOGGER.info("Shutting down!")
         })
         commandRegistry.findAndRegister("io.github.xf8b.xf8bot.commands")
@@ -185,24 +172,15 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
             botConfiguration.botAdministrators,
             version
         )
-        val roleDeleteListener = RoleDeleteListener(botMongoDatabase)
-        // TODO: figure out why readyevent isnt being fired
-        val readyPublisher: Publisher<*> = client.on<ReadyEvent>()
-            .flatMap { readyListener.onEventFired(it) }
-        val messageCreateEventPublisher: Publisher<*> = client.on<MessageCreateEvent>()
-            .filter { it.message.content.isNotEmpty() }
-            .filter { it.member.isPresent }
-            .filter { it.message.author.isPresent }
-            .filter { it.message.author.get().isNotBot }
-            .flatMap { messageListener.onEventFired(it) }
-            .onErrorContinue { throwable, _ ->
-                LOGGER.error("Error happened while handling message create events", throwable)
-            } // TODO remove
-        val roleDeletePublisher: Publisher<*> = client.on<RoleDeleteEvent>()
-            .flatMap { roleDeleteListener.onEventFired(it) }
+        val roleDeleteListener = RoleDeleteListener(botDatabase)
+
+        val readyPublisher = client.on(readyListener)
+        val messageCreateEventPublisher = client.on(messageListener)
+        val roleDeletePublisher = client.on(roleDeleteListener)
         val webhookPublisher: Publisher<*> = client.self.flatMap { self: User ->
             val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
-            val discordAsync = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
+            val discordAsync = loggerContext
+                .getLogger(Logger.ROOT_LOGGER_NAME)
                 .getAppender("ASYNC_DISCORD") as AsyncAppender
             val discordAppender = discordAsync.getAppender("DISCORD") as DiscordAppender
             discordAppender.username = self.username
@@ -215,29 +193,33 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
                     FilterReply.NEUTRAL
                 }
             })
+
             if (webhookUrl.isNotBlank()) {
                 discordAppender.webhookUri = webhookUrl
-                val webhookIdAndToken = ParsingUtil.parseWebhookUrl(webhookUrl)
+                val webhookIdAndToken = InputParsing.parseWebhookUrl(webhookUrl)
                 // TODO: move logging to webhooks
-                client.getWebhookByIdWithToken(webhookIdAndToken.first, webhookIdAndToken.second)
-                    .flatMap { webhook: Webhook ->
-                        webhook.execute { webhookExecuteSpec: WebhookExecuteSpec ->
-                            webhookExecuteSpec.setAvatarUrl(self.avatarUrl)
-                                .setUsername(self.username)
-                                .addEmbed { embedCreateSpec: EmbedCreateSpec ->
-                                    embedCreateSpec.setTitle(":warning: Bot was restarted! :warning:")
-                                        .setDescription("This is a new run!")
-                                        .setColor(Color.YELLOW)
-                                        .setTimestampToNow()
-                                }
+                client.getWebhookByIdWithToken(webhookIdAndToken.first, webhookIdAndToken.second).flatMap {
+                    it.executeDsl {
+                        username(self.username)
+                        avatarUrl(self.avatarUrl)
+
+                        embed {
+                            title(":warning: Bot was restarted! :warning:")
+                            description("This is a new run!")
+
+                            color(Color.YELLOW)
+                            timestamp()
                         }
                     }
+                }
             } else {
                 Mono.empty()
             }
         }
-        val disconnectPublisher: Publisher<*> = client.onDisconnect()
-            .doOnSuccess { LOGGER.info("Successfully disconnected!") }
+        val disconnectPublisher: Publisher<*> = client.onDisconnect().doOnSuccess {
+            LOGGER.info("Successfully disconnected!")
+        }
+
         return Mono.`when`(
             readyPublisher,
             messageCreateEventPublisher,
@@ -247,6 +229,5 @@ class Xf8bot private constructor(botConfiguration: BotConfiguration) {
         )
     }
 
-    fun isBotAdministrator(snowflake: Snowflake): Boolean =
-        botConfiguration.botAdministrators.contains(snowflake)
+    fun isBotAdministrator(snowflake: Snowflake) = botConfiguration.botAdministrators.contains(snowflake)
 }

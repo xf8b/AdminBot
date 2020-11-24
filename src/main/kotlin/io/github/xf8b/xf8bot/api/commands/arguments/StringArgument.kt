@@ -21,6 +21,7 @@ package io.github.xf8b.xf8bot.api.commands.arguments
 
 import com.google.common.base.Predicates
 import com.google.common.collect.Range
+import io.github.xf8b.xf8bot.util.functionReturning
 import java.util.function.Function
 import java.util.function.Predicate
 
@@ -30,13 +31,14 @@ class StringArgument(
     override val required: Boolean = true,
     override val parseFunction: Function<in String, out String> = DEFAULT_PARSE_FUNCTION,
     override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val invalidValueErrorMessageFunction: Function<in String, out String> = DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
+    override val errorMessageFunction: Function<in String, out String> = DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
 ) : Argument<String> {
     companion object {
         private val DEFAULT_PARSE_FUNCTION: Function<in String, out String> = Function.identity()
         private val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicates.alwaysTrue()
-        private val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> =
-            Function { Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE }
+        private val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> = functionReturning(
+            Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
+        )
     }
 
     override fun equals(other: Any?): Boolean {
@@ -50,7 +52,7 @@ class StringArgument(
         if (required != other.required) return false
         if (parseFunction != other.parseFunction) return false
         if (validityPredicate != other.validityPredicate) return false
-        if (invalidValueErrorMessageFunction != other.invalidValueErrorMessageFunction) return false
+        if (errorMessageFunction != other.errorMessageFunction) return false
 
         return true
     }
@@ -61,7 +63,7 @@ class StringArgument(
         result = 31 * result + required.hashCode()
         result = 31 * result + parseFunction.hashCode()
         result = 31 * result + validityPredicate.hashCode()
-        result = 31 * result + invalidValueErrorMessageFunction.hashCode()
+        result = 31 * result + errorMessageFunction.hashCode()
         return result
     }
 
@@ -70,6 +72,6 @@ class StringArgument(
             "required=$required, " +
             "parseFunction=$parseFunction, " +
             "validityPredicate=$validityPredicate, " +
-            "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
+            "errorMessageFunction=$errorMessageFunction" +
             ")"
 }

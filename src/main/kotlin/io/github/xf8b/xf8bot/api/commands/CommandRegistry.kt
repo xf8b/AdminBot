@@ -36,18 +36,14 @@ class CommandRegistry : Registry<AbstractCommand>() {
      */
     override fun register(t: AbstractCommand) {
         if (registered.any { it.name == t.name }) {
-            throw IllegalArgumentException("Cannot register 2 commands with the same name!")
+            throw IllegalArgumentException("Cannot register two commands with the same name!")
         }
         super.register(t)
     }
 
-    fun <T : AbstractCommand> getCommand(klass: Class<out T>): T = klass.cast(registered.stream()
-        .filter { it.javaClass == klass }
-        .findFirst()
-        .orElseThrow { IllegalArgumentException("No command matches the class inputted!") })
-
-    fun getCommandsWithCommandType(commandType: CommandType): List<AbstractCommand> =
-        LinkedList(registered.stream()
+    fun getCommandsWithCommandType(commandType: CommandType): List<AbstractCommand> = LinkedList(
+        registered.stream()
             .filter { it.commandType === commandType }
-            .collect(Collectors.toUnmodifiableList()))
+            .collect(Collectors.toUnmodifiableList())
+    )
 }

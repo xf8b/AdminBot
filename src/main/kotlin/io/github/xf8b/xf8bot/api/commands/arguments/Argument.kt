@@ -24,12 +24,12 @@ import java.util.function.Function
 import java.util.function.Predicate
 
 interface Argument<out T : Any> {
-    val required: Boolean
-    val index: Range<Int>
     val name: String
+    val index: Range<Int>
+    val required: Boolean
     val validityPredicate: Predicate<in String>
     val parseFunction: Function<in String, out T>
-    val invalidValueErrorMessageFunction: Function<in String, out String>
+    val errorMessageFunction: Function<in String, out String>
 
     companion object {
         const val DEFAULT_INVALID_VALUE_ERROR_MESSAGE =
@@ -39,7 +39,7 @@ interface Argument<out T : Any> {
     /**
      * Checks if the value passed in is valid.
      *
-     * Use this to send an error message from [getInvalidValueErrorMessage] if it is invalid!
+     * Use this to send an error message from [getErrorMessage] if it is invalid!
      *
      * @param value the value to check if it is valid
      * @return if it is valid
@@ -64,5 +64,5 @@ interface Argument<out T : Any> {
      * @param invalidValue the invalid value to get the error message for
      * @return the invalid value error message
      */
-    fun getInvalidValueErrorMessage(invalidValue: String): String = invalidValueErrorMessageFunction.apply(invalidValue)
+    fun getErrorMessage(invalidValue: String): String = errorMessageFunction.apply(invalidValue)
 }

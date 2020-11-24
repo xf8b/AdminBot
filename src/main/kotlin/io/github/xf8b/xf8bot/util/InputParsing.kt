@@ -29,7 +29,7 @@ import reactor.kotlin.core.publisher.toMono
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
-object ParsingUtil {
+object InputParsing {
     /**
      * Parses a user ID/finds a person with the same username or nickname
      * from the passed in [stringToParse].
@@ -49,15 +49,15 @@ object ParsingUtil {
      * @return the ID parsed from the [stringToParse] or a person that
      * matches the username/nickname.
      */
-    fun parseUserId(guildPublisher: Publisher<Guild>, stringToParse: String): Mono<Long> {
+    fun parseUserId(guildPublisher: Publisher<Guild>, stringToParse: String, ignoreCase: Boolean = false): Mono<Long> {
         val guildMono = guildPublisher.toMono()
         return try {
-            if (stringToParse.length < 18) throw NumberFormatException()
+            if (stringToParse.length != 18) throw NumberFormatException()
             // after this point we know its a user id
             stringToParse.toLong().toMono()
         } catch (_: NumberFormatException) {
             try {
-                if (stringToParse.replace("[<@!>]".toRegex(), "").length < 18) {
+                if (stringToParse.replace("[<@!>]".toRegex(), "").length != 18) {
                     throw NumberFormatException()
                 }
                 // after this point we know its a user mention
@@ -65,14 +65,14 @@ object ParsingUtil {
             } catch (_: NumberFormatException) {
                 val memberWhoMatchesUsernameMono: Mono<Long> = guildMono.flatMapMany { guild ->
                     guild.requestMembers()
-                        .filter { it.username.trim().equals(stringToParse, ignoreCase = true) }
+                        .filter { it.username.trim().equals(stringToParse, ignoreCase) }
                         .map(Member::getId)
                         .map(Snowflake::asLong)
                 }.takeLast(1).singleOrEmpty()
                 val memberWhoMatchesNicknameMono: Mono<Long> = guildMono.flatMapMany { guild ->
                     guild.members
                         .filter { it.nickname.isPresent }
-                        .filter { it.nickname.get().trim().equals(stringToParse, ignoreCase = true) }
+                        .filter { it.nickname.get().trim().equals(stringToParse, ignoreCase) }
                         .map(Member::getId)
                         .map(Snowflake::asLong)
                 }.takeLast(1).singleOrEmpty()
@@ -82,15 +82,15 @@ object ParsingUtil {
         }
     }
 
-    fun parseRoleId(guildPublisher: Publisher<Guild>, stringToParse: String): Mono<Long> {
+    fun parseRoleId(guildPublisher: Publisher<Guild>, stringToParse: String, ignoreCase: Boolean = false): Mono<Long> {
         val guildMono = guildPublisher.toMono()
         return try {
-            if (stringToParse.length < 18) throw NumberFormatException() // too lazy to copy paste stuff
+            if (stringToParse.length != 18) throw NumberFormatException() // too lazy to copy paste stuff
             // after this point we know its a role id
             Mono.just(stringToParse.toLong())
         } catch (_: NumberFormatException) {
             try {
-                if (stringToParse.replace("[<@!>]".toRegex(), "").length < 18) {
+                if (stringToParse.replace("[<@!>]".toRegex(), "").length != 18) {
                     throw NumberFormatException()
                 }
                 // after this point we know its a role mention
@@ -98,11 +98,7 @@ object ParsingUtil {
             } catch (_: NumberFormatException) {
                 guildMono.flatMap { guild ->
                     guild.roles
-                        .filter { role ->
-                            role.name
-                                .trim()
-                                .equals(stringToParse, ignoreCase = true)
-                        }
+                        .filter { it.name.trim().equals(stringToParse, ignoreCase) }
                         .map { it.id }
                         .map { it.asLong() }
                         .takeLast(1)

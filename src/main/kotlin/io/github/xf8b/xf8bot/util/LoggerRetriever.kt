@@ -17,22 +17,26 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.database.actions.delete
+package io.github.xf8b.xf8bot.util
 
-import com.google.crypto.tink.KeysetHandle
-import com.mongodb.client.result.DeleteResult
-import com.mongodb.reactivestreams.client.MongoCollection
-import io.github.xf8b.xf8bot.database.DatabaseAction
-import org.bson.Document
-import org.reactivestreams.Publisher
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 
-class DeleteDocumentAction(
-    override val collectionName: String,
-    val document: Document
-) : DatabaseAction<Publisher<DeleteResult>> {
-    override fun run(
-        collection: MongoCollection<Document>,
-        keySetHandle: KeysetHandle?,
-        encrypted: Boolean
-    ): Publisher<DeleteResult> = collection.deleteOne(document)
+//credit: https://stackoverflow.com/questions/34416869/idiomatic-way-of-logging-in-kotlin
+fun <T : Any> logger(clazz: Class<T>): Logger = LoggerFactory.getLogger(clazz)
+
+inline fun <reified T : Any> logger(): Logger = logger(T::class.java)
+
+class LoggerDelegate<in R : Any> : ReadOnlyProperty<R, Logger> {
+    private lateinit var logger: Logger
+
+    override fun getValue(thisRef: R, property: KProperty<*>): Logger {
+        if (!this::logger.isInitialized) {
+            logger = logger(thisRef.javaClass)
+        }
+
+        return logger
+    }
 }

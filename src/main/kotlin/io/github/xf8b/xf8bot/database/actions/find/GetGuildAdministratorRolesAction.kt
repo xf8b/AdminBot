@@ -19,10 +19,10 @@
 
 package io.github.xf8b.xf8bot.database.actions.find
 
-import com.mongodb.client.model.Filters
 import discord4j.common.util.Snowflake
 
-class GetGuildAdministratorRolesAction(val guildId: Snowflake) : FindAllMatchingAction(
-    "administratorRoles",
-    Filters.eq("guildId", guildId.asLong())
+class GetGuildAdministratorRolesAction(guildId: Snowflake) : SelectAction(
+    table = "administratorRoles",
+    selectedFields = listOf("*"),
+    criteria = mapOf("guildId" to guildId.asLong())
 )

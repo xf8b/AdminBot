@@ -28,6 +28,7 @@ import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
+import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
 import org.apache.commons.lang3.StringUtils
 import reactor.core.publisher.Mono
@@ -43,22 +44,29 @@ class MemberInfoCommand : AbstractCommand(
     commandType = CommandType.INFO,
     aliases = ImmutableList.of("\${prefix}userinfo"),
     arguments = ImmutableList.of(MEMBER),
-    minimumAmountOfArgs = 1,
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet()
 ) {
     companion object {
         private val MEMBER: StringArgument = StringArgument(
             name = "member",
-            index = Range.atLeast(1)
+            index = Range.atLeast(1),
+            required = false
         )
+        private val FORMATTER = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL)
+            .withLocale(Locale.US)
+            .withZone(ZoneOffset.UTC)
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
-        val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-            .withLocale(Locale.UK)
-            .withZone(ZoneOffset.UTC)
-        return ParsingUtil.parseUserId(context.guild, context.getValueOfArgument(MEMBER).get())
-            .map(Long::toSnowflake)
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> =
+        InputParsing.parseUserId(
+            context.guild,
+            context.getValueOfArgument(MEMBER).orElse(
+                context.author
+                    .orElseThrow(::ThisShouldNotHaveBeenThrownException)
+                    .id
+                    .asString()
+            )
+        ).map(Long::toSnowflake)
             .switchIfEmpty(context.channel
                 .flatMap { it.createMessage("No member found!") }
                 .then() // yes i know, very hacky
@@ -96,43 +104,52 @@ class MemberInfoCommand : AbstractCommand(
                         )
                         otherInfo.flatMap { info ->
                             context.channel.flatMap {
-                                it.createEmbed { embedCreateSpec ->
-                                    embedCreateSpec.setTitle("Info For Member `${member.tagWithDisplayName}`")
-                                        .setAuthor(displayName, null, avatarUrl)
-                                        .addField("Is Owner:", info.t4.toString(), true)
-                                        .addField("Is Bot:", member.isBot.toString(), true)
-                                        .addField("Roles:", info.t5, true)
-                                        .addField(
-                                            "Status:", StringUtils.capitalize(
-                                                info.t2
-                                                    .name
-                                                    .toLowerCase()
-                                                    .replace("_", " ")
-                                            ), true
-                                        )
-                                        .addField("Activity:", info.t3, true)
-                                        .addField(
-                                            "Joined Discord (UTC):",
-                                            formatter.format(memberJoinDiscordTime),
-                                            true
-                                        )
-                                        .addField(
-                                            "Joined Server (UTC):",
-                                            formatter.format(memberJoinServerTime),
-                                            true
-                                        )
-                                        .addField("ID:", id, true)
-                                        .addField(
-                                            "Role Color RGB:",
-                                            "Red: ${info.t1.red}, Green: ${info.t1.green}, Blue: ${info.t1.blue}",
-                                            true
-                                        )
-                                        .addField("Avatar URL:", avatarUrl, true)
-                                        .setTimestampToNow()
+                                it.createEmbedDsl {
+                                    title("Info For Member `${member.tagWithDisplayName}`")
+                                    author(name = displayName, iconUrl = avatarUrl)
+
+                                    field("Is Owner", info.t4.toString(), true)
+                                    field("Is Bot", member.isBot.toString(), true)
+
+                                    field("Roles", info.t5, true)
+
+                                    field(
+                                        "Status:",
+                                        StringUtils.capitalize(
+                                            info.t2
+                                                .name
+                                                .toLowerCase()
+                                                .replace("_", " ")
+                                        ),
+                                        true
+                                    )
+                                    field("Activity:", info.t3, true)
+
+                                    field(
+                                        "Joined Discord (UTC):",
+                                        FORMATTER.format(memberJoinDiscordTime),
+                                        true
+                                    )
+                                    field(
+                                        "Joined Server (UTC):",
+                                        FORMATTER.format(memberJoinServerTime),
+                                        true
+                                    )
+
+                                    field("ID:", id, true)
+
+                                    field(
+                                        "Role Color RGB:",
+                                        "Red: ${info.t1.red}, Green: ${info.t1.green}, Blue: ${info.t1.blue}",
+                                        true
+                                    )
+
+                                    field("Avatar URL:", avatarUrl, true)
+
+                                    timestamp()
                                 }
                             }
                         }
                     }
             }.then()
-    }
 }

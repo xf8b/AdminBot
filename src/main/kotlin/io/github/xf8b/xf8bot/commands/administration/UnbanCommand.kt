@@ -32,7 +32,6 @@ class UnbanCommand : AbstractCommand(
     name = "\${prefix}unban",
     description = "Unbans the specified member.",
     commandType = CommandType.ADMINISTRATION,
-    minimumAmountOfArgs = 1,
     arguments = MEMBER.toSingletonImmutableList(),
     botRequiredPermissions = Permission.BAN_MEMBERS.toSingletonPermissionSet(),
     administratorLevelRequired = 3

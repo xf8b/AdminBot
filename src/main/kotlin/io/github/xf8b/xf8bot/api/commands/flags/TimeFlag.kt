@@ -19,24 +19,22 @@
 
 package io.github.xf8b.xf8bot.api.commands.flags
 
+import io.github.xf8b.xf8bot.util.functionReturning
 import java.util.concurrent.TimeUnit
 import java.util.function.Function
 import java.util.function.Predicate
-import java.util.function.Supplier
 
 class TimeFlag(
     override val shortName: String,
     override val longName: String,
     override val required: Boolean = true,
     override val requiresValue: Boolean = true,
-    override val defaultValue: Supplier<out Pair<Long, TimeUnit>> = DEFAULT_DEFAULT_VALUE,
+    override val defaultValue: Pair<Long, TimeUnit>? = null,
     override val parseFunction: Function<in String, out Pair<Long, TimeUnit>> = DEFAULT_PARSE_FUNCTION,
     override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val invalidValueErrorMessageFunction: Function<in String, out String> =
-        DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
+    override val errorMessageFunction: Function<in String, out String> = DEFAULT_ERROR_MESSAGE_FUNCTION
 ) : Flag<Pair<Long, TimeUnit>> {
     companion object {
-        val DEFAULT_DEFAULT_VALUE: Supplier<out Pair<Long, TimeUnit>> = Supplier { throw NoSuchElementException() }
         val DEFAULT_PARSE_FUNCTION: Function<in String, out Pair<Long, TimeUnit>> = Function { stringToParse ->
             val time: Long = stringToParse.replace("[a-zA-Z]".toRegex(), "").toLong()
             val possibleTimeUnit: String = stringToParse.replace("\\d".toRegex(), "")
@@ -61,9 +59,7 @@ class TimeFlag(
                 false
             }
         }
-        val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> = Function {
-            Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-        }
+        val DEFAULT_ERROR_MESSAGE_FUNCTION = functionReturning<String, String>(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -79,7 +75,7 @@ class TimeFlag(
         if (defaultValue != other.defaultValue) return false
         if (parseFunction != other.parseFunction) return false
         if (validityPredicate != other.validityPredicate) return false
-        if (invalidValueErrorMessageFunction != other.invalidValueErrorMessageFunction) return false
+        if (errorMessageFunction != other.errorMessageFunction) return false
 
         return true
     }
@@ -89,10 +85,10 @@ class TimeFlag(
         result = 31 * result + longName.hashCode()
         result = 31 * result + required.hashCode()
         result = 31 * result + requiresValue.hashCode()
-        result = 31 * result + defaultValue.hashCode()
+        result = 31 * result + (defaultValue?.hashCode() ?: 0)
         result = 31 * result + parseFunction.hashCode()
         result = 31 * result + validityPredicate.hashCode()
-        result = 31 * result + invalidValueErrorMessageFunction.hashCode()
+        result = 31 * result + errorMessageFunction.hashCode()
         return result
     }
 
@@ -104,6 +100,6 @@ class TimeFlag(
             "defaultValue=$defaultValue, " +
             "parseFunction=$parseFunction, " +
             "validityPredicate=$validityPredicate, " +
-            "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
+            "errorMessageFunction=$errorMessageFunction" +
             ")"
 }

@@ -4,7 +4,7 @@ plugins {
     idea
     application
     java
-    kotlin("jvm") version "1.4.20-RC"
+    kotlin("jvm") version "1.4.20"
     id("com.github.johnrengelman.shadow") version "6.1.0"
     id("net.minecrell.licenser") version "0.4.1"
     id("com.github.ben-manes.versions") version "0.36.0"
@@ -21,44 +21,44 @@ repositories {
     maven("https://jitpack.io")
     maven("https://libraries.minecraft.net")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
-    //TODO: remove?
-    //for discord4j 3.2.0
+    // TODO: remove?
+    // for discord4j 3.2.0
     maven("https://repo.spring.io/milestone")
     maven("https://repo.repsy.io/mvn/progamer28415/main")
     maven("https://dl.bintray.com/kotlin/kotlin-eap")
 }
 
 dependencies {
-    //junit
+    // junit
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:${project property "junitVersion"}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${project property "junitVersion"}")
-    //discord4j
+    // discord4j
     implementation("com.discord4j:discord4j-core:${project property "discord4jVersion"}")
-    //reactor
+    // reactor
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:${project property "reactorKotlinExtensions"}")
-    //music
+    // music
     implementation("com.sedmelluq:lavaplayer:${project property "lavaplayerVersion"}")
-    //parsing libs
+    // parsing libs
     implementation("com.beust:jcommander:${project property "jCommanderVersion"}")
-    //logging
+    // logging
     implementation("ch.qos.logback:logback-classic:${project property "logbackClassicVersion"}")
     implementation("com.github.napstr:logback-discord-appender:${project property "logbackDiscordAppenderVersion"}")
-    //config
+    // config
     implementation("com.electronwill.night-config:toml:${project property "nightConfigVersion"}")
-    //caching
+    // caching
     implementation("com.github.ben-manes.caffeine:caffeine:${project property "caffeineVersion"}")
-    //drivers
-    implementation("org.mongodb:mongodb-driver-reactivestreams:${project property "mongoDbDriverVersion"}")
-    //kotlin
-    //coroutines
+    // db
+    implementation("io.r2dbc:r2dbc-postgresql:${project property "driverVersion"}")
+    implementation("io.r2dbc:r2dbc-pool:${project property "poolVersion"}")
+    // coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${project property "coroutinesVersion"}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${project property "coroutinesVersion"}")
-    //scripting
+    // scripting
     implementation("org.codehaus.groovy:groovy-all:${project.findProperty("groovyVersion")}")
-    //encryption
+    // encryption
     implementation("com.google.crypto.tink:tink:${project property "tinkVersion"}")
-    //util
+    // util
     implementation("org.apache.commons:commons-text:${project property "commonsTextVersion"}")
     implementation("net.jodah:typetools:${project property "typeToolsVersion"}")
     implementation("org.reflections:reflections:${project property "reflectionsVersion"}")

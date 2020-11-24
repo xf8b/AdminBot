@@ -31,12 +31,12 @@ import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
+import reactor.kotlin.extra.bool.not
 
 class KickCommand : AbstractCommand(
     name = "\${prefix}kick",
     description = "Kicks the specified member with the reason provided, or `No kick reason was provided` if there was none.",
     commandType = CommandType.ADMINISTRATION,
-    minimumAmountOfArgs = 1,
     flags = ImmutableList.of(MEMBER, REASON),
     botRequiredPermissions = Permission.KICK_MEMBERS.toSingletonPermissionSet(),
     administratorLevelRequired = 2
@@ -55,8 +55,7 @@ class KickCommand : AbstractCommand(
 
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
         val reason = context.getValueOfFlag(REASON).orElse("No kick reason was provided.")
-        val xf8bot = context.xf8bot
-        return ParsingUtil.parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
+        return InputParsing.parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
             .map { it.toSnowflake() }
             .switchIfEmpty(context.channel
                 .flatMap { it.createMessage("No member found!") }
@@ -74,52 +73,64 @@ class KickCommand : AbstractCommand(
                         .filterWhen { member ->
                             (member == context.member.get()).toMono()
                                 .filter { !it }
+                                .not()
                                 .switchIfEmpty(context.channel.flatMap {
                                     it.createMessage("You cannot kick yourself!")
                                 }.thenReturn(false))
                         }
                         .filterWhen { member ->
-                            context.client.self.filterWhen { selfMember: User ->
-                                (selfMember == member).toMono()
-                                    .filter { !it }
-                            }.map { true }.switchIfEmpty(context.channel.flatMap {
-                                it.createMessage("You cannot kick xf8bot!")
-                            }.thenReturn(false))
+                            context.client.self
+                                .filterWhen { selfMember: User ->
+                                    (selfMember == member).toMono()
+                                        .filter { !it }
+                                        .not()
+                                }
+                                .map { true }
+                                .switchIfEmpty(context.channel.flatMap {
+                                    it.createMessage("You cannot kick xf8bot!")
+                                }.thenReturn(false))
                         }
                         .filterWhen { member ->
                             guild.selfMember.flatMap { member.isHigher(it) }
                                 .filter { !it }
+                                .not()
                                 .switchIfEmpty(context.channel.flatMap {
                                     it.createMessage("Cannot kick member because the member is higher than me!")
                                 }.thenReturn(false))
                         }
                         .filterWhen { member ->
-                            isMemberHigherOrEqual(xf8bot, guild, context.member.get(), member)
-                                .filter { it }
+                            isMemberHigherOrEqual(context.xf8bot, guild, member, context.member.get())
+                                .filter { !it }
+                                .not()
                                 .switchIfEmpty(context.channel.flatMap {
                                     it.createMessage("Cannot kick member because the member is equal to or higher than you!")
                                 }.thenReturn(false))
                         }
                         .flatMap { member ->
-                            val username = member.displayName
                             member.privateChannel
                                 .filter { member.isNotBot }
                                 .flatMap sendDM@{ privateChannel ->
-                                    privateChannel.createEmbed { embedCreateSpec ->
-                                        embedCreateSpec.setTitle("You were kicked!")
-                                            .setFooter(
-                                                "Kicked by: ${context.member.get().tagWithDisplayName}",
-                                                context.member.get().avatarUrl
-                                            )
-                                            .addField("Server", guild.name, false)
-                                            .addField("Reason", reason, false)
-                                            .setTimestampToNow()
-                                            .setColor(Color.RED)
+                                    privateChannel.createEmbedDsl {
+                                        title("You were kicked!")
+
+                                        field("Server", guild.name, false)
+                                        field("Reason", reason, false)
+
+                                        footer(
+                                            "Kicked by: ${context.member.get().tagWithDisplayName}",
+                                            context.member.get().avatarUrl
+                                        )
+                                        timestamp()
+                                        color(Color.RED)
                                     }
                                 }
-                                .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send messages to user
+                                .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(50007)) {
+                                    Mono.empty()
+                                } // cannot send messages to user
                                 .then(member.kick(reason))
-                                .then(context.channel.flatMap { it.createMessage("Successfully kicked $username!") })
+                                .then(context.channel.flatMap {
+                                    it.createMessage("Successfully kicked ${member.displayName}!")
+                                })
                         }
                 }
             }.then()

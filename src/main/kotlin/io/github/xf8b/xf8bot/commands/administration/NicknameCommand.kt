@@ -27,20 +27,18 @@ import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.ExceptionPredicates
-import io.github.xf8b.xf8bot.util.ParsingUtil.parseUserId
+import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
-import reactor.util.retry.Retry
-import java.time.Duration
+import reactor.kotlin.extra.bool.not
 
 class NicknameCommand : AbstractCommand(
     name = "\${prefix}nickname",
     description = "Sets the nickname of the specified member, or resets it if none was provided.",
     commandType = CommandType.ADMINISTRATION,
     aliases = "\${prefix}nick".toSingletonImmutableList(),
-    minimumAmountOfArgs = 1,
     flags = ImmutableList.of(MEMBER, NICKNAME),
     botRequiredPermissions = Permission.MANAGE_NICKNAMES.toSingletonPermissionSet(),
     administratorLevelRequired = 1
@@ -79,64 +77,21 @@ class NicknameCommand : AbstractCommand(
                         .filterWhen { member ->
                             guild.selfMember.flatMap { member.isHigher(it) }
                                 .filter { !it }
+                                .not()
                                 .switchIfEmpty(context.channel.flatMap {
-                                    it.createMessage("Cannot nickname member because the member is higher than me!")
+                                    it.createMessage("Cannot kick member because the member is higher than me!")
                                 }.thenReturn(false))
                         }
-                        //.filterWhen { member -> guild.selfMember.map { it.id != member.id } }
+                        .filterWhen { member -> guild.selfMember.map { it.id != member.id } }
                         .flatMap { member ->
-                            //guild.selfMember.flatMap { self ->
-                            //if (self.id == member.id) {
-                            //guild.changeSelfNickname(nickname)
-                            //} else {
-                            member.edit { spec -> spec.setNickname(nickname) }
-                                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1L)))
-                                // }
-                                /*}*/
-                                .flatMap {
-                                    context.channel.flatMap {
-                                        it.createMessage("Successfully ${if (reset) "re" else ""}set nickname of ${member.displayName}!")
-                                    }
-                                }
-                        }
-                }.then()
-            }
-        /*
-        .flatMap { userId: Snowflake ->
-            context.guild
-                .flatMap { guild: Guild ->
-                    guild.getMemberById(userId)
-                        .onErrorResume(isClientExceptionWithCode(10007)) {
-                            context.channel
-                                .flatMap { it.createMessage("The member is not in the guild!") }
-                                .then()
-                                .cast()
-                        } // unknown member
-                        .filterWhen { member: Member ->
-                            guild.selfMember
-                                .flatMap { self -> member.isHigher(self) }
-                                .filter { !it }
-                                .switchIfEmpty(context.channel
-                                    .flatMap { it.createMessage("Cannot nickname member because the member is higher than me!") }
-                                    .thenReturn(false))
-                        }
-                        .flatMap { member: Member ->
-                            val nickname = context.getValueOfFlag(NICKNAME).orElse("")
-                            val reset = nickname.isBlank()
-
-                            member.toMono()
-                                .filter { it.id != context.client.selfId }
-                                .flatMap { it.edit { spec: GuildMemberEditSpec -> spec.setNickname(nickname) } }
-                                .switchIfEmpty(context.guild
-                                    .flatMap { it.changeSelfNickname(nickname) }
-                                    .thenReturn(member))
-                                // FIXME not working
-                                .then(context.channel.flatMap {
+                            member.edit { it.setNickname(nickname) }.flatMap {
+                                context.channel.flatMap {
                                     it.createMessage("Successfully ${if (reset) "re" else ""}set nickname of ${member.displayName}!")
-                                })
+                                }.then()
+                            }
                         }
+                        .switchIfEmpty(guild.changeSelfNickname(nickname).then())
                 }
-        }.then()
-        */
+            }
     }
 }

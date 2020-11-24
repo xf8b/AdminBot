@@ -38,15 +38,17 @@ class PauseCommand : AbstractCommand(
         )
         return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
-                guildMusicHandler.setPaused(!guildMusicHandler.isPaused()).then(context.channel.flatMap {
+                guildMusicHandler.paused = !guildMusicHandler.paused
+
+                context.channel.flatMap {
                     it.createMessage(
-                        if (guildMusicHandler.isPaused()) {
+                        if (guildMusicHandler.paused) {
                             "Successfully paused the current video!"
                         } else {
                             "Successfully unpaused the current video!"
                         }
                     )
-                })
+                }
             }
             .switchIfEmpty(context.channel.flatMap { it.createMessage("I am not connected to a VC!") })
             .then()

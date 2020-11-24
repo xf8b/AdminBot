@@ -35,48 +35,19 @@ import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.database.actions.*
 import io.github.xf8b.xf8bot.database.actions.add.AddAdministratorRoleAction
-import io.github.xf8b.xf8bot.database.actions.delete.DeleteDocumentAction
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveAdministratorRoleAction
 import io.github.xf8b.xf8bot.database.actions.find.FindAdministratorRoleAction
 import io.github.xf8b.xf8bot.database.actions.find.GetGuildAdministratorRolesAction
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
-import io.github.xf8b.xf8bot.util.ParsingUtil.parseRoleId
+import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.InputParsing.parseRoleId
 import io.github.xf8b.xf8bot.util.PermissionUtil.canMemberUseCommand
-import io.github.xf8b.xf8bot.util.toImmutableList
-import io.github.xf8b.xf8bot.util.toSingletonImmutableList
-import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
-import io.github.xf8b.xf8bot.util.toSnowflake
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 import java.util.stream.Collectors
 
-/*
-.setName("${prefix}administrators")
-                .setDescription("""
-                        Adds to, removes from, or gets the list of administrator roles.
-                        The level can be from 1 to 4.
-                        Level 1 can use `warn`, `removewarn`, `warns`, `mute`, and `nickname`.
-                        Level 2 can use all the commands for level 1 and `kick` and `clear`.
-                        Level 3 can use all the commands for level 2 and `ban` and `unban`.
-                        Level 4 can use all the commands for level 3 and `administrators`, and `prefix`. \
-                        This is intended for administrator/owner roles!
-                        """)
-                .setCommandType(CommandType.ADMINISTRATION)
-                .setActions(ImmutableMap.of(
-                        "addrole", "Adds to the list of administrator roles.",
-                        "removerole", "Removes from the list of administrator roles.",
-                        "removedeletedroles", "Removes deleted roles from the list of administrator roles.",
-                        "getroles", "Gets the list of administrator roles."
-                ))
-                .addAlias("${prefix}admins")
-                .setMinimumAmountOfArgs(1)
-                .addArgument(ACTION)
-                .setFlags(ROLE, ADMINISTRATOR_LEVEL)
-                .setBotRequiredPermissions(Permission.EMBED_LINKS)
-                .setAdministratorLevelRequired(4)
- */
 @DisableChecks(AbstractCommand.Checks.IS_ADMINISTRATOR)
 class AdministratorsCommand : AbstractCommand(
     name = "\${prefix}administators",
@@ -93,14 +64,12 @@ class AdministratorsCommand : AbstractCommand(
         mapOf(
             "add/addrole" to "Adds to the list of administrator roles.",
             "rm/remove/removerole" to "Removes from the list of administrator roles.",
-            "rdr/rmdel/removedeletedroles" to "Removes deleted roles from the list of administrator roles.",
             "ls/list/listroles/get/getroles" to "Gets the list of administrator roles."
         )
     ),
     aliases = "\${prefix}admins".toSingletonImmutableList(),
     arguments = ACTION.toSingletonImmutableList(),
     flags = (ROLE to ADMINISTRATOR_LEVEL).toImmutableList(),
-    minimumAmountOfArgs = 1,
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet(),
     administratorLevelRequired = 4
 ) {
@@ -133,18 +102,18 @@ class AdministratorsCommand : AbstractCommand(
                         }.then().cast())
                         .flatMap { roleId: Snowflake ->
                             val level: Int = context.getValueOfFlag(ADMINISTRATOR_LEVEL).get()
-                            context.xf8bot
-                                .botMongoDatabase
+                            context.xf8bot.botDatabase
                                 .execute(FindAdministratorRoleAction(guildId, roleId))
                                 .toMono()
+                                .filter { it.isNotEmpty() }
+                                .filterWhen { it[0].map { row, _ -> row[0] != null } }
                                 .cast(Any::class.java)
                                 .flatMap {
                                     context.channel.flatMap {
                                         it.createMessage("The role already has been added as an administrator role.")
                                     }
                                 }
-                                .switchIfEmpty(context.xf8bot
-                                    .botMongoDatabase
+                                .switchIfEmpty(context.xf8bot.botDatabase
                                     .execute(AddAdministratorRoleAction(guildId, roleId, level))
                                     .toMono()
                                     .then(guild.getRoleById(roleId)
@@ -174,6 +143,7 @@ class AdministratorsCommand : AbstractCommand(
                             )
                         }.then()
                     }
+                    // FIXME: not recognizing already added roles
                     parseRoleId(context.guild, context.getValueOfFlag(ROLE).get())
                         .map { it.toSnowflake() }
                         .switchIfEmpty(context.channel.flatMap {
@@ -181,7 +151,7 @@ class AdministratorsCommand : AbstractCommand(
                         }.then().cast())
                         .flatMap { roleId: Snowflake ->
                             context.xf8bot
-                                .botMongoDatabase
+                                .botDatabase
                                 .execute(RemoveAdministratorRoleAction(guildId, roleId))
                                 .toMono()
                                 .cast(Any::class.java)
@@ -202,43 +172,21 @@ class AdministratorsCommand : AbstractCommand(
                     it.createMessage("Sorry, you don't have high enough permissions.")
                 }).then()
 
-                "rdr", "rmdel", "removedeletedroles" -> isAdministrator.filter { it }.flatMap {
-                    val documentFlux = context.xf8bot
-                        .botMongoDatabase
-                        .execute(GetGuildAdministratorRolesAction(guildId))
-                        .toFlux()
-                        .filterWhen { document ->
-                            guild.getRoleById(Snowflake.of(document.getLong("roleId")))
-                                .flux()
-                                .count()
-                                .map { it == 0L }
-                        }.cache()
-                    documentFlux.count()
-                        .flatMap { amountOfRemovedRoles: Long ->
-                            documentFlux.flatMap {
-                                context.xf8bot
-                                    .botMongoDatabase
-                                    .execute(DeleteDocumentAction("administratorRoles", it))
-                            }.then(context.channel.flatMap {
-                                it.createMessage("Successfully removed $amountOfRemovedRoles deleted roles from the list of administrator roles.")
-                            })
-                        }
-                }.switchIfEmpty(context.channel.flatMap {
-                    it.createMessage("Sorry, you don't have high enough permissions.")
-                }).then()
-
-
                 "ls", "list", "listroles", "get", "getroles" -> context.xf8bot
-                    .botMongoDatabase
+                    .botDatabase
                     .execute(GetGuildAdministratorRolesAction(guildId))
-                    .toFlux()
+                    .flatMapMany { it.toFlux() }
+                    .flatMap { it.map { row, _ -> row } }
                     .collectMap(
-                        { it.getLong("roleId") },
-                        { it.getInteger("level") }
+                        { it.get("roleId", java.lang.Long::class.java) },
+                        { it.get("level", java.lang.Integer::class.java) }
                     )
                     .filter { it.isNotEmpty() }
-                    .map { it.sortByValue() }
-                    .flatMap { administratorRoles: Map<Long, Int> ->
+                    .map {
+                        @Suppress("UNCHECKED_CAST")
+                        (it as Map<Long, Int>).sortByValue()
+                    }
+                    .flatMap { administratorRoles ->
                         val roleNames = administratorRoles.keys
                             .stream()
                             .map { "<@&$it>" }
@@ -250,11 +198,13 @@ class AdministratorsCommand : AbstractCommand(
                             .collect(Collectors.joining("\n"))
                             .replace("\n$".toRegex(), "")
                         context.channel.flatMap {
-                            it.createEmbed { spec ->
-                                spec.setTitle("Administrator Roles")
-                                    .addField("Role", roleNames, true)
-                                    .addField("Level", roleLevels, true)
-                                    .setColor(Color.BLUE)
+                            it.createEmbedDsl {
+                                title("Administrator Roles")
+
+                                field("Role", roleNames, true)
+                                field("Level", roleLevels, true)
+
+                                color(Color.BLUE)
                             }
                         }
                     }
@@ -276,13 +226,12 @@ class AdministratorsCommand : AbstractCommand(
                 when (value) {
                     "add", "addrole",
                     "rm", "remove", "removerole",
-                    "rdr", "rmdel", "removedeletedroles",
                     "ls", "list", "listroles", "get", "getroles" -> true
                     else -> false
                 }
             },
-            invalidValueErrorMessageFunction = {
-                "Invalid action `%s`! The actions are `addrole`, `removerole`, `removedeletedroles`, and `getroles`!"
+            errorMessageFunction = {
+                "Invalid action `%s`! The actions are `addrole`, `removerole`, and `getroles`!"
             }
         )
         private val ROLE = StringFlag(
@@ -301,7 +250,7 @@ class AdministratorsCommand : AbstractCommand(
                     false
                 }
             },
-            invalidValueErrorMessageFunction = {
+            errorMessageFunction = {
                 try {
                     val level = it.toInt()
                     when {

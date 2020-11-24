@@ -30,7 +30,7 @@ data class Warn(
     val userId: Snowflake,
     val memberWhoWarnedId: Snowflake,
     val reason: String,
-    val warnId: String = UUID.randomUUID().toString()
+    val warnId: UUID = UUID.randomUUID()
 ) {
     fun getMemberWhoWarnedAsMember(gatewayDiscordClient: GatewayDiscordClient): Mono<Member> =
         gatewayDiscordClient.getMemberById(guildId, memberWhoWarnedId)

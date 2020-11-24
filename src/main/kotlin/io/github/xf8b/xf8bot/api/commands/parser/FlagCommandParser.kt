@@ -159,7 +159,8 @@ class FlagCommandParser : CommandParser<Flag<*>> {
                     }
                 } else {
                     if (flag.requiresValue) missingFlags.add(flag)
-                    else flagMap[flag] = flag.defaultValue.get()
+                    else flagMap[flag] = flag.defaultValue
+                        ?: return Result.failure("Flag ${flag.shortName}/${flag.longName} requires a value.")
                     continue
                 }
             }
@@ -189,7 +190,7 @@ class FlagCommandParser : CommandParser<Flag<*>> {
                         .append("`").append(flag.longName).append("`")
                         .append(" , Error message: ")
                         .append(
-                            flag.getInvalidValueErrorMessage(invalidValue).format(
+                            flag.getErrorMessage(invalidValue).format(
                                 invalidValue.trim(),
                                 requiredType
                             )
@@ -288,7 +289,7 @@ class FlagCommandParser : CommandParser<Flag<*>> {
                             .append("`").append(flag.longName).append("`")
                             .append(" , Error message: ")
                             .append(String.format(
-                                    flag.getInvalidValueErrorMessage(invalidValue as String),
+                                    flag.getErrorMessage(invalidValue as String),
                                     invalidValue.trim { it <= ' ' },
                                     clazz.simpleName
                             ))

@@ -20,7 +20,8 @@
 package io.github.xf8b.xf8bot.commands.info
 
 import com.google.common.collect.Range
-import discord4j.core.spec.EmbedCreateSpec
+import discord4j.core.`object`.entity.Message
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
@@ -28,6 +29,7 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
+import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.toImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import org.apache.commons.text.WordUtils
@@ -47,20 +49,21 @@ class HelpCommand : AbstractCommand(
 ) {
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
         val guildId = context.guildId.orElseThrow().asString()
-        val xf8bot = context.xf8bot
         val commandOrSection = context.getValueOfArgument(SECTION_OR_COMMAND)
         if (commandOrSection.isEmpty) {
             return context.prefix.flatMap { prefix ->
                 context.channel.flatMap {
-                    it.createEmbed { spec ->
-                        spec.setTitle("Help Page").setColor(Color.BLUE)
+                    it.createEmbedDsl {
+                        title("Help Page")
+                        color(Color.BLUE)
+
                         for (commandType in CommandType.values()) {
                             val commandTypeName = WordUtils.capitalizeFully(
                                 commandType.name
                                     .toLowerCase()
                                     .replace("_", " ")
                             )
-                            spec.addField(
+                            field(
                                 "`$commandTypeName`",
                                 """
                                 ${commandType.description}
@@ -94,17 +97,15 @@ class HelpCommand : AbstractCommand(
                     }
                     return context.prefix.flatMap { prefix ->
                         context.channel.flatMap {
-                            it.createEmbed { spec ->
-                                generateCommandTypeEmbed(
-                                    context,
-                                    context.xf8bot.commandRegistry,
-                                    spec,
-                                    commandType,
-                                    guildId,
-                                    pageNumber,
-                                    prefix
-                                )
-                            }
+                            generateCommandTypeEmbed(
+                                context,
+                                context.xf8bot.commandRegistry,
+                                it,
+                                commandType,
+                                guildId,
+                                pageNumber,
+                                prefix
+                            )
                         }
                     }.then()
                 }
@@ -112,42 +113,38 @@ class HelpCommand : AbstractCommand(
 
             for (command in context.xf8bot.commandRegistry) {
                 val name = command.name
-                val nameWithPrefix = command.getNameWithPrefix(xf8bot, guildId)
+                val nameWithPrefix = command.getNameWithPrefix(context.xf8bot, guildId)
                 val aliases = command.aliases
-                val aliasesWithPrefixes = command.getAliasesWithPrefixes(xf8bot, guildId)
+                val aliasesWithPrefixes = command.getAliasesWithPrefixes(context.xf8bot, guildId)
                 if (commandOrSection.get() == name.replace("\${prefix}", "")) {
                     val description = command.description
-                    val usage = command.getUsageWithPrefix(xf8bot, guildId)
+                    val usage = command.getUsageWithPrefix(context.xf8bot, guildId)
                     val actions = command.actions
                     return context.channel.flatMap {
-                        it.createEmbed { spec ->
-                            generateCommandEmbed(
-                                spec,
-                                nameWithPrefix,
-                                description,
-                                usage,
-                                aliasesWithPrefixes,
-                                actions
-                            )
-                        }
+                        generateCommandEmbed(
+                            it,
+                            nameWithPrefix,
+                            description,
+                            usage,
+                            aliasesWithPrefixes,
+                            actions
+                        )
                     }.then()
                 } else if (aliases.isNotEmpty()) {
                     for (alias in aliases) {
                         if (commandOrSection.get() == alias.replace("\${prefix}", "")) {
                             val description = command.description
-                            val usage = command.getUsageWithPrefix(xf8bot, guildId)
+                            val usage = command.getUsageWithPrefix(context.xf8bot, guildId)
                             val actions = command.actions
                             return context.channel.flatMap {
-                                it.createEmbed { spec ->
-                                    generateCommandEmbed(
-                                        spec,
-                                        nameWithPrefix,
-                                        description,
-                                        usage,
-                                        aliasesWithPrefixes,
-                                        actions
-                                    )
-                                }
+                                generateCommandEmbed(
+                                    it,
+                                    nameWithPrefix,
+                                    description,
+                                    usage,
+                                    aliasesWithPrefixes,
+                                    actions
+                                )
                             }.then()
                         }
                     }
@@ -155,29 +152,29 @@ class HelpCommand : AbstractCommand(
             }
         }
         return context.channel.flatMap {
-            it.createMessage("Error: Could not find command/section ${commandOrSection.get()}")
+            it.createMessage("Could not find command/section ${commandOrSection.get()}!")
         }.then()
     }
 
     private fun generateCommandTypeEmbed(
         context: CommandFiredContext,
         commandRegistry: CommandRegistry,
-        embedCreateSpec: EmbedCreateSpec,
+        messageChannel: MessageChannel,
         commandType: CommandType,
         guildId: String,
         pageNumber: Int,
         prefix: String
-    ) {
-        embedCreateSpec.setTitle("Help Page #${pageNumber + 1}")
-            .setDescription(
-                """
+    ): Mono<Message> = messageChannel.createEmbedDsl {
+        title("Help Page #${pageNumber + 1}")
+        description(
+            """
                 Actions are not listed on this page. To see them, do `${prefix}help <command>`.
                 To go to a different page, use `${prefix}help <section> <page>`.
                 """.trimIndent(),
-            )
-            .setColor(Color.BLUE)
-        val commandsWithCurrentCommandType = commandRegistry
-            .getCommandsWithCommandType(commandType)
+        )
+        color(Color.BLUE)
+        val commandsWithCurrentCommandType = commandRegistry.getCommandsWithCommandType(commandType)
+
         for (i in pageNumber * 6 until pageNumber * 6 + 6) {
             val command: AbstractCommand = try {
                 commandsWithCurrentCommandType[i]
@@ -189,7 +186,7 @@ class HelpCommand : AbstractCommand(
             val nameWithPrefixRemoved = command.name.replace("\${prefix}", "")
             val description = command.description
             val usage = command.getUsageWithPrefix(context.xf8bot, guildId)
-            embedCreateSpec.addField(
+            field(
                 "`$name`",
                 """
                 $description
@@ -202,39 +199,41 @@ class HelpCommand : AbstractCommand(
     }
 
     private fun generateCommandEmbed(
-        embedCreateSpec: EmbedCreateSpec,
+        messageChannel: MessageChannel,
         name: String,
         description: String,
         usage: String,
         aliases: List<String>,
         actions: Map<String, String>
-    ) {
-        embedCreateSpec.setTitle("Help Page For `$name`")
-            .addField(
-                "`$name`",
-                """
-                $description
-                Usage: `$usage`
-                """.trimIndent(),
-                false
-            )
-            .setColor(Color.BLUE)
+    ): Mono<Message> = messageChannel.createEmbedDsl {
+        title("Help Page For `$name`")
+        field(
+            "`$name`",
+            """
+            $description
+            Usage: `$usage`
+            """.trimIndent(),
+            false
+        )
+        color(Color.BLUE)
+
         if (actions.isNotEmpty()) {
             val actionsFormatted = StringBuilder()
-            actions.forEach { (action: String, actionDescription: String) ->
+            actions.forEach { (action: String, description: String) ->
                 actionsFormatted
                     .append("`").append(action).append("`: ")
-                    .append(actionDescription)
+                    .append(description)
                     .append("\n")
             }
-            embedCreateSpec.addField("Actions", actionsFormatted.toString().replace("\n$".toRegex(), ""), false)
+            field("Actions", actionsFormatted.toString().replace("\n$".toRegex(), ""), false)
         }
+
         if (aliases.isNotEmpty()) {
             val aliasesFormatted = StringBuilder()
             aliases.forEach {
                 aliasesFormatted.append("`").append(it).append("`\n")
             }
-            embedCreateSpec.addField("Aliases", aliasesFormatted.toString().replace("\n$".toRegex(), ""), false)
+            field("Aliases", aliasesFormatted.toString().replace("\n$".toRegex(), ""), false)
         }
     }
 

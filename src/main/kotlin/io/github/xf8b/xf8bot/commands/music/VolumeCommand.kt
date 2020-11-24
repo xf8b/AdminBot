@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
+import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
@@ -50,7 +51,7 @@ class VolumeCommand : AbstractCommand(
                     false
                 }
             },
-            invalidValueErrorMessageFunction = { invalidValue ->
+            errorMessageFunction = { invalidValue ->
                 try {
                     val level = invalidValue.toInt()
                     when {
@@ -61,7 +62,8 @@ class VolumeCommand : AbstractCommand(
                 } catch (exception: NumberFormatException) {
                     Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
                 }
-            }
+            },
+            required = false
         )
     }
 
@@ -72,22 +74,31 @@ class VolumeCommand : AbstractCommand(
             context.xf8bot.audioPlayerManager,
             context.channel.block()!!
         )
-        val volume = context.getValueOfArgument(VOLUME).get()
-        context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
-            .flatMap {
-                guildMusicHandler.setVolume(volume).then(context.channel.flatMap {
-                    it.createMessage("Successfully set volume to $volume!")
-                })
+        val volume = context.getValueOfArgument(VOLUME).toValueOrNull()
+
+        if (volume == null) {
+            context.channel.flatMap {
+                it.createMessage("The current volume is ${guildMusicHandler.volume}.")
             }
-            .switchIfEmpty(Mono.justOrEmpty(context.member)
-                .flatMap(Member::getVoiceState)
-                .flatMap(VoiceState::getChannel)
+        } else {
+            context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
                 .flatMap {
-                    context.channel.flatMap { it.createMessage("I am not in a VC!") }
+                    guildMusicHandler.volume = volume
+
+                    context.channel.flatMap {
+                        it.createMessage("Successfully set volume to $volume!")
+                    }
                 }
-                .switchIfEmpty(context.channel.flatMap {
-                    it.createMessage("You are not in a VC!")
-                })
-            )
+                .switchIfEmpty(Mono.justOrEmpty(context.member)
+                    .flatMap(Member::getVoiceState)
+                    .flatMap(VoiceState::getChannel)
+                    .flatMap {
+                        context.channel.flatMap { it.createMessage("I am not in a VC!") }
+                    }
+                    .switchIfEmpty(context.channel.flatMap {
+                        it.createMessage("You are not in a VC!")
+                    })
+                )
+        }
     }.then()
 }

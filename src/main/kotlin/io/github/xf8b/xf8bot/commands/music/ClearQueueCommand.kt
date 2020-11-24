@@ -40,9 +40,7 @@ class ClearQueueCommand : AbstractCommand(
             context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
                 .flatMap {
                     Mono.fromRunnable<Void> {
-                        for (i in 0..guildMusicHandler.musicTrackScheduler.queue.size) {
-                            guildMusicHandler.musicTrackScheduler.queue.poll()
-                        }
+                        guildMusicHandler.musicTrackScheduler.queue.clear()
                     }.then(context.channel.flatMap {
                         it.createMessage("Successfully cleared the queue!")
                     })

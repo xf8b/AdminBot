@@ -20,16 +20,13 @@
 package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
-import discord4j.common.util.Snowflake
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.api.commands.flags.TimeFlag
-import io.github.xf8b.xf8bot.util.ParsingUtil
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.cast
 
 class MuteCommand : AbstractCommand(
     name = "\${prefix}mute",
@@ -38,7 +35,6 @@ class MuteCommand : AbstractCommand(
                 :warning: Currently incomplete.
                 """.trimIndent(),
     commandType = CommandType.ADMINISTRATION,
-    minimumAmountOfArgs = 2,
     flags = ImmutableList.of(MEMBER, TIME),
     botRequiredPermissions = Permission.MANAGE_ROLES.toSingletonPermissionSet(),
     administratorLevelRequired = 1
@@ -55,16 +51,7 @@ class MuteCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(context: CommandFiredContext): Mono<Void> =
-        ParsingUtil.parseUserId(context.guild, context.getValueOfFlag(MEMBER).get())
-            .map(Snowflake::of)
-            .switchIfEmpty(context.channel.flatMap { it.createMessage("No member found!") }
-                .then() // yes i know, very hacky
-                .cast())
-            .flatMap {
-                context.channel.flatMap {
-                    it.createMessage("This command is not complete yet!")
-                    TODO("gotta fix this")
-                }
-            }
+    override fun onCommandFired(context: CommandFiredContext): Mono<Void> {
+        TODO("not done yet, please come back later")
+    }
 }

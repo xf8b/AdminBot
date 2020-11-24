@@ -24,7 +24,6 @@ import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import net.jodah.typetools.TypeResolver
-import java.util.stream.Collectors
 
 class ArgumentCommandParser : CommandParser<Argument<*>> {
     /**
@@ -90,11 +89,19 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
                 val collectedValue = StringBuilder()
 
                 if (!argument.index.hasUpperBound()) {
-                    collectedValue.append(
-                        toParseSplit.stream()
-                            .skip(argument.index.lowerEndpoint().toLong())
-                            .collect(Collectors.joining(" "))
+                    val sublist = toParseSplit.subList(
+                        argument.index.lowerEndpoint(),
+                        toParseSplit.size
                     )
+
+                    if (sublist.isEmpty() || sublist[0].isBlank()) {
+                        if (argument.required) {
+                            missingArguments.add(argument)
+                            continue
+                        }
+                    } else {
+                        collectedValue.append(sublist.joinToString(separator = " "))
+                    }
                 } else {
                     var i = argument.index.lowerEndpoint()
 
@@ -120,24 +127,31 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
             // send failure when there are missing arguments
             missingArguments.isNotEmpty() -> {
                 val invalidArgumentsNames = StringBuilder()
-                missingArguments.forEach { argument ->
-                    invalidArgumentsNames.append("`").append(argument.name).append("`")
+
+                for (argument in missingArguments) {
+                    invalidArgumentsNames
+                        .append("`").append(argument.name).append("`")
                         .append(" ")
                 }
+
                 Result.failure("Missing argument(s) ${invalidArgumentsNames.toString().trim()}!")
             }
 
             // send failure when argument values are invalid
             invalidValues.isNotEmpty() -> {
                 val invalidValuesFormatted = StringBuilder()
-                invalidValues.forEach { (argument, invalidValue) ->
-                    val requiredType =
-                        TypeResolver.resolveRawArgument(Argument::class.java, argument.javaClass).simpleName
-                    invalidValuesFormatted.append("Argument: ")
+
+                for ((argument, invalidValue) in invalidValues) {
+                    val requiredType = TypeResolver.resolveRawArgument(
+                        Argument::class.java,
+                        argument.javaClass
+                    ).simpleName
+                    invalidValuesFormatted
+                        .append("Argument: ")
                         .append("`").append(argument.name).append("`")
                         .append(", Error message: ")
                         .append(
-                            argument.getInvalidValueErrorMessage(invalidValue).format(
+                            argument.getErrorMessage(invalidValue).format(
                                 invalidValue.trim(),
                                 argument.index.toString(),
                                 requiredType
@@ -145,6 +159,7 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
                         )
                         .append(" ")
                 }
+
                 Result.failure("Invalid value(s): $invalidValuesFormatted")
             }
 

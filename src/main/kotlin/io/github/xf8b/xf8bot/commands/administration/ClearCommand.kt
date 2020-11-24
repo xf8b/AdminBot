@@ -37,7 +37,6 @@ import kotlinx.coroutines.reactor.mono
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.extra.bool.logicalAnd
-import reactor.kotlin.extra.bool.not
 import java.time.Duration
 import java.time.Instant
 
@@ -46,7 +45,6 @@ class ClearCommand : AbstractCommand(
     description = "Clears the specified amount of messages. The amount of messages to be cleared cannot exceed 500 or be below 2.",
     commandType = CommandType.ADMINISTRATION,
     aliases = ImmutableList.of("\${prefix}purge"),
-    minimumAmountOfArgs = 1,
     arguments = ImmutableList.of(AMOUNT),
     botRequiredPermissions = Permission.MANAGE_MESSAGES.toSingletonPermissionSet(),
     administratorLevelRequired = 2,
@@ -63,7 +61,7 @@ class ClearCommand : AbstractCommand(
                     false
                 }
             },
-            invalidValueErrorMessageFunction = {
+            errorMessageFunction = {
                 try {
                     val amount = it.toInt()
                     when {
@@ -95,18 +93,21 @@ class ClearCommand : AbstractCommand(
                 }
             }
         val leftoverCount = leftoverMessages.count()
-        // FIXME
+
         leftoverMessages
             .repeatWhen {
                 leftoverCount.map {
                     it != 1L && it != 0L
                 }.logicalAnd(
                     leftoverMessages.all {
-                        it.id.timestamp.isBefore(Instant.now().minus(Duration.ofDays(14L)))
-                    }.not()
+                        !it.id.timestamp.isBefore(Instant.now().minus(Duration.ofDays(14L)))
+                    }
                 )
             }
-            .flatMap { it.delete() }
+            .limitRate(10, 3)
+            .flatMap {
+                it.delete()
+            }
             .then(count.flatMap { amountDeleted ->
                 context.channel.flatMap {
                     it.createMessage("Successfully purged $amountDeleted message(s).")

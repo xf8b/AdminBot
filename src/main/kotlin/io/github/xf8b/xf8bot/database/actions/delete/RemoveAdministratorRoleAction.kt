@@ -19,47 +19,9 @@
 
 package io.github.xf8b.xf8bot.database.actions.delete
 
-import com.google.crypto.tink.Aead
-import com.google.crypto.tink.KeysetHandle
-import com.mongodb.client.model.Filters
-import com.mongodb.reactivestreams.client.MongoCollection
 import discord4j.common.util.Snowflake
-import io.github.xf8b.xf8bot.database.DatabaseAction
-import org.bson.Document
-import org.reactivestreams.Publisher
 
-class RemoveAdministratorRoleAction(
-    val guildId: Snowflake,
-    val roleId: Snowflake
-) : DatabaseAction<Publisher<Document>> {
-    override val collectionName: String
-        get() = "administratorRoles"
-
-    override fun run(
-        collection: MongoCollection<Document>,
-        keySetHandle: KeysetHandle?,
-        encrypted: Boolean
-    ): Publisher<Document> {
-        if (encrypted) {
-            val aead: Aead = keySetHandle!!.getPrimitive(Aead::class.java)
-            val encryptedRoleId =
-                aead.encrypt(roleId.asString().toByteArray(), null).toString(Charsets.UTF_8)//TODO add associated data
-            val encryptedGuildId =
-                aead.encrypt(guildId.asString().toByteArray(), null).toString(Charsets.UTF_8)//TODO add associated data
-
-            return collection.findOneAndDelete(
-                Filters.and(
-                    Filters.eq("roleId", encryptedRoleId),
-                    Filters.eq("guildId", encryptedGuildId)
-                )
-            )
-        } else {
-            return collection.findOneAndDelete(
-                Filters.and(
-                    Filters.eq("roleId", roleId.asLong()),
-                    Filters.eq("guildId", guildId.asLong())
-                )
-            )
-        }
-    }
-}
+class RemoveAdministratorRoleAction(guildId: Snowflake, roleId: Snowflake) : DeleteAction(
+    table = "administratorRoles",
+    criteria = mapOf("roleId" to roleId.asLong(), "guildId" to guildId.asLong())
+)

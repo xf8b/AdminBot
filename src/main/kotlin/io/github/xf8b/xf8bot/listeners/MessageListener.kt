@@ -19,7 +19,7 @@
 
 package io.github.xf8b.xf8bot.listeners
 
-import com.mongodb.MongoCommandException
+import discord4j.core.event.ReactiveEventAdapter
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.http.client.ClientException
 import discord4j.rest.util.Permission
@@ -42,32 +42,39 @@ import reactor.kotlin.core.publisher.toMono
 class MessageListener(
     private val xf8bot: Xf8bot,
     private val commandRegistry: CommandRegistry
-) : EventListener<MessageCreateEvent> {
+) : ReactiveEventAdapter() {
     companion object {
         private val ARGUMENT_PARSER = ArgumentCommandParser()
         private val FLAG_PARSER = FlagCommandParser()
         private val LOGGER: Logger by LoggerDelegate()
     }
 
-    override fun onEventFired(event: MessageCreateEvent): Mono<MessageCreateEvent> {
+    override fun onMessageCreate(event: MessageCreateEvent): Mono<Void> {
         // TODO: reactify all the classes
         // TODO: add spam protection
+        if (event.message.content.isEmpty()
+            || event.member.isEmpty
+            || event.message.author.map { it.isBot }.orElse(true)
+        ) {
+            return Mono.empty()
+        }
         val message = event.message
         val content = message.content
         val guildId = event.guildId.get().asString()
 
         if (content.trim() matches "<@!?${event.client.selfId.asString()}> help".toRegex()) {
             val infoCommand: InfoCommand = commandRegistry.findRegisteredWithType()
-            return onCommandFired(event, infoCommand, guildId, content).thenReturn(event)
+            return onCommandFired(event, infoCommand, guildId, content)
         }
+
+        val commandRequested = content.trim().split(" ").toTypedArray()[0]
 
         return onCommandFired(
             event,
-            findCommand(content.trim().split(" ").toTypedArray()[0], guildId)
-                ?: return event.toMono(),
+            findCommand(commandRequested, guildId) ?: return Mono.empty(),
             guildId,
             content
-        ).thenReturn(event)
+        )
     }
 
     private fun findCommand(commandRequested: String, guildId: String): AbstractCommand? = commandRegistry.find {
@@ -76,6 +83,10 @@ class MessageListener(
         command.getAliasesWithPrefixes(xf8bot, guildId).any {
             it.equals(commandRequested, ignoreCase = true)
         }
+    }
+
+    private fun handleLevels() {
+        TODO("finish this later")
     }
 
     private fun onCommandFired(
@@ -139,7 +150,7 @@ class MessageListener(
                             return@filterWhen true.toMono()
                         }
                     }
-                    if (command.isBotAdministratorOnly) {
+                    if (command.botAdministratorOnly) {
                         if (!commandFiredContext.xf8bot.isBotAdministrator(commandFiredContext.member.get().id)) {
                             return@filterWhen commandFiredContext.channel
                                 .flatMap { it.createMessage("Sorry, you aren't a administrator of xf8bot.") }
@@ -154,6 +165,7 @@ class MessageListener(
                             return@filterWhen true.toMono()
                         }
                     }
+                    @Suppress("DEPRECATION")
                     if (content.trim().split(" ").toTypedArray().size < command.minimumAmountOfArgs + 1) {
                         commandFiredContext.message.channel.flatMap {
                             it.createMessage(
@@ -174,11 +186,6 @@ class MessageListener(
                 .onErrorResume(ClientException::class) { exception ->
                     commandFiredContext.channel
                         .flatMap { it.createMessage("Client exception happened while handling command: ${exception.status}: ${exception.errorResponse.get().fields}") }
-                        .then()
-                }
-                .onErrorResume(MongoCommandException::class) { exception ->
-                    commandFiredContext.channel
-                        .flatMap { it.createMessage("Database error happened while handling command: ${exception.errorCodeName}") }
                         .then()
                 }
                 .onErrorResume(ThisShouldNotHaveBeenThrownException::class) {

@@ -52,9 +52,11 @@ class SkipCommand : AbstractCommand(
         val amountToSkip = context.getValueOfArgument(AMOUNT_TO_SKIP).orElse(1)
         return context.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
-                guildMusicHandler.skip(amountToSkip).then(context.channel.flatMap {
-                    it.createMessage("Successfully skipped the current video!")
-                })
+                guildMusicHandler
+                    .skip(amountToSkip)
+                    .then(context.channel.flatMap {
+                        it.createMessage("Successfully skipped the current video!")
+                    })
             }
             .switchIfEmpty(context.channel.flatMap { it.createMessage("I am not connected to a VC!") })
             .then()

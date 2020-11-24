@@ -19,30 +19,26 @@
 
 package io.github.xf8b.xf8bot.api.commands.flags
 
+import io.github.xf8b.xf8bot.util.functionReturning
 import java.util.function.Function
 import java.util.function.Predicate
-import java.util.function.Supplier
 
 class IntegerFlag(
     override val shortName: String,
     override val longName: String,
     override val required: Boolean = true,
     override val requiresValue: Boolean = true,
-    override val defaultValue: Supplier<out Int> = DEFAULT_DEFAULT_VALUE,
+    override val defaultValue: Int? = null,
     override val parseFunction: Function<in String, out Int> = DEFAULT_PARSE_FUNCTION,
     override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val invalidValueErrorMessageFunction: Function<in String, out String> =
-        DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
+    override val errorMessageFunction: Function<in String, out String> = DEFAULT_ERROR_MESSAGE_FUNCTION
 ) : Flag<Int> {
     companion object {
-        val DEFAULT_DEFAULT_VALUE: Supplier<out Int> = Supplier { throw NoSuchElementException() }
         val DEFAULT_PARSE_FUNCTION: Function<in String, out Int> = Function { it.toInt() }
         val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicate { value ->
             value.toIntOrNull() != null
         }
-        val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> = Function {
-            Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-        }
+        val DEFAULT_ERROR_MESSAGE_FUNCTION = functionReturning<String, String>(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -58,7 +54,7 @@ class IntegerFlag(
         if (defaultValue != other.defaultValue) return false
         if (parseFunction != other.parseFunction) return false
         if (validityPredicate != other.validityPredicate) return false
-        if (invalidValueErrorMessageFunction != other.invalidValueErrorMessageFunction) return false
+        if (errorMessageFunction != other.errorMessageFunction) return false
 
         return true
     }
@@ -68,10 +64,10 @@ class IntegerFlag(
         result = 31 * result + longName.hashCode()
         result = 31 * result + required.hashCode()
         result = 31 * result + requiresValue.hashCode()
-        result = 31 * result + defaultValue.hashCode()
+        result = 31 * result + (defaultValue ?: 0)
         result = 31 * result + parseFunction.hashCode()
         result = 31 * result + validityPredicate.hashCode()
-        result = 31 * result + invalidValueErrorMessageFunction.hashCode()
+        result = 31 * result + errorMessageFunction.hashCode()
         return result
     }
 
@@ -83,6 +79,6 @@ class IntegerFlag(
             "defaultValue=$defaultValue, " +
             "parseFunction=$parseFunction, " +
             "validityPredicate=$validityPredicate, " +
-            "invalidValueErrorMessageFunction=$invalidValueErrorMessageFunction" +
+            "errorMessageFunction=$errorMessageFunction" +
             ")"
 }

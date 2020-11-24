@@ -24,9 +24,11 @@ import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredContext
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
+import io.github.xf8b.xf8bot.util.LoggerDelegate
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl
+import org.slf4j.Logger
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorResume
 import javax.script.ScriptEngine
@@ -34,18 +36,18 @@ import javax.script.ScriptException
 
 class EvalCommand : AbstractCommand(
     name = "\${prefix}eval",
-    description = "Evaluates code. Bot administrators only!",
+    description = "Evaluates Groovy code. Bot administrators only!",
     commandType = CommandType.BOT_ADMINISTRATOR,
     aliases = of("\${prefix}evaluate"),
-    minimumAmountOfArgs = 1,
     arguments = of(CODE_TO_EVAL),
-    isBotAdministratorOnly = true
+    botAdministratorOnly = true
 ) {
     companion object {
         private val CODE_TO_EVAL = StringArgument(
             name = "code to evaluate",
             index = Range.atLeast(1)
         )
+        private val LOGGER: Logger by LoggerDelegate()
     }
 
     override fun onCommandFired(context: CommandFiredContext): Mono<Void> = mono {
@@ -67,9 +69,16 @@ class EvalCommand : AbstractCommand(
             .flatMap { it.createMessage("Result: $result") }
             .then()
     }.onErrorResume(ScriptException::class) { exception ->
-        context.message
-            .channel
-            .flatMap { it.createMessage("ScriptException: $exception") }
-            .then()
+        Mono.fromRunnable<Void> { LOGGER.error("Script exception happened during evaluation of code!", exception) }
+            .then(context.message
+                .channel
+                .flatMap { it.createMessage("ScriptException: $exception") }
+                .then())
+    }.onErrorResume { throwable ->
+        Mono.fromRunnable<Void> { LOGGER.error("Error happened during evaluation of code!", throwable) }
+            .then(context.message
+                .channel
+                .flatMap { it.createMessage("${throwable::class.java.simpleName}: ${throwable.message}") }
+                .then())
     }
 }

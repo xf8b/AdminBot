@@ -20,30 +20,30 @@
 package io.github.xf8b.xf8bot.listeners
 
 import discord4j.common.util.Snowflake
+import discord4j.core.event.ReactiveEventAdapter
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import io.github.xf8b.utils.semver.SemanticVersion
 import io.github.xf8b.xf8bot.util.LoggerDelegate
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
 import java.util.stream.Collectors
 
 class ReadyListener(
     private val botActivity: String,
     private val botAdmins: List<Snowflake>,
     private val botVersion: SemanticVersion
-) : EventListener<ReadyEvent> {
-    private val logger: Logger by LoggerDelegate()
+) : ReactiveEventAdapter() {
+    private val LOGGER: Logger by LoggerDelegate()
 
-    override fun onEventFired(event: ReadyEvent): Mono<ReadyEvent> = event.toMono().doOnNext { readyEvent ->
-        logger.info("Successfully started xf8bot version ${botVersion.toStringVersion()}!")
-        logger.info("Logged in as ${readyEvent.self.username}#${readyEvent.self.discriminator}.")
-        logger.info("Logged into ${readyEvent.guilds.size} guilds.")
-        logger.info("Total shards: ${readyEvent.shardInfo.count}")
-        logger.info("Bot arguments: ")
-        logger.info("Activity: $botActivity")
-        logger.info("Bot administrators: {}", botAdmins.stream()
+    override fun onReady(event: ReadyEvent): Mono<Void> = Mono.fromRunnable {
+        LOGGER.info("Successfully started xf8bot version ${botVersion.toStringVersion()}!")
+        LOGGER.info("Logged in as ${event.self.username}#${event.self.discriminator}.")
+        LOGGER.info("Logged into ${event.guilds.size} guilds.")
+        LOGGER.info("Total shards: ${event.shardInfo.count}")
+        LOGGER.info("Bot arguments: ")
+        LOGGER.info("Activity: $botActivity")
+        LOGGER.info("Bot administrators: {}", botAdmins.stream()
             .map { it.asString() }
             .collect(Collectors.toUnmodifiableList()))
-    }.thenReturn(event)
+    }
 }

@@ -19,39 +19,13 @@
 
 package io.github.xf8b.xf8bot.database.actions.find
 
-import com.google.crypto.tink.KeysetHandle
-import com.mongodb.client.model.Filters
-import com.mongodb.reactivestreams.client.MongoCollection
 import discord4j.common.util.Snowflake
-import io.github.xf8b.xf8bot.database.DatabaseAction
-import org.bson.Document
-import org.reactivestreams.Publisher
-import reactor.kotlin.core.publisher.toMono
 
-class FindAdministratorRoleLevelAction(
-    val guildId: Snowflake,
-    val roleId: Snowflake
-) : DatabaseAction<Publisher<Int>> {
-    override val collectionName: String
-        get() = "administratorRoles"
-
-    override fun run(
-        collection: MongoCollection<Document>,
-        keySetHandle: KeysetHandle?,
-        encrypted: Boolean
-    ): Publisher<Int> = collection.find(
-        Filters.and(
-            Filters.eq("roleId", roleId.asLong()),
-            Filters.eq("guildId", guildId.asLong())
-        )
-    ).toMono().map {
-        /*
-        if (encrypted) {
-            val aead: Aead = keySetHandle!!.getPrimitive(Aead::class.java)
-            val encryptedValue = it.getString("level")
-            aead.decrypt(encryptedValue.toByteArray(), null).toString(UTF_8).toInt()
-        } else {*/
-            it.getInteger("level")
-        //}
-    }.defaultIfEmpty(0)
-}
+class FindAdministratorRoleLevelAction(guildId: Snowflake, roleId: Snowflake) : SelectAction(
+    table = "administratorRoles",
+    selectedFields = listOf("level"),
+    criteria = mapOf(
+        "roleId" to roleId.asLong(),
+        "guildId" to guildId.asLong()
+    )
+)
