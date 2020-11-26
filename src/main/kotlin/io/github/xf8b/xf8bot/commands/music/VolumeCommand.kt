@@ -67,12 +67,12 @@ class VolumeCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = Mono.defer {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap { channel ->
         val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
             event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            channel
         )
         val volume = event.getValueOfArgument(VOLUME).toValueOrNull()
 

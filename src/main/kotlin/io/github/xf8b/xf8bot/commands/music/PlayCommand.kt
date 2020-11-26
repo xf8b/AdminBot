@@ -46,12 +46,12 @@ class PlayCommand : AbstractCommand(
         private const val OTHER_YOUTUBE_URL_REGEX = "https://(www\\.)?youtu\\.be/watch\\?v=.+"
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap { channel ->
         val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
             event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            channel
         )
         val temp = event.getValueOfArgument(YOUTUBE_VIDEO_NAME_OR_LINK).get()
         val videoUrlOrSearch: String = when {
@@ -62,7 +62,7 @@ class PlayCommand : AbstractCommand(
 
         val playMono: Mono<Void> = guildMusicHandler.playYoutubeVideo(videoUrlOrSearch)
 
-        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+        event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap { playMono }
             .switchIfEmpty(event.member.toMono()
                 .flatMap(Member::getVoiceState)

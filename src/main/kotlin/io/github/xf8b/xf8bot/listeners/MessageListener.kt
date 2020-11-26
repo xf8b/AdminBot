@@ -68,6 +68,7 @@ class MessageListener(
             xf8bot.botDatabase
                 .execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
                 .filter { it.isNotEmpty() }
+                .filterWhen { it[0].hasUpdatedRows }
                 .filterWhen { _ ->
                     event.guild
                         .flatMap { PermissionUtil.getAdministratorLevel(xf8bot, it, event.member.get()) }

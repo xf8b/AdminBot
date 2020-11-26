@@ -29,14 +29,15 @@ class PauseCommand : AbstractCommand(
     description = "Pauses the current audio playing.",
     commandType = CommandType.MUSIC
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap { channel ->
         val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
             event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            channel
         )
-        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+
+        event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
                 guildMusicHandler.paused = !guildMusicHandler.paused
 

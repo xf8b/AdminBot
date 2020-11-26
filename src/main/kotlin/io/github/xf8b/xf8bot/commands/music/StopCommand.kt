@@ -29,14 +29,15 @@ class StopCommand : AbstractCommand(
     description = "Stops the music in the current VC.",
     commandType = CommandType.MUSIC
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap { channel ->
         val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
             event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            channel
         )
-        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+
+        event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
                 guildMusicHandler.stop().then(event.channel.flatMap {
                     it.createMessage("Successfully stopped the current music!")

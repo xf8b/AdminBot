@@ -42,15 +42,16 @@ class SkipCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap { channel ->
         val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
             event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            channel
         )
         val amountToSkip = event.getValueOfArgument(AMOUNT_TO_SKIP).orElse(1)
-        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+
+        event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
                 guildMusicHandler
                     .skip(amountToSkip)

@@ -33,28 +33,30 @@ class JoinCommand : AbstractCommand(
     description = "Joins your current VC.",
     commandType = CommandType.MUSIC
 ) {
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap { channel ->
         val guildId = event.guildId.get()
         val guildMusicHandler = GuildMusicHandler.get(
             guildId,
             event.xf8bot.audioPlayerManager,
-            event.channel.block()!!
+            channel
         )
-        return event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
+
+        event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
                 event.channel.flatMap { it.createMessage("I am already connected to a VC!") }
             }
-            .switchIfEmpty(Mono.justOrEmpty(event.member)
-                .flatMap(Member::getVoiceState)
-                .flatMap(VoiceState::getChannel)
-                .flatMap { voiceChannel ->
-                    voiceChannel.join { spec ->
-                        spec.setProvider(guildMusicHandler.lavaPlayerAudioProvider)
-                    }.then(event.channel.flatMap {
-                        it.createMessage("Successfully connected to your VC!")
-                    })
-                }
-                .retryWhen(Retry.backoff(2, Duration.ofSeconds(2L)))
+            .switchIfEmpty(
+                Mono.justOrEmpty(event.member)
+                    .flatMap(Member::getVoiceState)
+                    .flatMap(VoiceState::getChannel)
+                    .flatMap { voiceChannel ->
+                        voiceChannel.join { spec ->
+                            spec.setProvider(guildMusicHandler.lavaPlayerAudioProvider)
+                        }.then(event.channel.flatMap {
+                            it.createMessage("Successfully connected to your VC!")
+                        })
+                    }
+                    .retryWhen(Retry.backoff(2, Duration.ofSeconds(2L)))
             )
             .switchIfEmpty(event.channel.flatMap { it.createMessage("You are not in a VC!") })
             .then()
