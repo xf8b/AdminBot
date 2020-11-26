@@ -27,75 +27,27 @@ import net.jodah.typetools.TypeResolver
 
 class FlagCommandParser : CommandParser<Flag<*>> {
     /**
-     * Parses the string and returns a [Result] that contains the [Map] of [Flag]s to their values.
+     * Parses [toParse] for flags from [command] and returns a [Result] containing a map of [Flag]s to their values.
+     * You must cast the value.
      *
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
-     *
-     * @param command the command to parse [Flag]s for
-     * @param toParse the string to parse for [Flag]s
-     * @return the [Result] of parsing the [Flag]s from [toParse]
      */
     override fun parse(command: AbstractCommand, toParse: String): Result<Map<Flag<*>, Any>> {
         val flagMap: MutableMap<Flag<*>, Any> = HashMap()
         val missingFlags: MutableList<Flag<*>> = ArrayList()
         val invalidValues: MutableMap<Flag<*>, String> = HashMap()
 
-        /*
-        val toParseSplit = toParse.split(" ")
+        // TODO make new parser, maybe using String#split? not sure how to do it though
 
         for (flag in command.flags) {
-            val index = toParseSplit.indexOf("--${flag.longName}").takeIf { it != -1 }
-                ?: toParseSplit.indexOf("-${flag.shortName}").takeIf { it != -1 }
+            val index = toParse.indexOf("--${flag.longName}")
+                .takeUnless((-1)::equals)
+                ?.let { it + "--${flag.longName}".length }
+                ?: toParse.indexOf("-${flag.shortName}")
+                    .takeUnless((-1)::equals)
+                    ?.let { it + "-${flag.shortName}".length }
 
             if (index == null) {
-                if (flag.required) missingFlags.add(flag)
-                continue
-            }
-
-            var i = index
-            var amountOfQuotesSeen = 0
-            var collectedValue = ""
-
-            while (true) {
-                try {
-                    val atIndex = toParseSplit[i]
-                    collectedValue += when {
-                        atIndex.startsWith('"') && amountOfQuotesSeen == 0 && i == index -> {
-                            amountOfQuotesSeen++
-                            atIndex.substring(0)
-                        }
-                        atIndex.endsWith('"') && amountOfQuotesSeen == 1 -> {
-                            atIndex.substring(0, atIndex.length)
-                            break
-                        }
-                        else -> atIndex
-                    }
-                    i++
-                } catch (exception: IndexOutOfBoundsException) {
-                    if (collectedValue.isEmpty()) {
-                        if (flag.requiresValue) missingFlags.add(flag)
-                        else flagMap[flag] = flag.defaultValue.get()
-                    }
-                    break
-                }
-            }
-        }
-        //TODO make new parser
-        */
-
-        for (flag in command.flags) {
-            val index = toParse.indexOf("--${flag.longName}").let { index ->
-                if (index == -1) {
-                    toParse.indexOf("-${flag.shortName}").let {
-                        if (it != -1) it + "-${flag.shortName}".length
-                        else it
-                    }
-                } else {
-                    index + "--${flag.longName}".length
-                }
-            }
-
-            if (index == -1) {
                 if (flag.required) missingFlags.add(flag)
                 continue
             } else {
@@ -152,6 +104,7 @@ class FlagCommandParser : CommandParser<Flag<*>> {
                     if (collectedValue[0] == '"' && collectedValue[collectedValue.length - 1] == '=') {
                         collectedValue = collectedValue.substring(1, collectedValue.length - 1)
                     }
+
                     if (flag.isValidValue(collectedValue)) {
                         flagMap[flag] = flag.parse(collectedValue)
                     } else {
@@ -169,34 +122,22 @@ class FlagCommandParser : CommandParser<Flag<*>> {
         return when {
             // send failure when there are missing flags
             missingFlags.isNotEmpty() -> {
-                val invalidFlagsNames = StringBuilder()
-                missingFlags.forEach { flag ->
-                    invalidFlagsNames.append("`").append(flag.shortName).append("`")
-                        .append("/")
-                        .append("`").append(flag.longName).append("`")
-                        .append(" ")
+                val invalidFlagsNames = missingFlags.joinToString(separator = " ") {
+                    "`${it.shortName}`/`${it.longName}`"
                 }
-                Result.failure("Missing flag(s) ${invalidFlagsNames.toString().trim()}!")
+
+                Result.failure("Missing flag(s) ${invalidFlagsNames}!")
             }
 
             // send failure when flag values are invalid
             invalidValues.isNotEmpty() -> {
-                val invalidValuesFormatted = StringBuilder()
-                invalidValues.forEach { (flag, invalidValue) ->
+                val invalidValuesFormatted = invalidValues.map { (flag, value) ->
                     val requiredType = TypeResolver.resolveRawArgument(Flag::class.java, flag.javaClass).simpleName
-                    invalidValuesFormatted.append("Flag: ")
-                        .append("`").append(flag.shortName).append("`")
-                        .append("/")
-                        .append("`").append(flag.longName).append("`")
-                        .append(" , Error message: ")
-                        .append(
-                            flag.getErrorMessage(invalidValue).format(
-                                invalidValue.trim(),
-                                requiredType
-                            )
-                        )
-                        .append(" ")
-                }
+                    val errorMessage = flag.getErrorMessage(value).format(value.trim(), requiredType)
+
+                    "Flag: `${flag.shortName}`/`${flag.longName}`, Error message: $errorMessage"
+                }.joinToString(separator = " ")
+
                 Result.failure("Invalid value(s): $invalidValuesFormatted")
             }
 
@@ -204,102 +145,4 @@ class FlagCommandParser : CommandParser<Flag<*>> {
             else -> Result.success(ImmutableMap.copyOf(flagMap))
         }
     }
-
-    /*
-    override fun parse(command: AbstractCommand, stringToParse: String): Result<Map<Flag<*>, Any>> {
-        val flagMap: MutableMap<Flag<*>, Any> = HashMap()
-        val invalidFlags: MutableList<String> = ArrayList()
-        val invalidValues: MutableMap<Flag<*>, Any> = HashMap()
-        val missingFlags: MutableList<Flag<*>> = ArrayList()
-        val matcher = Flag.REGEX.toPattern().matcher(stringToParse)
-
-        while (matcher.find()) {
-            val flagName = matcher.group(2)
-            // find the flag that matches the name
-            val flag: Flag<*>? = if (matcher.group(1) == "--") {
-                command.flags.stream()
-                        .filter(flagName::equals)
-                        .findFirst()
-                        .orElse(null)
-            } else {
-                command.flags.stream()
-                        .filter(flagName::equals)
-                        .findFirst()
-                        .orElse(null)
-            }
-            // if no flag is found, add to invalid flags and continue
-            if (flag == null) {
-                invalidFlags.add(flagName)
-                continue
-            }
-            val tempValue = matcher.group(3).trim()
-            var value: Any
-            // if value of flag is a string
-            if (tempValue.matches("\"[\\w ]+\"".toRegex())) {
-                // if flag does not take in a string, add to invalid values and continue
-                if (TypeResolver.resolveRawArgument(Flag::class.java, flag.javaClass) == String::class.java) {
-                    value = tempValue.substring(1, tempValue.length - 1)
-                } else {
-                    invalidValues[flag] = tempValue
-                    continue
-                }
-            } else {
-                // if value is valid, parse it
-                // else add to invalid values and continue
-                if (flag.isValidValue(tempValue)) {
-                    value = flag.parse(tempValue)
-                } else {
-                    invalidValues[flag] = tempValue
-                    continue
-                }
-            }
-            // add to flag map the flag and the value
-            flagMap[flag] = value
-        }
-        // if flag has not been parsed and is required, add to missing flags
-        command.flags.forEach {
-            if (!flagMap.containsKey(it)) {
-                if (it.required) {
-                    missingFlags.add(it)
-                }
-            }
-        }
-        return when {
-            // send failure when there are missing flags
-            missingFlags.isNotEmpty() -> {
-                val invalidFlagsNames = StringBuilder()
-                missingFlags.forEach(Consumer { flag: Flag<*> ->
-                    invalidFlagsNames.append("`").append(flag.shortName).append("`")
-                            .append("/")
-                            .append("`").append(flag.longName).append("`")
-                            .append(" ")
-                })
-                Result.failure("Missing flag(s) ${invalidFlagsNames.toString().trim()}!")
-            }
-            // send failure when flags are invalid
-            invalidFlags.isNotEmpty() -> Result.failure("Invalid flag(s) `${invalidFlags.joinToString()}`!")
-            // send failure when flag values are invalid
-            invalidValues.isNotEmpty() -> {
-                val invalidValuesFormatted = StringBuilder()
-                invalidValues.forEach { (flag: Flag<*>, invalidValue: Any) ->
-                    val clazz = TypeResolver.resolveRawArgument(Flag::class.java, flag.javaClass)
-                    invalidValuesFormatted.append("Flag: ")
-                            .append("`").append(flag.shortName).append("`")
-                            .append("/")
-                            .append("`").append(flag.longName).append("`")
-                            .append(" , Error message: ")
-                            .append(String.format(
-                                    flag.getErrorMessage(invalidValue as String),
-                                    invalidValue.trim { it <= ' ' },
-                                    clazz.simpleName
-                            ))
-                            .append(" ")
-                }
-                Result.failure("Invalid value(s): $invalidValuesFormatted")
-            }
-            // send success when there are no errors and when everything is parsed
-            else -> Result.success(ImmutableMap.copyOf(flagMap))
-        }
-    }
-    */
 }

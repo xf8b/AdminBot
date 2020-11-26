@@ -28,8 +28,8 @@ import reactor.kotlin.core.publisher.toMono
 
 // FIXME not removing deleted roles from admin roles
 class RoleDeleteListener(private val botDatabase: BotDatabase) : ReactiveEventAdapter() {
-    override fun onRoleDelete(event: RoleDeleteEvent): Mono<Void> = botDatabase
-        .execute(RemoveAdministratorRoleAction(event.guildId, event.roleId))
-        .toMono()
-        .then()
+    override fun onRoleDelete(event: RoleDeleteEvent): Mono<Void> =
+        botDatabase.execute(RemoveAdministratorRoleAction(event.guildId, event.roleId))
+            .toMono()
+            .then()
 }

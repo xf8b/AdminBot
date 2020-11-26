@@ -65,8 +65,10 @@ import kotlin.system.exitProcess
 // TODO: bass and loop commands
 // TODO: subcommands
 // TODO: member verifying system
-// TODO: use optional instead of null?
-// TODO impl encryption
+// TODO: impl encryption
+// TODO: reactify all the classes
+// TODO: add spam protection
+// TODO: leveling system
 class Xf8bot private constructor(private val botConfiguration: BotConfiguration) {
     val commandRegistry = CommandRegistry()
     val version = Scanner(

@@ -70,7 +70,7 @@ class AdministratorsCommand : AbstractCommand(
     arguments = ACTION.toSingletonImmutableList(),
     flags = (ROLE to ADMINISTRATOR_LEVEL).toImmutableList(),
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet(),
-    disabledChecks = EnumSet.of(Checks.IS_ADMINISTRATOR),
+    disabledChecks = EnumSet.of(ExecutionChecks.IS_ADMINISTRATOR),
     administratorLevelRequired = 4
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {

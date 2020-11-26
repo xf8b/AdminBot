@@ -27,7 +27,7 @@ import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.data.Warn
 import io.github.xf8b.xf8bot.database.actions.add.AddWarningAction
-import io.github.xf8b.xf8bot.util.ExceptionPredicates.isClientExceptionWithCode
+import io.github.xf8b.xf8bot.util.Checks.isClientExceptionWithCode
 import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
 import io.github.xf8b.xf8bot.util.createEmbedDsl

@@ -92,7 +92,7 @@ class BanCommand : AbstractCommand(
                 }.flatMap { event.channel.flatMap { it.createMessage("The user is already banned!") } }
                     .switchIfEmpty(event.guild.flatMap { guild ->
                         guild.getMemberById(userId)
-                            .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
+                            .onErrorResume(Checks.isClientExceptionWithCode(10007)) {
                                 event.channel
                                     .flatMap { it.createMessage("The member is not in the guild!") }
                                     .then() // yes i know, very hacky
@@ -153,7 +153,7 @@ class BanCommand : AbstractCommand(
                                             color(Color.RED)
                                         }
                                     }
-                                    .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(50007)) {
+                                    .onErrorResume(Checks.isClientExceptionWithCode(50007)) {
                                         Mono.empty()
                                     } // cannot send messages to user
                                     .then(member.ban {

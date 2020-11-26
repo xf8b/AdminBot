@@ -53,64 +53,38 @@ abstract class AbstractCommand(
     /** Permissions that the bot requires before this command be ran */
     val botRequiredPermissions: PermissionSet = PermissionSet.none(),
     /** Checks ran during command handling that are disabled */
-    val disabledChecks: EnumSet<Checks> = EnumSet.noneOf(Checks::class.java),
+    val disabledChecks: EnumSet<ExecutionChecks> = EnumSet.noneOf(ExecutionChecks::class.java),
     /** Administrator level required to run this command according to [io.github.xf8b.xf8bot.commands.settings.AdministratorsCommand] */
     val administratorLevelRequired: Int = 0,
     /** If this command is only to be run by bot administrators */
     val botAdministratorOnly: Boolean = false
 ) {
     companion object {
-        private fun generateUsage(
-            commandName: String,
-            flags: List<Flag<*>>,
-            arguments: List<Argument<*>>
-        ): String {
-            val generatedUsage = StringBuilder(commandName).append(" ")
+        private fun generateUsage(commandName: String, flags: List<Flag<*>>, arguments: List<Argument<*>>): String {
+            val argumentsUsage = arguments.joinToString(separator = " ") {
+                if (it.required) "<${it.name}>" else "[${it.name}]"
+            }
+            val flagsUsage = flags.joinToString(separator = " ") { flag ->
+                var usage = ""
 
-            for (argument in arguments) {
-                if (argument.required) {
-                    generatedUsage.append("<").append(argument.name).append(">")
-                        .append(" ")
-                } else {
-                    generatedUsage.append("[").append(argument.name).append("]")
-                        .append(" ")
-                }
+                // end result example: ${prefix}hello <person> [-p [ping] = true]] <-c <channel>>
+
+                usage += if (flag.required) "<" else "["
+                usage += "-${flag.shortName} "
+                usage += if (flag.requiresValue) "<${flag.longName}>" else "[${flag.longName}]"
+                if (flag.defaultValue != null) usage += " = ${flag.defaultValue}"
+                usage += (if (flag.required) ">" else "]")
+
+                usage
             }
 
-            for (flag in flags) {
-                if (flag.required) {
-                    generatedUsage.append("<")
-                } else {
-                    generatedUsage.append("[")
-                }
-
-                generatedUsage.append("-").append(flag.shortName)
-                    .append(" ")
-
-                if (flag.requiresValue) {
-                    generatedUsage.append("<").append(flag.longName).append(">")
-                } else {
-                    generatedUsage.append("[").append(flag.longName).append("]")
-                }
-
-                if (flag.defaultValue != null) {
-                    generatedUsage.append(" = ${flag.defaultValue}")
-                }
-
-                if (flag.required) {
-                    generatedUsage.append(">")
-                } else {
-                    generatedUsage.append("]")
-                }
-
-                generatedUsage.append(" ")
-            }
-
-            return generatedUsage.toString().trim()
+            return "$commandName $argumentsUsage $flagsUsage"
         }
     }
 
     abstract fun onCommandFired(event: CommandFiredEvent): Mono<Void>
+
+    // TODO: yeet these blocks below
 
     fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): String = name.replace(
         "\${prefix}",
@@ -130,8 +104,6 @@ abstract class AbstractCommand(
     fun getAliasesWithPrefixes(xf8bot: Xf8bot, guildId: String): List<String> = aliases.map {
         it.replace("\${prefix}", xf8bot.prefixCache.get(guildId.toSnowflake()).block()!!)
     }
-
-    fun requiresAdministrator(): Boolean = administratorLevelRequired > 0
 
     @Suppress("DEPRECATION")
     override fun equals(other: Any?): Boolean {
@@ -168,6 +140,7 @@ abstract class AbstractCommand(
         result = 31 * result + botRequiredPermissions.hashCode()
         result = 31 * result + administratorLevelRequired
         result = 31 * result + botAdministratorOnly.hashCode()
+
         return result
     }
 
@@ -180,7 +153,7 @@ abstract class AbstractCommand(
         OTHER("Other commands which do not fit in any of the above categories."),
     }
 
-    enum class Checks {
+    enum class ExecutionChecks {
         IS_ADMINISTRATOR,
         IS_BOT_ADMINISTRATOR,
         SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS,

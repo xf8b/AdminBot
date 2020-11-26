@@ -26,7 +26,7 @@ import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
-import io.github.xf8b.xf8bot.util.ExceptionPredicates
+import io.github.xf8b.xf8bot.util.Checks
 import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
@@ -68,7 +68,7 @@ class NicknameCommand : AbstractCommand(
             .flatMap { userId ->
                 event.guild.flatMap { guild ->
                     guild.getMemberById(userId)
-                        .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10007)) {
+                        .onErrorResume(Checks.isClientExceptionWithCode(10007)) {
                             event.channel
                                 .flatMap { it.createMessage("The member is not in the guild!") }
                                 .then() // yes i know, very hacky

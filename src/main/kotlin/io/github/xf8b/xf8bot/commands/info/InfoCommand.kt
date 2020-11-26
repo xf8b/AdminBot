@@ -23,6 +23,7 @@ import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
@@ -37,32 +38,46 @@ class InfoCommand : AbstractCommand(
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.prefix.flatMap { prefix ->
         event.channel.flatMap { channel ->
             event.client.self.flatMap { self ->
-                channel.createEmbed { embedCreateSpec ->
-                    embedCreateSpec.setTitle("Information")
-                        .setAuthor(self.username, "https://github.com/xf8b/xf8bot/", self.avatarUrl)
-                        .setDescription("xf8bot is a general purpose bot. Originally known as AdminBot.")
-                        .addField("Current Version", event.xf8bot.version.toStringVersion(), true)
-                        .addField("Build Metadata", event.xf8bot.version.buildMetadata.let {
-                            if (it.isBlank()) {
-                                "No build metadata"
-                            } else {
-                                it
-                            }
-                        }, true)
-                        .addField("Pre Release", event.xf8bot.version.preRelease.isNotBlank().toString(), true)
-                        .addField("License", "GNU AGPL v3, or at your option, any later version", false)
-                        .addField("Current Prefix", "`$prefix`", false)
-                        .addField("Discord Framework", "Discord4J (https://discord4j.com)", true)
-                        .addField("Discord4J Version", "3.2.0-SNAPSHOT", true)
-                        .addField("Total Amount of Commands", event.xf8bot.commandRegistry.size.toString(), false)
-                        .addField("Documentation", "https://xf8b.github.io/documentation/xf8bot/", true)
-                        .addField("GitHub Repository", "https://github.com/xf8b/xf8bot/", true)
-                        .setFooter(
-                            "Made by xf8b#9420 and open source contributors",
-                            "https://cdn.discordapp.com/avatars/332600665412993045/d1de6c46d40fcb4c6200f86cb5a073af.png"
-                        )
-                        .setUrl("https://xf8b.github.io/documentation/xf8bot/")
-                        .setColor(Color.BLUE)
+                channel.createEmbedDsl {
+                    author(self.username, "https://github.com/xf8b/xf8bot/", self.avatarUrl)
+
+                    title("Information")
+                    url("https://xf8b.github.io/documentation/xf8bot/")
+                    description("xf8bot is a general purpose bot. Originally known as AdminBot.")
+
+                    field("Current Version", event.xf8bot.version.toStringVersion(), inline = true)
+                    field(
+                        "Build Metadata",
+                        event.xf8bot
+                            .version
+                            .buildMetadata
+                            .takeUnless(String::isBlank)
+                            ?: "No build metadata",
+                        inline = true
+                    )
+                    field("Pre Release", event.xf8bot.version.preRelease.isNotBlank().toString(), inline = true)
+
+                    field(
+                        "License",
+                        "GNU Affero General Public License v3, or at your option, any later version",
+                        inline = false
+                    )
+
+                    field("Current Prefix", "`$prefix`", inline = false)
+
+                    field("Discord Framework", "Discord4J (https://discord4j.com)", inline = true)
+                    field("Discord4J Version", "3.2.0-SNAPSHOT", inline = true)
+
+                    field("Total Amount of Commands", event.xf8bot.commandRegistry.size.toString(), inline = false)
+
+                    field("Documentation", "https://xf8b.github.io/documentation/xf8bot/", inline = true)
+                    field("GitHub Repository", "https://github.com/xf8b/xf8bot/", inline = true)
+
+                    footer(
+                        "Made by xf8b#9420 and open source contributors",
+                        "https://cdn.discordapp.com/avatars/332600665412993045/d1de6c46d40fcb4c6200f86cb5a073af.png"
+                    )
+                    color(Color.BLUE)
                 }
             }
         }

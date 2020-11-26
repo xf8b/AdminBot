@@ -19,7 +19,6 @@
 
 package io.github.xf8b.xf8bot.api.commands
 
-import io.github.xf8b.xf8bot.util.LoggerDelegate
 import io.github.xf8b.xf8bot.util.getSubTypesOf
 import io.github.xf8b.xf8bot.util.logger
 import org.reflections.Reflections
@@ -28,10 +27,7 @@ import org.slf4j.Logger
 
 open class Registry<T : Any> : AbstractList<T>() {
     val registered: MutableList<T> = ArrayList()
-    override val size: Int
-        get() = registered.size
-    var locked: Boolean = false
-    private val logger: Logger by LoggerDelegate()
+    override val size get() = registered.size
 
     /**
      * Registers the passed in [T].
@@ -39,8 +35,6 @@ open class Registry<T : Any> : AbstractList<T>() {
      * @param t the [T] to be registered
      */
     open fun register(t: T) {
-        if (locked) throw UnsupportedOperationException("Registry is currently locked!")
-
         if (registered.find { it == t } != null) {
             throw IllegalArgumentException("Cannot register same thing twice!")
         }
@@ -66,9 +60,7 @@ inline fun <reified T : Any> Registry<T>.findAndRegister(packagePrefix: String) 
         try {
             register(it.getConstructor().newInstance())
         } catch (exception: Exception) {
-            logger.error("An error happened while trying to find and register!", exception)
+            logger.error("An error happened while trying to register $it!", exception)
         }
     }
-
-    locked = true
 }

@@ -28,13 +28,10 @@ import net.jodah.typetools.TypeResolver
 
 class ArgumentCommandParser : CommandParser<Argument<*>> {
     /**
-     * Parses the string and returns a [Result] that contains the [Map] of [Argument]s to their values.
+     * Parses [toParse] for flags from [command] and returns a [Result] containing a map of [Argument]s to their values.
+     * You must cast the value.
      *
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
-     *
-     * @param command the command to parse [Argument]s for
-     * @param toParse the string to parse for [Argument]s
-     * @return the [Result] of parsing the [Argument]s from [toParse]
      */
     override fun parse(command: AbstractCommand, toParse: String): Result<Map<Argument<*>, Any>> {
         val argumentMap: MutableMap<Argument<*>, Any> = HashMap()
@@ -112,13 +109,11 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
     private fun removeFlags(flags: List<Flag<*>>, splitString: List<String>): List<String> {
         val splitStringCopy = splitString.toMutableList()
 
-        for (flag in flags) {
-            val index = if (splitStringCopy.contains("--${flag.longName}")) {
-                splitStringCopy.indexOf("--${flag.longName}")
-            } else if (splitStringCopy.contains("-${flag.shortName}")) {
-                splitStringCopy.indexOf("-${flag.shortName}")
-            } else {
-                continue
+        flagLoop@ for (flag in flags) {
+            val index = when {
+                splitStringCopy.contains("--${flag.longName}") -> splitStringCopy.indexOf("--${flag.longName}")
+                splitStringCopy.contains("-${flag.shortName}") -> splitStringCopy.indexOf("-${flag.shortName}")
+                else -> continue@flagLoop
             }
 
             splitStringCopy.removeAt(index)
@@ -128,9 +123,8 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
 
                 if (valueOfFlag.startsWith('"')) {
                     val toSearch = splitStringCopy.subList(index, splitStringCopy.size)
-                    val toRemove = toSearch.takeWhile {
-                        !it.endsWith('"')
-                    } + (toSearch.find { it.endsWith('"') } ?: '"')
+                    val toRemove = (toSearch.takeWhile { !it.endsWith('"') } + toSearch.find { it.endsWith('"') })
+                        .filterNotNull()
 
                     for (i in 1..toRemove.size) {
                         splitStringCopy.removeAt(index)

@@ -43,14 +43,9 @@ class CommandFiredEvent(
     event.guildId.map(Snowflake::asLong).toValueOrNull(),
     event.member.toValueOrNull()
 ) {
-    val prefix: Mono<String> = guildId.let {
-        if (it.isEmpty) Mono.empty()
-        else xf8bot.prefixCache.get(it.get())
-    }
-    val channel: Mono<MessageChannel>
-        get() = message.channel
-    val author: Optional<User>
-        get() = message.author
+    val prefix: Mono<String> get() = guildId.map { xf8bot.prefixCache.get(it) }.orElse(Mono.empty())
+    val channel: Mono<MessageChannel> get() = message.channel
+    val author: Optional<User> get() = message.author
 
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> getValueOfFlagNullable(flag: Flag<T>) = flagToValueMap[flag] as T?

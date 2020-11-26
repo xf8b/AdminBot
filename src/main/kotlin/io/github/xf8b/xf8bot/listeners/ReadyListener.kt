@@ -26,24 +26,23 @@ import io.github.xf8b.utils.semver.SemanticVersion
 import io.github.xf8b.xf8bot.util.LoggerDelegate
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
-import java.util.stream.Collectors
 
 class ReadyListener(
     private val botActivity: String,
     private val botAdmins: List<Snowflake>,
     private val botVersion: SemanticVersion
 ) : ReactiveEventAdapter() {
-    private val LOGGER: Logger by LoggerDelegate()
-
     override fun onReady(event: ReadyEvent): Mono<Void> = Mono.fromRunnable {
         LOGGER.info("Successfully started xf8bot version ${botVersion.toStringVersion()}!")
-        LOGGER.info("Logged in as ${event.self.username}#${event.self.discriminator}.")
+        LOGGER.info("Logged in as ${event.self.tag}.")
         LOGGER.info("Logged into ${event.guilds.size} guilds.")
         LOGGER.info("Total shards: ${event.shardInfo.count}")
         LOGGER.info("Bot arguments: ")
         LOGGER.info("Activity: $botActivity")
-        LOGGER.info("Bot administrators: {}", botAdmins.stream()
-            .map { it.asString() }
-            .collect(Collectors.toUnmodifiableList()))
+        LOGGER.info("Bot administrators: ${botAdmins.map(Snowflake::asString)}")
+    }
+
+    companion object {
+        private val LOGGER: Logger by LoggerDelegate()
     }
 }

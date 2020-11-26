@@ -21,7 +21,6 @@ package io.github.xf8b.xf8bot.api.commands
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand.CommandType
 import java.util.*
-import java.util.stream.Collectors
 
 /**
  * Used to find commands when they are fired.
@@ -37,13 +36,11 @@ class CommandRegistry : Registry<AbstractCommand>() {
     override fun register(t: AbstractCommand) {
         if (registered.any { it.name == t.name }) {
             throw IllegalArgumentException("Cannot register two commands with the same name!")
+        } else {
+            super.register(t)
         }
-        super.register(t)
     }
 
-    fun getCommandsWithCommandType(commandType: CommandType): List<AbstractCommand> = LinkedList(
-        registered.stream()
-            .filter { it.commandType === commandType }
-            .collect(Collectors.toUnmodifiableList())
-    )
+    fun getCommandsWithCommandType(commandType: CommandType): List<AbstractCommand> =
+        LinkedList(registered.filter(commandType::equals))
 }

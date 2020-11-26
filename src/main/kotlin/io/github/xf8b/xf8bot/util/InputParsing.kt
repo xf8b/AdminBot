@@ -26,8 +26,6 @@ import org.apache.commons.lang3.tuple.Pair
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 object InputParsing {
     /**
@@ -125,22 +123,4 @@ object InputParsing {
         }
     }
 
-    /**
-     * Fixes the password in the MongoDB connection URL to be URL encoded.
-     * @param connectionUrl the MongoDB connection URL to fix
-     * @return the MongoDB connection URL with the password URL encoded
-     */
-    fun fixMongoConnectionUrl(connectionUrl: String): String {
-        val regex = "mongodb(\\+srv)?://(.+):(.+)@(.+)".toRegex()
-        return if (!(connectionUrl matches regex)) {
-            throw IllegalArgumentException("Invalid connection URL!")
-        } else {
-            val matchResult = regex.find(connectionUrl)!!.destructured
-            val srv = matchResult.component1()
-            val username = matchResult.component2()
-            val password = URLEncoder.encode(matchResult.component3(), StandardCharsets.UTF_8)
-            val serverUrl = matchResult.component4()
-            "mongodb$srv://$username:$password@$serverUrl"
-        }
-    }
 }

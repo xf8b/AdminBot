@@ -25,13 +25,10 @@ import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 @FunctionalInterface
 interface CommandParser<E> {
     /**
-     * Parses the string and returns a [Result] that contains the [Map] of [E]s to their values.
+     * Parses [toParse] for flags from [command] and returns a [Result] containing a map of [E]s to their values.
+     * You must cast the value.
      *
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
-     *
-     * @param command the command to parse [E]s for
-     * @param toParse the string to parse for [E]s
-     * @return the [Result] of parsing the [E]s from [toParse]
      */
     fun parse(command: AbstractCommand, toParse: String): Result<Map<E, Any>>
 }

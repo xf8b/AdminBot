@@ -29,7 +29,7 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
-import io.github.xf8b.xf8bot.util.ExceptionPredicates
+import io.github.xf8b.xf8bot.util.Checks
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import io.github.xf8b.xf8bot.util.toSnowflake
 import kotlinx.coroutines.reactive.awaitFirstOrNull
@@ -77,41 +77,34 @@ class ClearCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
-        val amountToClear = event.getValueOfArgument(AMOUNT)
-            .orElseThrow(::ThisShouldNotHaveBeenThrownException)
-        val messagesToDelete = event.channel.flux().flatMap {
-            it.getMessagesBefore(Instant.now().toSnowflake())
-        }.take(amountToClear.toLong()).cache()
+        val amountToClear = event.getValueOfArgument(AMOUNT).orElseThrow(::ThisShouldNotHaveBeenThrownException)
+        val messagesToDelete = event.channel
+            .flatMapMany { it.getMessagesBefore(Instant.now().toSnowflake()) }
+            .take(amountToClear.toLong())
+            .cache()
         val count = messagesToDelete.count().cache()
         val leftoverMessages = messagesToDelete
             .transform { messages ->
                 event.channel.cast<TextChannel>().flatMapMany {
                     it.bulkDeleteMessages(messages)
-                        .onErrorResume(ExceptionPredicates.isClientExceptionWithCode(10008)) {
-                            Mono.empty()
-                        } // unknown message
+                        .onErrorResume(Checks.isClientExceptionWithCode(10008)) { Mono.empty() } // unknown message
                 }
             }
         val leftoverCount = leftoverMessages.count()
 
-        leftoverMessages
-            .repeatWhen {
-                leftoverCount.map {
-                    it != 1L && it != 0L
-                }.logicalAnd(
-                    leftoverMessages.all {
-                        !it.id.timestamp.isBefore(Instant.now().minus(Duration.ofDays(14L)))
-                    }
-                )
-            }
-            .limitRate(10, 3)
+        leftoverMessages.repeatWhen {
+            leftoverCount.map { it != 1L && it != 0L }.logicalAnd(leftoverMessages.all {
+                !it.id.timestamp.isBefore(Instant.now().minus(Duration.ofDays(14L)))
+            })
+        }.limitRate(10, 3)
             .flatMap {
                 it.delete()
             }
             .then(count.flatMap { amountDeleted ->
-                event.channel.flatMap {
-                    it.createMessage("Successfully purged $amountDeleted message(s).")
-                }.delayElement(Duration.ofSeconds(3)).flatMap(Message::delete)
+                event.channel
+                    .flatMap { it.createMessage("Successfully purged $amountDeleted message(s).") }
+                    .delayElement(Duration.ofSeconds(3))
+                    .flatMap(Message::delete)
             })
             .awaitFirstOrNull()
     }
