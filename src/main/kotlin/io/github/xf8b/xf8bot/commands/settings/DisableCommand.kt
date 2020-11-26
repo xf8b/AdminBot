@@ -20,9 +20,14 @@
 package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.Range
+import io.github.xf8b.utils.optional.toOptional
+import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
+import io.github.xf8b.xf8bot.database.actions.add.AddDisabledCommandAction
+import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
+import io.github.xf8b.xf8bot.util.hasUpdatedRows
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
 
@@ -34,9 +39,36 @@ class DisableCommand : AbstractCommand(
     administratorLevelRequired = 4
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        //val command = context.getValueOfArgument(COMMAND).orElseThrow(::ThisShouldNotHaveBeenThrownException)
+        val command = event.getValueOfArgument(COMMAND)
+            .flatMap { command ->
+                event.xf8bot.commandRegistry
+                    .find { command1 ->
+                        command1.name == "\${prefix}$command"
+                                || command1.aliases.any { it == "\${prefix}$command" }
+                    }
+                    .toOptional()
+            }
+            .toValueOrNull()
 
-        TODO("gotta finish this later")
+        return event.channel.flatMap { channel ->
+            when {
+                command == null -> channel.createMessage("Command not found!").then()
+                command.botAdministratorOnly -> channel.createMessage("You can't disable bot administrator only commands!")
+                    .then()
+
+                else -> event.xf8bot.botDatabase
+                    .execute(FindDisabledCommandAction(event.guildId.get(), command))
+                    .filter { it.isNotEmpty() }
+                    .filterWhen { it[0].hasUpdatedRows }
+                    .flatMap { channel.createMessage("`${command.rawName}` is already disabled!") }
+                    .switchIfEmpty(
+                        event.xf8bot.botDatabase
+                            .execute(AddDisabledCommandAction(event.guildId.get(), command))
+                            .then(channel.createMessage("Successfully disabled `${command.rawName}`!"))
+                    )
+                    .then()
+            }
+        }
     }
 
     companion object {

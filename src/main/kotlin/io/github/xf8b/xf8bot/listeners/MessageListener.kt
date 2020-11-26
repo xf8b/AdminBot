@@ -30,13 +30,15 @@ import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.parsers.ArgumentCommandParser
 import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
+import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
-import io.github.xf8b.xf8bot.util.Checks
-import io.github.xf8b.xf8bot.util.LoggerDelegate
-import io.github.xf8b.xf8bot.util.skip
+import io.github.xf8b.xf8bot.util.*
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.onErrorResume
+import reactor.kotlin.core.publisher.toFlux
+import reactor.kotlin.extra.bool.not
 
 class MessageListener(
     private val xf8bot: Xf8bot,
@@ -60,18 +62,44 @@ class MessageListener(
         }
 
         val commandRequested = content.trim().split(" ").toTypedArray()[0]
+        val foundCommand = findCommand(commandRequested, guildId)
 
-        return onCommandFired(event, findCommand(commandRequested, guildId) ?: return Mono.empty(), content)
+        return foundCommand.flatMap { command ->
+            xf8bot.botDatabase
+                .execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
+                .filter { it.isNotEmpty() }
+                .filterWhen { _ ->
+                    event.guild
+                        .flatMap { PermissionUtil.getAdministratorLevel(xf8bot, it, event.member.get()) }
+                        .map { it >= 4 }
+                        .filter { it }
+                        .switchIfEmpty(event.message.channel
+                            .flatMap {
+                                it.createMessage("Sorry, but this command has been disabled by an administrator.")
+                            }
+                            .thenReturn(false)) // we want it to NOT filter when it is disabled, to prevent onCommandFired from firing
+                        .not()
+                }
+                .switchIfEmpty(onCommandFired(event, command, content).cast())
+                .cast()
+        }
     }
 
-    private fun findCommand(commandRequested: String, guildId: String): AbstractCommand? =
-        commandRegistry.find { command ->
-            command.getNameWithPrefix(xf8bot, guildId).equals(commandRequested, ignoreCase = true)
-        } ?: commandRegistry.find { command ->
-            command.getAliasesWithPrefixes(xf8bot, guildId).any { alias ->
-                alias.equals(commandRequested, ignoreCase = true)
+    private fun findCommand(commandRequested: String, guildId: String): Mono<AbstractCommand> =
+        commandRegistry.toFlux()
+            .filterWhen { command ->
+                command.getNameWithPrefix(xf8bot, guildId).map {
+                    it.equals(commandRequested, ignoreCase = true)
+                }
             }
-        }
+            .singleOrEmpty()
+            .switchIfEmpty(commandRegistry.toFlux()
+                .filterWhen { command ->
+                    command.getAliasesWithPrefixes(xf8bot, guildId).any { alias ->
+                        alias.equals(commandRequested, ignoreCase = true)
+                    }
+                }
+                .singleOrEmpty())
 
     private fun onCommandFired(event: MessageCreateEvent, command: AbstractCommand, content: String): Mono<Void> {
         val flagParseResult = FLAG_PARSER.parse(command, content)

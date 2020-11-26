@@ -154,11 +154,11 @@ object Checks {
         AbstractCommand.ExecutionChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS in command.disabledChecks -> true.toMono()
 
         event.message.content.split(" ").skip(1).size < command.minimumAmountOfArgs -> {
-            val usage = command.getUsageWithPrefix(event.xf8bot, event.guildId.get().asString())
-
-            event.channel
-                .flatMap { it.createMessage("Huh? Could you repeat that? The usage of this command is: `$usage`.") }
-                .thenReturn(false)
+            command.getUsageWithPrefix(event.xf8bot, event.guildId.get().asString()).flatMap { usage ->
+                event.channel
+                    .flatMap { it.createMessage("Huh? Could you repeat that? The usage of this command is: `$usage`.") }
+                    .thenReturn(false)
+            }
         }
 
         else -> true.toMono()

@@ -26,8 +26,10 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Permission
 import discord4j.rest.util.PermissionSet
+import io.r2dbc.spi.Result
 import org.reflections.Reflections
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toMono
 import java.time.Instant
 import java.util.*
 import java.util.function.Function
@@ -70,9 +72,11 @@ inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTy
 // reduce boilerplate
 fun <I, R> functionReturning(returnedValue: R): Function<I, R> = Function { returnedValue }
 
-fun <T> List<T>.skip(amount: Int) = if (this.isNotEmpty()) this.subList(1, amount) else this
+fun <T> List<T>.skip(amount: Int) = if (this.isNotEmpty()) this.subList(amount, this.size) else this
+
+val Result.hasUpdatedRows: Mono<Boolean> get() = this.rowsUpdated.toMono().map { it != 0 }
 
 /**
  * Skips the first *[n]* characters in this string, unless `this` is empty.
  */
-fun String.skip(n: Int) = if (this.isNotEmpty()) this.substring(1, n) else this
+fun String.skip(n: Int) = if (this.isNotEmpty()) this.substring(n, this.length) else this

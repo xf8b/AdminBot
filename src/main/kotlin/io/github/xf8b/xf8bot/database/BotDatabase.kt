@@ -51,6 +51,11 @@ class BotDatabase(
                     reason       text       NOT NULL,
                     PRIMARY KEY (warnId)
                 );
+                CREATE TABLE IF NOT EXISTS "disabledCommands" (
+                --  name        type       nullability
+                    guildId     bigint     NOT NULL,
+                    command     text       NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS "prefixes" (
                 --  name        type       nullability
                     guildId     bigint     NOT NULL,

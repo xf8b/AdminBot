@@ -225,5 +225,5 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         )
     }
 
-    fun isBotAdministrator(snowflake: Snowflake) = botConfiguration.botAdministrators.contains(snowflake)
+    fun isBotAdministrator(id: Snowflake) = botConfiguration.botAdministrators.contains(id)
 }

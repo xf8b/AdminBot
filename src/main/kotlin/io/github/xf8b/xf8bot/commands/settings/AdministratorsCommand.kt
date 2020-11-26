@@ -85,14 +85,9 @@ class AdministratorsCommand : AbstractCommand(
                 "add", "addrole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
                     if (event.getValueOfFlag(ROLE).isEmpty || event.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty) {
                         return@ifAdministratorRun event.channel.flatMap {
-                            it.createMessage(
-                                "Huh? Could you repeat that? The usage of this command is: `${
-                                    getUsageWithPrefix(
-                                        event.xf8bot,
-                                        guildId.asString()
-                                    )
-                                }`."
-                            )
+                            getUsageWithPrefix(event.xf8bot, guildId.asString()).flatMap { usage ->
+                                it.createMessage("Huh? Could you repeat that? The usage of this command is: `${usage}`.")
+                            }
                         }.then()
                     }
                     parseRoleId(event.guild, event.getValueOfFlag(ROLE).get())
@@ -106,7 +101,7 @@ class AdministratorsCommand : AbstractCommand(
                                 .execute(FindAdministratorRoleAction(guildId, roleId))
                                 .toMono()
                                 .filter { it.isNotEmpty() }
-                                .filterWhen { it[0].map { row, _ -> row[0] != null } }
+                                .filterWhen { it[0].hasUpdatedRows }
                                 .cast(Any::class.java)
                                 .flatMap {
                                     event.channel.flatMap {
@@ -133,14 +128,9 @@ class AdministratorsCommand : AbstractCommand(
                 "rm", "remove", "removerole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
                     if (event.getValueOfFlag(ROLE).isEmpty) {
                         return@ifAdministratorRun event.channel.flatMap {
-                            it.createMessage(
-                                "Huh? Could you repeat that? The usage of this command is: `${
-                                    getUsageWithPrefix(
-                                        event.xf8bot,
-                                        guildId.asString()
-                                    )
-                                }`."
-                            )
+                            getUsageWithPrefix(event.xf8bot, guildId.asString()).flatMap { usage ->
+                                it.createMessage("Huh? Could you repeat that? The usage of this command is: `${usage}`.")
+                            }
                         }.then()
                     }
                     // FIXME: not recognizing already added roles

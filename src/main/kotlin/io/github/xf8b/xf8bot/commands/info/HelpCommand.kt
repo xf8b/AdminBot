@@ -113,12 +113,13 @@ class HelpCommand : AbstractCommand(
 
             for (command in event.xf8bot.commandRegistry) {
                 val name = command.name
-                val nameWithPrefix = command.getNameWithPrefix(event.xf8bot, guildId)
+                val nameWithPrefix = command.getNameWithPrefix(event.xf8bot, guildId).block()!!
                 val aliases = command.aliases
-                val aliasesWithPrefixes = command.getAliasesWithPrefixes(event.xf8bot, guildId)
-                if (commandOrSection.get() == name.replace("\${prefix}", "")) {
+                val aliasesWithPrefixes = command.getAliasesWithPrefixes(event.xf8bot, guildId).collectList().block()!!
+
+                if (commandOrSection.get() == command.rawName) {
                     val description = command.description
-                    val usage = command.getUsageWithPrefix(event.xf8bot, guildId)
+                    val usage = command.getUsageWithPrefix(event.xf8bot, guildId).block()!!
                     val actions = command.actions
                     return event.channel.flatMap {
                         generateCommandEmbed(
@@ -134,8 +135,9 @@ class HelpCommand : AbstractCommand(
                     for (alias in aliases) {
                         if (commandOrSection.get() == alias.replace("\${prefix}", "")) {
                             val description = command.description
-                            val usage = command.getUsageWithPrefix(event.xf8bot, guildId)
+                            val usage = command.getUsageWithPrefix(event.xf8bot, guildId).block()!!
                             val actions = command.actions
+
                             return event.channel.flatMap {
                                 generateCommandEmbed(
                                     it,
@@ -156,6 +158,7 @@ class HelpCommand : AbstractCommand(
         }.then()
     }
 
+    // todo: figure out how to remove block
     private fun generateCommandTypeEmbed(
         event: CommandFiredEvent,
         commandRegistry: CommandRegistry,
@@ -182,10 +185,10 @@ class HelpCommand : AbstractCommand(
                 break
             }
 
-            val name = command.getNameWithPrefix(event.xf8bot, guildId)
-            val nameWithPrefixRemoved = command.name.replace("\${prefix}", "")
+            val name = command.getNameWithPrefix(event.xf8bot, guildId).block()!!
+            val nameWithPrefixRemoved = command.rawName
             val description = command.description
-            val usage = command.getUsageWithPrefix(event.xf8bot, guildId)
+            val usage = command.getUsageWithPrefix(event.xf8bot, guildId).block()!!
             field(
                 "`$name`",
                 """

@@ -26,7 +26,9 @@ import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.util.toSnowflake
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toFlux
 import java.util.*
 
 abstract class AbstractCommand(
@@ -82,28 +84,25 @@ abstract class AbstractCommand(
         }
     }
 
+    val rawName get() = name.replace("\${prefix}", "")
+
     abstract fun onCommandFired(event: CommandFiredEvent): Mono<Void>
 
-    // TODO: yeet Mono#block (see below)
-
-    fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): String = name.replace(
-        "\${prefix}",
-        xf8bot.prefixCache
-            .get(guildId.toSnowflake())
-            .block()!!
-    )
+    fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): Mono<String> = xf8bot.prefixCache
+        .get(guildId.toSnowflake())
+        .map { prefix -> name.replace("\${prefix}", prefix) }
 
     @Suppress("DEPRECATION") // usage is deprecated for setting, not getting
-    fun getUsageWithPrefix(xf8bot: Xf8bot, guildId: String): String = usage.replace(
-        "\${prefix}",
-        xf8bot.prefixCache
-            .get(guildId.toSnowflake())
-            .block()!!
-    )
+    fun getUsageWithPrefix(xf8bot: Xf8bot, guildId: String): Mono<String> = xf8bot.prefixCache
+        .get(guildId.toSnowflake())
+        .map { prefix -> usage.replace("\${prefix}", prefix) }
 
-    fun getAliasesWithPrefixes(xf8bot: Xf8bot, guildId: String): List<String> = aliases.map {
-        it.replace("\${prefix}", xf8bot.prefixCache.get(guildId.toSnowflake()).block()!!)
-    }
+    fun getAliasesWithPrefixes(xf8bot: Xf8bot, guildId: String): Flux<String> = aliases.toFlux()
+        .flatMap {
+            xf8bot.prefixCache
+                .get(guildId.toSnowflake())
+                .map { prefix -> it.replace("\${prefix}", prefix) }
+        }
 
     @Suppress("DEPRECATION")
     override fun equals(other: Any?): Boolean {

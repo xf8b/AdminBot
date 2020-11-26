@@ -24,8 +24,5 @@ import discord4j.common.util.Snowflake
 class FindAdministratorRoleAction(guildId: Snowflake, roleId: Snowflake) : SelectAction(
     table = "administratorRoles",
     selectedFields = listOf("*"),
-    criteria = mapOf(
-        "roleId" to roleId.asLong(),
-        "guildId" to guildId.asLong()
-    )
+    criteria = mapOf("roleId" to roleId.asLong(), "guildId" to guildId.asLong())
 )
