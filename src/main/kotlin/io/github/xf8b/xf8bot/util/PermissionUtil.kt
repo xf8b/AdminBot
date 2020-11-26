@@ -40,7 +40,7 @@ object PermissionUtil {
         firstMember: Member,
         secondMember: Member
     ): Mono<Boolean> = Mono.zip(
-        { it[1] as Int >= it[2] as Int },
+        { it[0] as Int >= it[1] as Int },
         getAdministratorLevel(xf8bot, guild, firstMember),
         getAdministratorLevel(xf8bot, guild, secondMember)
     )
