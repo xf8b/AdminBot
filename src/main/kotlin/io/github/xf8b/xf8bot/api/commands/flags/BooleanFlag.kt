@@ -28,21 +28,14 @@ class BooleanFlag(
     override val required: Boolean = false,
     override val requiresValue: Boolean = false,
     override val defaultValue: Boolean? = true,
-    override val parseFunction: Function<in String, out Boolean> = DEFAULT_PARSE_FUNCTION,
-    override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val errorMessageFunction: Function<in String, out String> =
-        DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION
-) : Flag<Boolean> {
-    companion object {
-        val DEFAULT_PARSE_FUNCTION: Function<in String, out Boolean> = Function { it.toBoolean() }
-        val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicate {
-            it.equals("true", ignoreCase = true) || it.equals("false", ignoreCase = true)
-        }
-        val DEFAULT_INVALID_VALUE_ERROR_MESSAGE_FUNCTION: Function<in String, out String> = Function {
-            "${Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE} Valid values: `true`, `false`."
-        }
+    override val validityPredicate: Predicate<in String> = Predicate {
+        it.equals("true", ignoreCase = true) || it.equals("false", ignoreCase = true)
+    },
+    override val parseFunction: Function<in String, out Boolean> = Function { it.toBoolean() },
+    override val errorMessageFunction: Function<in String, out String> = Function {
+        "${Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE} Valid values: `true`, `false`."
     }
-
+) : Flag<Boolean> {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

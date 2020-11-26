@@ -45,28 +45,34 @@ class UnbanCommand : AbstractCommand(
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val memberIdOrUsername = event.getValueOfArgument(MEMBER).get()
+
         return event.guild.flatMap { guild ->
-            guild.bans.filter { ban ->
-                val usernameMatches = ban.user.username.equals(memberIdOrUsername, ignoreCase = true)
-                if (!usernameMatches) {
-                    try {
-                        ban.user.id.asLong() == memberIdOrUsername
-                            .replace("[<@!>]".toRegex(), "")
-                            .toLong()
-                    } catch (exception: NumberFormatException) {
-                        false
+            guild.bans
+                .filter { ban ->
+                    val usernameMatches = ban.user.username.equals(memberIdOrUsername, ignoreCase = true)
+                    if (!usernameMatches) {
+                        try {
+                            ban.user.id.asLong() == memberIdOrUsername
+                                .replace("[<@!>]".toRegex(), "")
+                                .toLong()
+                        } catch (exception: NumberFormatException) {
+                            false
+                        }
+                    } else {
+                        true
                     }
-                } else {
-                    true
                 }
-            }.take(1).flatMap { ban ->
-                guild.unban(ban.user.id)
-                    .then(event.channel.flatMap {
-                        it.createMessage("Successfully unbanned ${ban.user.username}!")
-                    }).switchIfEmpty(event.channel.flatMap {
-                        it.createMessage("The member does not exist or is not banned!")
-                    })
-            }.then()
+                .take(1)
+                .flatMap { ban ->
+                    guild.unban(ban.user.id)
+                        .then(event.channel.flatMap {
+                            it.createMessage("Successfully unbanned ${ban.user.username}!")
+                        })
+                        .switchIfEmpty(event.channel.flatMap {
+                            it.createMessage("The member does not exist or is not banned!")
+                        })
+                }
+                .then()
         }
     }
 }

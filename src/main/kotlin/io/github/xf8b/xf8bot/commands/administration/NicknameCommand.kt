@@ -32,7 +32,6 @@ import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
-import reactor.kotlin.extra.bool.not
 
 class NicknameCommand : AbstractCommand(
     name = "\${prefix}nickname",
@@ -75,12 +74,7 @@ class NicknameCommand : AbstractCommand(
                                 .cast()
                         } // unknown member
                         .filterWhen { member ->
-                            guild.selfMember.flatMap { member.isHigher(it) }
-                                .filter { !it }
-                                .not()
-                                .switchIfEmpty(event.channel.flatMap {
-                                    it.createMessage("Cannot kick member because the member is higher than me!")
-                                }.thenReturn(false))
+                            Checks.canBotInteractWith(guild, member, event.channel, action = "nickname")
                         }
                         .filterWhen { member -> guild.selfMember.map { it.id != member.id } }
                         .flatMap { member ->

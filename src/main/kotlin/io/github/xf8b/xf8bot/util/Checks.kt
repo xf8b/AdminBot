@@ -19,6 +19,7 @@
 
 package io.github.xf8b.xf8bot.util
 
+import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.rest.http.client.ClientException
@@ -29,6 +30,8 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
+import reactor.kotlin.extra.bool.logicalAnd
+import reactor.kotlin.extra.bool.not
 import java.util.function.Predicate
 
 object Checks {
@@ -42,6 +45,59 @@ object Checks {
             false
         }
     }
+
+    /**
+     * Checks if the member from [event] is higher than [member]. If they are not, sends an error message.
+     */
+    fun isMemberHighEnough(event: CommandFiredEvent, member: Member, action: String): Mono<Boolean> =
+        event.guild.flatMap { guild ->
+            PermissionUtil
+                .isMemberHigherOrEqual(
+                    event.xf8bot,
+                    guild,
+                    firstMember = event.member.get(),
+                    secondMember = member
+                )
+                .filter { it }
+                .switchIfEmpty(event.channel
+                    .flatMap { it.createMessage("Cannot $action member because the member is higher than or equal to you!") }
+                    .thenReturn(false))
+        }
+
+    /**
+     * Checks if the member from [event] can use administrative actions (e.g. ban, kick) on [member]. If they are not, sends an error message.
+     */
+    fun canMemberUseAdministrativeActionsOn(event: CommandFiredEvent, member: Member, action: String) =
+        (event.member.get() == member).toMono()
+            .not()
+            .filter { it }
+            .switchIfEmpty(event.channel
+                .flatMap { it.createMessage("You cannot $action yourself!") }
+                .thenReturn(false))
+            .logicalAnd(event.client.self
+                .filterWhen { selfMember -> (selfMember == member).toMono().not().filter { it } }
+                .map { true }
+                .switchIfEmpty(event.channel
+                    .flatMap { it.createMessage("You cannot $action xf8bot!") }
+                    .thenReturn(false)))
+
+    /**
+     * Checks if the bot (self member) can interact with (e.g. ban, kick. nickname) [member]. If bot cannot, sends error message.
+     *
+     * This uses [Member.isHigher].
+     */
+    fun canBotInteractWith(
+        guild: Guild,
+        member: Member,
+        channel: Publisher<MessageChannel>,
+        action: String
+    ): Mono<Boolean> = guild.selfMember
+        .flatMap { member.isHigher(it) }
+        .not()
+        .filter { it }
+        .switchIfEmpty(channel.toMono()
+            .flatMap { it.createMessage("Cannot $action member because the member is higher than me!") }
+            .thenReturn(false))
 
     fun doesBotHavePermissionsRequired(
         command: AbstractCommand,

@@ -32,23 +32,16 @@ open class SelectAction(
     private val selectedFields: List<String>,
     private val criteria: Map<String, *>
 ) : DatabaseAction<List<Result>> {
-    override fun run(
-        connection: Connection,
-        keySetHandle: KeysetHandle?
-    ): Mono<List<Result>> {
+    override fun run(connection: Connection, keySetHandle: KeysetHandle?): Mono<List<Result>> {
         var sql = """SELECT ${selectedFields.joinToString()} FROM "$table" WHERE """
-        val indexedParameters = mutableListOf<String>()
-
-        for (i in 1..criteria.size) {
-            indexedParameters.add("${criteria.keys.toList()[i - 1]} = $$i")
-        }
+        val indexedParameters = criteria.keys.mapIndexed { index, key -> "$key = $${index + 1}" }
 
         sql += indexedParameters.joinToString(separator = " AND ")
 
         return connection.createStatement(sql)
             .apply {
-                for (i in 1..indexedParameters.size) {
-                    bind("$$i", criteria.values.toList()[i - 1]!!)
+                indexedParameters.indices.forEach {
+                    bind("$${it + 1}", criteria.values.toList()[it]!!)
                 }
             }
             .execute()

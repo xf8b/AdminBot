@@ -46,11 +46,7 @@ class MessageCreateDsl : Consumer<MessageCreateSpec> {
         setAllowedMentions(allowedMentions)
     }.let { }
 
-    fun embed(consumer: EmbedCreateDsl.() -> Unit) = actions.add {
-        val dsl = EmbedCreateDsl()
-        consumer(dsl)
-        setEmbed(dsl)
-    }.let { }
+    fun embed(consumer: EmbedCreateDsl.() -> Unit) = actions.add { setEmbed(EmbedCreateDsl().apply(consumer)) }.let { }
 
     fun messageReference(messageId: Snowflake) = actions.add { setMessageReference(messageId) }.let { }
 
@@ -119,11 +115,7 @@ class WebhookExecuteDsl : Consumer<WebhookExecuteSpec> {
         addFileSpoiler(fileName, inputStream)
     }.let { }
 
-    fun embed(consumer: EmbedCreateDsl.() -> Unit) = actions.add {
-        val dsl = EmbedCreateDsl()
-        consumer(dsl)
-        addEmbed(dsl)
-    }.let { }
+    fun embed(consumer: EmbedCreateDsl.() -> Unit) = actions.add { addEmbed(EmbedCreateDsl().apply(consumer)) }.let { }
 
     fun username(username: String) = actions.add { setUsername(username) }.let { }
 

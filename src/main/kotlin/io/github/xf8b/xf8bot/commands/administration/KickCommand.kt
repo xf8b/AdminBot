@@ -20,18 +20,14 @@
 package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
-import discord4j.core.`object`.entity.User
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.*
-import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
-import reactor.kotlin.core.publisher.toMono
-import reactor.kotlin.extra.bool.not
 
 class KickCommand : AbstractCommand(
     name = "\${prefix}kick",
@@ -71,40 +67,13 @@ class KickCommand : AbstractCommand(
                                 .cast()
                         } // unknown member
                         .filterWhen { member ->
-                            (member == event.member.get()).toMono()
-                                .filter { !it }
-                                .not()
-                                .switchIfEmpty(event.channel.flatMap {
-                                    it.createMessage("You cannot kick yourself!")
-                                }.thenReturn(false))
+                            Checks.canMemberUseAdministrativeActionsOn(event, member, action = "kick")
                         }
                         .filterWhen { member ->
-                            event.client.self
-                                .filterWhen { selfMember: User ->
-                                    (selfMember == member).toMono()
-                                        .filter { !it }
-                                        .not()
-                                }
-                                .map { true }
-                                .switchIfEmpty(event.channel.flatMap {
-                                    it.createMessage("You cannot kick xf8bot!")
-                                }.thenReturn(false))
+                            Checks.canBotInteractWith(guild, member, event.channel, action = "kick")
                         }
                         .filterWhen { member ->
-                            guild.selfMember.flatMap { member.isHigher(it) }
-                                .filter { !it }
-                                .not()
-                                .switchIfEmpty(event.channel.flatMap {
-                                    it.createMessage("Cannot kick member because the member is higher than me!")
-                                }.thenReturn(false))
-                        }
-                        .filterWhen { member ->
-                            isMemberHigherOrEqual(event.xf8bot, guild, member, event.member.get())
-                                .filter { !it }
-                                .not()
-                                .switchIfEmpty(event.channel.flatMap {
-                                    it.createMessage("Cannot kick member because the member is equal to or higher than you!")
-                                }.thenReturn(false))
+                            Checks.isMemberHighEnough(event, member, action = "kick")
                         }
                         .flatMap { member ->
                             member.privateChannel

@@ -29,11 +29,9 @@ class StringArgument(
     override val index: Range<Int>,
     override val name: String,
     override val required: Boolean = true,
-    override val parseFunction: Function<in String, out String> = Function.identity(),
     override val validityPredicate: Predicate<in String> = Predicates.alwaysTrue(),
-    override val errorMessageFunction: Function<in String, out String> = functionReturning(
-        Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-    )
+    override val parseFunction: Function<in String, out String> = Function.identity(),
+    override val errorMessageFunction: Function<in String, out String> = functionReturning(Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
 ) : Argument<String> {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

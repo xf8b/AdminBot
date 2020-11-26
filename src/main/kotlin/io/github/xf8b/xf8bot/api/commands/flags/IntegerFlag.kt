@@ -29,18 +29,10 @@ class IntegerFlag(
     override val required: Boolean = true,
     override val requiresValue: Boolean = true,
     override val defaultValue: Int? = null,
-    override val parseFunction: Function<in String, out Int> = DEFAULT_PARSE_FUNCTION,
-    override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val errorMessageFunction: Function<in String, out String> = DEFAULT_ERROR_MESSAGE_FUNCTION
+    override val validityPredicate: Predicate<in String> = Predicate { it.toIntOrNull() != null },
+    override val parseFunction: Function<in String, out Int> = Function { it.toInt() },
+    override val errorMessageFunction: Function<in String, out String> = functionReturning(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
 ) : Flag<Int> {
-    companion object {
-        val DEFAULT_PARSE_FUNCTION: Function<in String, out Int> = Function { it.toInt() }
-        val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicate { value ->
-            value.toIntOrNull() != null
-        }
-        val DEFAULT_ERROR_MESSAGE_FUNCTION = functionReturning<String, String>(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
-    }
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

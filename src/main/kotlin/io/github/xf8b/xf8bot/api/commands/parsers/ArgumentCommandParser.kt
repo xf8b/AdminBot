@@ -34,6 +34,7 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      */
     override fun parse(command: AbstractCommand, toParse: String): Result<Map<Argument<*>, Any>> {
+        // todo: fix parsing to not put " " or "" as a command when there is nothing parsed
         val argumentMap: MutableMap<Argument<*>, Any> = HashMap()
         val missingArguments: MutableList<Argument<*>> = ArrayList()
         val invalidValues: MutableMap<Argument<*>, String> = HashMap()

@@ -32,7 +32,7 @@ class MuteCommand : AbstractCommand(
     name = "\${prefix}mute",
     description = """
     Mutes the specified member for the specified amount of time. 
-    :warning: Currently incomplete.
+    :warning: Not done yet, running will cause an error.
     """.trimIndent(),
     commandType = CommandType.ADMINISTRATION,
     flags = ImmutableList.of(MEMBER, TIME),

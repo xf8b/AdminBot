@@ -30,16 +30,10 @@ class StringFlag(
     override val required: Boolean = true,
     override val requiresValue: Boolean = true,
     override val defaultValue: String? = null,
-    override val parseFunction: Function<in String, out String> = DEFAULT_PARSE_FUNCTION,
-    override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val errorMessageFunction: Function<in String, out String> = DEFAULT_ERROR_MESSAGE_FUNCTION
+    override val validityPredicate: Predicate<in String> = Predicates.alwaysTrue(),
+    override val parseFunction: Function<in String, out String> = Function.identity(),
+    override val errorMessageFunction: Function<in String, out String> = functionReturning(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
 ) : Flag<String> {
-    companion object {
-        val DEFAULT_PARSE_FUNCTION: Function<in String, out String> = Function.identity()
-        val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicates.alwaysTrue()
-        val DEFAULT_ERROR_MESSAGE_FUNCTION = functionReturning<String, String>(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
-    }
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

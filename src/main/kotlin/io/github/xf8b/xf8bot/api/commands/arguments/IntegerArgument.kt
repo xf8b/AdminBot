@@ -28,11 +28,9 @@ class IntegerArgument(
     override val name: String,
     override val index: Range<Int>,
     override val required: Boolean = true,
-    override val parseFunction: Function<in String, out Int> = Function(String::toInt),
     override val validityPredicate: Predicate<in String> = Predicate { it.toIntOrNull() != null },
-    override val errorMessageFunction: Function<in String, out String> = functionReturning(
-        Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-    ),
+    override val parseFunction: Function<in String, out Int> = Function(String::toInt),
+    override val errorMessageFunction: Function<in String, out String> = functionReturning(Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE),
 ) : Argument<Int> {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -84,7 +84,7 @@ abstract class AbstractCommand(
 
     abstract fun onCommandFired(event: CommandFiredEvent): Mono<Void>
 
-    // TODO: yeet these blocks below
+    // TODO: yeet Mono#block (see below)
 
     fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): String = name.replace(
         "\${prefix}",

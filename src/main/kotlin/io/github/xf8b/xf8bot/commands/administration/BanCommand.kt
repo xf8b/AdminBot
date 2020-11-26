@@ -21,7 +21,6 @@ package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
 import discord4j.common.util.Snowflake
-import discord4j.core.`object`.entity.User
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
@@ -31,11 +30,8 @@ import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
-import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
-import reactor.kotlin.core.publisher.toMono
-import reactor.kotlin.extra.bool.not
 
 class BanCommand : AbstractCommand(
     name = "\${prefix}ban",
@@ -58,9 +54,13 @@ class BanCommand : AbstractCommand(
         private val MESSAGE_DELETE_DAYS = IntegerFlag(
             shortName = "d",
             longName = "messagesDeleteDays",
-            validityPredicate = IntegerFlag.DEFAULT_VALIDITY_PREDICATE.and {
-                val value = (it as String).toInt()
-                value in 0..7
+            validityPredicate = {
+                try {
+                    val value = it.toInt()
+                    value in 0..7
+                } catch (exception: NumberFormatException) {
+                    false
+                }
             },
             errorMessageFunction = { value: String ->
                 try {
@@ -99,43 +99,15 @@ class BanCommand : AbstractCommand(
                                     .cast()
                             } // unknown member
                             .filterWhen { member ->
-                                (member == event.member.get()).toMono()
-                                    .filter { !it }
-                                    .not()
-                                    .switchIfEmpty(event.channel.flatMap {
-                                        it.createMessage("You cannot ban yourself!")
-                                    }.thenReturn(false))
+                                Checks.canMemberUseAdministrativeActionsOn(event, member, action = "ban")
                             }
                             .filterWhen { member ->
-                                event.client.self
-                                    .filterWhen { selfMember: User ->
-                                        (selfMember == member).toMono()
-                                            .filter { !it }
-                                            .not()
-                                    }
-                                    .map { true }
-                                    .switchIfEmpty(event.channel.flatMap {
-                                        it.createMessage("You cannot ban xf8bot!")
-                                    }.thenReturn(false))
+                                Checks.canBotInteractWith(guild, member, event.channel, action = "ban")
                             }
                             .filterWhen { member ->
-                                guild.selfMember.flatMap { member.isHigher(it) }
-                                    .filter { !it }
-                                    .not()
-                                    .switchIfEmpty(event.channel.flatMap {
-                                        it.createMessage("Cannot ban member because the member is higher than me!")
-                                    }.thenReturn(false))
-                            }
-                            .filterWhen { member ->
-                                isMemberHigherOrEqual(event.xf8bot, guild, member, event.member.get())
-                                    .filter { !it }
-                                    .not()
-                                    .switchIfEmpty(event.channel.flatMap {
-                                        it.createMessage("Cannot ban member because the member is equal to or higher than you!")
-                                    }.thenReturn(false))
+                                Checks.isMemberHighEnough(event, member, action = "ban")
                             }
                             .flatMap { member ->
-                                val username = member.displayName
                                 member.privateChannel
                                     .filter { member.isNotBot }
                                     .flatMap sendDM@{ privateChannel ->
@@ -160,7 +132,9 @@ class BanCommand : AbstractCommand(
                                         it.setDeleteMessageDays(event.getValueOfFlag(MESSAGE_DELETE_DAYS).orElse(0))
                                         it.reason = reason
                                     })
-                                    .then(event.channel.flatMap { it.createMessage("Successfully banned $username!") })
+                                    .then(event.channel.flatMap {
+                                        it.createMessage("Successfully banned ${member.displayName}!")
+                                    })
                             }
                     })
             }.then()

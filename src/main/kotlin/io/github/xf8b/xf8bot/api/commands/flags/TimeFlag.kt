@@ -30,38 +30,36 @@ class TimeFlag(
     override val required: Boolean = true,
     override val requiresValue: Boolean = true,
     override val defaultValue: Pair<Long, TimeUnit>? = null,
-    override val parseFunction: Function<in String, out Pair<Long, TimeUnit>> = DEFAULT_PARSE_FUNCTION,
-    override val validityPredicate: Predicate<in String> = DEFAULT_VALIDITY_PREDICATE,
-    override val errorMessageFunction: Function<in String, out String> = DEFAULT_ERROR_MESSAGE_FUNCTION
-) : Flag<Pair<Long, TimeUnit>> {
-    companion object {
-        val DEFAULT_PARSE_FUNCTION: Function<in String, out Pair<Long, TimeUnit>> = Function { stringToParse ->
-            val time: Long = stringToParse.replace("[a-zA-Z]".toRegex(), "").toLong()
-            val possibleTimeUnit: String = stringToParse.replace("\\d".toRegex(), "")
-            val timeUnit: TimeUnit = when (possibleTimeUnit.toLowerCase()) {
-                "d", "day", "days" -> TimeUnit.DAYS
-                "h", "hr", "hrs", "hours" -> TimeUnit.HOURS
-                "m", "min", "mins", "minutes" -> TimeUnit.MINUTES
-                "s", "sec", "secs", "second", "seconds" -> TimeUnit.SECONDS
-                else -> error("The validity check should have run by now!")
-            }
-            time to timeUnit
-        }
-        val DEFAULT_VALIDITY_PREDICATE: Predicate<in String> = Predicate { value ->
-            try {
-                value.replace("[a-zA-Z]".toRegex(), "").toLong()
-                val possibleTimeUnit: String = value.replace("\\d".toRegex(), "")
-                when (possibleTimeUnit.toLowerCase()) {
-                    "d", "day", "days", "m", "mins", "minutes", "h", "hr", "hrs", "hours", "s", "sec", "secs", "second", "seconds" -> true
-                    else -> false
-                }
-            } catch (exception: NumberFormatException) {
-                false
-            }
-        }
-        val DEFAULT_ERROR_MESSAGE_FUNCTION = functionReturning<String, String>(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
-    }
+    override val validityPredicate: Predicate<in String> = Predicate { value ->
+        try {
+            value.replace("[a-zA-Z]".toRegex(), "").toLong()
+            val possibleTimeUnit = value.replace("\\d".toRegex(), "")
 
+            when (possibleTimeUnit.toLowerCase()) {
+                "d", "day", "days",
+                "m", "mins", "minutes",
+                "h", "hr", "hrs", "hours",
+                "s", "sec", "secs", "second", "seconds" -> true
+                else -> false
+            }
+        } catch (exception: NumberFormatException) {
+            false
+        }
+    },
+    override val parseFunction: Function<in String, out Pair<Long, TimeUnit>> = Function { stringToParse ->
+        val time = stringToParse.replace("[a-zA-Z]".toRegex(), "").toLong()
+        val possibleTimeUnit = stringToParse.replace("\\d".toRegex(), "")
+        val timeUnit = when (possibleTimeUnit.toLowerCase()) {
+            "d", "day", "days" -> TimeUnit.DAYS
+            "h", "hr", "hrs", "hours" -> TimeUnit.HOURS
+            "m", "min", "mins", "minutes" -> TimeUnit.MINUTES
+            "s", "sec", "secs", "second", "seconds" -> TimeUnit.SECONDS
+            else -> error("The validity check should have run by now!")
+        }
+        time to timeUnit
+    },
+    override val errorMessageFunction: Function<in String, out String> = functionReturning(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
+) : Flag<Pair<Long, TimeUnit>> {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

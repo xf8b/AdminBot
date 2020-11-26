@@ -24,7 +24,7 @@ import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Role
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.database.actions.find.FindAdministratorRoleLevelAction
+import io.github.xf8b.xf8bot.database.actions.find.FindAdministratorRoleAction
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
@@ -57,7 +57,7 @@ object PermissionUtil {
 
         return member.roles
             .map(Role::getId)
-            .flatMap { xf8bot.botDatabase.execute(FindAdministratorRoleLevelAction(guild.id, it)) }
+            .flatMap { xf8bot.botDatabase.execute(FindAdministratorRoleAction(guild.id, it)) }
             .flatMap { it.toFlux() }
             .flatMap { it.map { row, _ -> row } }
             .map { it["level", Integer::class.java] }

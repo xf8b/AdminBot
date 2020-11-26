@@ -27,12 +27,9 @@ import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.data.Warn
 import io.github.xf8b.xf8bot.database.actions.add.AddWarningAction
+import io.github.xf8b.xf8bot.util.*
 import io.github.xf8b.xf8bot.util.Checks.isClientExceptionWithCode
 import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
-import io.github.xf8b.xf8bot.util.PermissionUtil.isMemberHigherOrEqual
-import io.github.xf8b.xf8bot.util.createEmbedDsl
-import io.github.xf8b.xf8bot.util.tagWithDisplayName
-import io.github.xf8b.xf8bot.util.toSnowflake
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
@@ -84,27 +81,11 @@ class WarnCommand : AbstractCommand(
                                 .cast()
                         } // unknown member
                         .filterWhen { member ->
-                            isMemberHigherOrEqual(
-                                event.xf8bot,
-                                guild,
-                                firstMember = event.member.get(),
-                                secondMember = member
-                            ).filter { it }
-                                .switchIfEmpty(event.channel.flatMap {
-                                    it.createMessage("Cannot warn member because the member is higher than or equal to you!")
-                                }.thenReturn(false))
+                            Checks.isMemberHighEnough(event, member, action = "warn")
                         }
                         .flatMap { member ->
-                            val privateChannelMono: Mono<*> = member.privateChannel
-                                .filterWhen {
-                                    if (member.isBot) {
-                                        false.toMono()
-                                    } else {
-                                        event.client.self.map { self ->
-                                            member != self
-                                        }
-                                    }
-                                }
+                            val privateChannelMono = member.privateChannel
+                                .filter { member.isNotBot }
                                 .flatMap {
                                     it.createEmbedDsl {
                                         title("You were warned!")
@@ -121,15 +102,14 @@ class WarnCommand : AbstractCommand(
                                     }
                                 }
                                 .onErrorResume(isClientExceptionWithCode(50007)) { Mono.empty() } // cannot send to user
-                            event.xf8bot
-                                .botDatabase
+                            event.xf8bot.botDatabase
                                 .execute(AddWarningAction(Warn(guild.id, member.id, warnerId, reason)))
                                 .toMono()
                                 .then(privateChannelMono)
-                                .then(event.channel.flatMap {
-                                    it.createMessage("Successfully warned ${member.displayName}.")
-                                }).then()
-                        }.then()
+                                .then(event.channel
+                                    .flatMap { it.createMessage("Successfully warned ${member.displayName}.") }
+                                    .then())
+                        }
                 }
             }
     }
