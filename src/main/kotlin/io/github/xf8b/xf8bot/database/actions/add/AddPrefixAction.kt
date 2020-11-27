@@ -17,18 +17,11 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.listeners
+package io.github.xf8b.xf8bot.database.actions.add
 
-import discord4j.core.event.ReactiveEventAdapter
-import discord4j.core.event.domain.role.RoleDeleteEvent
-import io.github.xf8b.xf8bot.database.BotDatabase
-import io.github.xf8b.xf8bot.database.actions.delete.RemoveAdministratorRoleAction
-import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
+import discord4j.common.util.Snowflake
 
-class RoleDeleteListener(private val botDatabase: BotDatabase) : ReactiveEventAdapter() {
-    override fun onRoleDelete(event: RoleDeleteEvent): Mono<Void> =
-        botDatabase.execute(RemoveAdministratorRoleAction(event.guildId, event.roleId))
-            .toMono()
-            .then()
-}
+class AddPrefixAction(guildId: Snowflake, prefix: String) : InsertAction(
+    table = "prefixes",
+    toInsert = listOf(guildId.asLong(), prefix)
+)

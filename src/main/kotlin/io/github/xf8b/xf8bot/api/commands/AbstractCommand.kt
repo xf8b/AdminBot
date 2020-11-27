@@ -79,8 +79,12 @@ abstract class AbstractCommand(
 
                 usage
             }
+            var finalUsage = commandName
 
-            return "$commandName $argumentsUsage $flagsUsage"
+            if (argumentsUsage.isNotEmpty()) finalUsage += " $argumentsUsage"
+            if (flagsUsage.isNotEmpty()) finalUsage += " $flagsUsage"
+
+            return finalUsage
         }
     }
 

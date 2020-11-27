@@ -27,10 +27,7 @@ import io.r2dbc.spi.ValidationDepth
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 
-class BotDatabase(
-    private val connectionPool: ConnectionPool,
-    private val keySetHandle: KeysetHandle?
-) : Database {
+class BotDatabase(private val connectionPool: ConnectionPool, private val keySetHandle: KeysetHandle?) : Database {
     init {
         connectAndExecute<Void> { connection ->
             connection.createStatement(
@@ -80,7 +77,13 @@ class BotDatabase(
             }
         }
 
-    override fun <T> execute(action: DatabaseAction<T>): Mono<T> = connectAndExecute {
-        action.run(it, keySetHandle)
+    override fun <T> execute(action: DatabaseAction<T>): Mono<T> = connectAndExecute { connection ->
+        /*
+        if (keySetHandle != null) {
+            action.runEncrypted(connection, keySetHandle)
+        } else {
+        */
+        action.run(connection)
+        //}
     }
 }

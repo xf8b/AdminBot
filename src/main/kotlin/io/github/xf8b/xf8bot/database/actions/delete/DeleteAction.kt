@@ -19,7 +19,6 @@
 
 package io.github.xf8b.xf8bot.database.actions.delete
 
-import com.google.crypto.tink.KeysetHandle
 import io.github.xf8b.xf8bot.database.DatabaseAction
 import io.r2dbc.spi.Connection
 import reactor.core.publisher.Mono
@@ -30,15 +29,12 @@ open class DeleteAction(
     override val table: String,
     private val criteria: Map<String, *>
 ) : DatabaseAction<Void> {
-    override fun run(
-        connection: Connection,
-        keySetHandle: KeysetHandle?
-    ): Mono<Void> {
+    private fun delete(connection: Connection, deleteCriteria: Map<String, *>): Mono<Void> {
         var sql = """DELETE FROM "$table" WHERE """
         val indexedParameters = mutableListOf<String>()
 
-        for (i in 1..criteria.size) {
-            indexedParameters.add("${criteria.keys.toList()[i - 1]} = $$i")
+        for (i in 1..deleteCriteria.size) {
+            indexedParameters.add("${deleteCriteria.keys.toList()[i - 1]} = $$i")
         }
 
         sql += indexedParameters.joinToString(separator = " AND ")
@@ -46,7 +42,7 @@ open class DeleteAction(
         return connection.createStatement(sql)
             .apply {
                 for (i in 1..indexedParameters.size) {
-                    bind("$$i", criteria.values.toList()[i - 1]!!)
+                    bind("$$i", deleteCriteria.values.toList()[i - 1]!!)
                 }
             }
             .execute()
@@ -54,4 +50,18 @@ open class DeleteAction(
             .flatMap { it.rowsUpdated.toMono() }
             .then()
     }
+
+    override fun run(connection: Connection): Mono<Void> = delete(connection, criteria)
+
+    /*
+    override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {
+        val primitive: Aead = keySetHandle.getPrimitive(Aead::class.java)
+
+        val encryptedCriteria = criteria.mapValues { (_, value) ->
+            primitive.encrypt(value.toString().toByteArray(), null).decodeToString()
+        }
+
+        return delete(connection, encryptedCriteria)
+    }
+    */
 }

@@ -34,7 +34,6 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      */
     override fun parse(command: AbstractCommand, toParse: String): Result<Map<Argument<*>, Any>> {
-        // todo: fix parsing to not put " " or "" as a command when there is nothing parsed
         val argumentMap: MutableMap<Argument<*>, Any> = HashMap()
         val missingArguments: MutableList<Argument<*>> = ArrayList()
         val invalidValues: MutableMap<Argument<*>, String> = HashMap()
@@ -42,9 +41,7 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
 
         for (argument in command.arguments) {
             try {
-                val collectedValue = StringBuilder()
-
-                if (!argument.index.hasUpperBound()) {
+                val collectedValue = if (!argument.index.hasUpperBound()) {
                     val sublist = toParseSplit.subList(argument.index.lowerEndpoint(), toParseSplit.size)
                         .filter { it.isNotBlank() }
 
@@ -52,18 +49,16 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
                         missingArguments.add(argument)
                         continue
                     } else {
-                        collectedValue.append(sublist.joinToString(separator = " "))
+                        sublist.joinToString(separator = " ")
                     }
                 } else {
-                    var i = argument.index.lowerEndpoint()
-
-                    while (argument.index.contains(i)) {
-                        collectedValue.append(toParseSplit[i]).append(" ")
-                        i++
-                    }
+                    toParseSplit.subList(argument.index.lowerEndpoint(), argument.index.upperEndpoint() + 1)
+                        .joinToString(separator = " ")
                 }
 
-                val finalCollectedValue = collectedValue.toString().trim()
+                val finalCollectedValue = collectedValue.trim()
+
+                if (finalCollectedValue.isEmpty()) throw IndexOutOfBoundsException() // to jump to the catch block
 
                 if (argument.isValidValue(finalCollectedValue)) {
                     argumentMap[argument] = argument.parse(finalCollectedValue)

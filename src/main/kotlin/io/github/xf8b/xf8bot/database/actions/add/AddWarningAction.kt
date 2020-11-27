@@ -22,8 +22,8 @@ package io.github.xf8b.xf8bot.database.actions.add
 import io.github.xf8b.xf8bot.data.Warn
 
 class AddWarningAction(warn: Warn) : InsertAction(
-    "warns",
-    listOf(
+    table = "warns",
+    toInsert = listOf(
         warn.guildId,
         warn.memberId.asLong(),
         warn.warnerId.asLong(),

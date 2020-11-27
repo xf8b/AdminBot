@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap
 import com.google.common.collect.Range
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Member
+import discord4j.core.`object`.entity.Role
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.sorting.sortByValue
@@ -46,7 +47,6 @@ import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 import java.util.*
-import java.util.stream.Collectors
 
 class AdministratorsCommand : AbstractCommand(
     name = "\${prefix}administrators",
@@ -56,7 +56,7 @@ class AdministratorsCommand : AbstractCommand(
     Level 1 can use `warn`, `removewarn`, `warns`, `mute`, and `nickname`.
     Level 2 can use all the commands for level 1 and `kick` and `clear`.
     Level 3 can use all the commands for level 2 and `ban` and `unban`.
-    Level 4 can use all the commands for level 3 and `administrators`, and `prefix`. **This is intended for administrator/owner roles!**
+    Level 4 can use all the commands for level 3, `disable`, `enable`, `administrators`, and `prefix`. **This is intended for administrator/owner roles!**
     """.trimIndent(),
     commandType = CommandType.SETTINGS,
     actions = ImmutableMap.copyOf(
@@ -102,7 +102,6 @@ class AdministratorsCommand : AbstractCommand(
                                 .toMono()
                                 .filter { it.isNotEmpty() }
                                 .filterWhen { it[0].hasUpdatedRows }
-                                .cast(Any::class.java)
                                 .flatMap {
                                     event.channel.flatMap {
                                         it.createMessage("The role already has been added as an administrator role.")
@@ -133,26 +132,27 @@ class AdministratorsCommand : AbstractCommand(
                             }
                         }.then()
                     }
-                    // FIXME: not recognizing already added roles
+
                     parseRoleId(event.guild, event.getValueOfFlag(ROLE).get())
                         .map { it.toSnowflake() }
-                        .switchIfEmpty(event.channel.flatMap {
-                            it.createMessage("The role does not exist!")
-                        }.then().cast())
+                        .switchIfEmpty(event.channel
+                            .flatMap { it.createMessage("The role does not exist!") }
+                            .then()
+                            .cast())
                         .flatMap { roleId: Snowflake ->
-                            event.xf8bot
-                                .botDatabase
-                                .execute(RemoveAdministratorRoleAction(guildId, roleId))
+                            event.xf8bot.botDatabase
+                                .execute(FindAdministratorRoleAction(guildId, roleId))
                                 .toMono()
-                                .cast(Any::class.java)
+                                .filter { it.isNotEmpty() }
+                                .filterWhen { it[0].hasUpdatedRows }
                                 .flatMap {
-                                    guild.getRoleById(roleId)
-                                        .map { it.name }
-                                        .flatMap { roleName: String ->
+                                    event.xf8bot.botDatabase
+                                        .execute(RemoveAdministratorRoleAction(guildId, roleId))
+                                        .then(guild.getRoleById(roleId).map(Role::getName).flatMap { roleName: String ->
                                             event.channel.flatMap {
                                                 it.createMessage("Successfully removed $roleName from the list of administrator roles.")
                                             }
-                                        }
+                                        })
                                 }
                                 .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("The role has not been added as an administrator role!")
@@ -162,8 +162,7 @@ class AdministratorsCommand : AbstractCommand(
                     it.createMessage("Sorry, you don't have high enough permissions.")
                 }).then()
 
-                "ls", "list", "listroles", "get", "getroles" -> event.xf8bot
-                    .botDatabase
+                "ls", "list", "listroles", "get", "getroles" -> event.xf8bot.botDatabase
                     .execute(GetGuildAdministratorRolesAction(guildId))
                     .flatMapMany { it.toFlux() }
                     .flatMap { it.map { row, _ -> row } }
@@ -172,21 +171,12 @@ class AdministratorsCommand : AbstractCommand(
                         { it.get("level", java.lang.Integer::class.java) }
                     )
                     .filter { it.isNotEmpty() }
-                    .map {
-                        @Suppress("UNCHECKED_CAST")
-                        (it as Map<Long, Int>).sortByValue()
-                    }
+                    .cast<Map<Long, Int>>()
+                    .map { it.sortByValue() }
                     .flatMap { administratorRoles ->
-                        val roleNames = administratorRoles.keys
-                            .stream()
-                            .map { "<@&$it>" }
-                            .collect(Collectors.joining("\n"))
-                            .replace("\n$".toRegex(), "")
-                        val roleLevels = administratorRoles.values
-                            .stream()
-                            .map { it.toString() }
-                            .collect(Collectors.joining("\n"))
-                            .replace("\n$".toRegex(), "")
+                        val roleNames = administratorRoles.keys.joinToString(separator = "\n") { "<@&$it>" }
+                        val roleLevels = administratorRoles.values.joinToString(separator = "\n") { it.toString() }
+
                         event.channel.flatMap {
                             it.createEmbedDsl {
                                 title("Administrator Roles")

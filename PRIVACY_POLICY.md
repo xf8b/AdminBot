@@ -7,9 +7,8 @@ Collected data by xf8bot includes:
 
 No other personally identifiable information is stored.
 ## Sharing Data
-This depends on the hoster, but usually they will use a cloud MongoDB server, hosted by AWS, Google Cloud, or Azure.  
-See the privacy policies of those hosters.  
-In a future update, xf8bot will use encryption for databases. This may render privacy concerns about these hosters invalid.  
+This depends on the hoster, but usually they will self-host.  
+If they do self-host everything, including the bot and the database, there is no data shared.
 ## Time Stored
 All the collected data, as in [the collected data section](#collected-data) will be stored indefinitely unless the hoster decides to delete data from the database.  
 An exception to this rule is when **roles are deleted**. When roles are deleted, **all data associated with it will be deleted**.
@@ -23,4 +22,4 @@ Only the following is logged:
 ## Complaints
 If you have a complaint with this privacy policy, please add an issue to [the issue tracker](https://github.com/xf8b/xf8bot/issues/).
 
-This privacy policy was last modified **October 11th, 2020**.
+This privacy policy was last modified **November 26th, 2020**.

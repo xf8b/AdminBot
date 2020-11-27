@@ -72,11 +72,4 @@ inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTy
 // reduce boilerplate
 fun <I, R> functionReturning(returnedValue: R): Function<I, R> = Function { returnedValue }
 
-fun <T> List<T>.skip(amount: Int) = if (this.isNotEmpty()) this.subList(amount, this.size) else this
-
 val Result.hasUpdatedRows: Mono<Boolean> get() = this.rowsUpdated.toMono().map { it != 0 }
-
-/**
- * Skips the first *[n]* characters in this string, unless `this` is empty.
- */
-fun String.skip(n: Int) = if (this.isNotEmpty()) this.substring(n, this.length) else this

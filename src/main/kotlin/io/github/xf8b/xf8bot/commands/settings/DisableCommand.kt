@@ -55,6 +55,8 @@ class DisableCommand : AbstractCommand(
                 command == null -> channel.createMessage("Command not found!").then()
                 command.botAdministratorOnly -> channel.createMessage("You can't disable bot administrator only commands!")
                     .then()
+                command.commandType == CommandType.SETTINGS -> channel.createMessage("You can't disable settings commands!")
+                    .then()
 
                 else -> event.xf8bot.botDatabase
                     .execute(FindDisabledCommandAction(event.guildId.get(), command))

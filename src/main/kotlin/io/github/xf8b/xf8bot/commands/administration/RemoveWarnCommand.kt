@@ -25,12 +25,11 @@ import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
-import io.github.xf8b.xf8bot.database.actions.delete.DeleteAction
-import io.github.xf8b.xf8bot.database.actions.find.SelectAction
+import io.github.xf8b.xf8bot.database.actions.delete.RemoveWarnAction
+import io.github.xf8b.xf8bot.database.actions.find.FindWarnsAction
 import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import io.github.xf8b.xf8bot.util.toImmutableList
 import io.github.xf8b.xf8bot.util.toSnowflake
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
@@ -50,110 +49,92 @@ class RemoveWarnCommand : AbstractCommand(
     administratorLevelRequired = 1
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val userId = Mono.justOrEmpty(event.getValueOfFlag(MEMBER)).flatMap { member ->
+        val memberIdMono = Mono.justOrEmpty(event.getValueOfFlag(MEMBER)).flatMap { member ->
             parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
-                .switchIfEmpty(event.channel.flatMap {
-                    it.createMessage("The member does not exist!")
-                }.then().cast())
+                .switchIfEmpty(event.channel
+                    .flatMap { it.createMessage("The member does not exist!") }
+                    .then()
+                    .cast())
         }
-        val warnerId = Mono.justOrEmpty(event.getValueOfFlag(WARNER)).flatMap { member ->
+        val warnerIdMono = Mono.justOrEmpty(event.getValueOfFlag(WARNER)).flatMap { member ->
             parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
-                .switchIfEmpty(event.channel.flatMap {
-                    it.createMessage("The member who warned does not exist!")
-                }.then().cast())
+                .switchIfEmpty(event.channel
+                    .flatMap { it.createMessage("The member who warned does not exist!") }
+                    .then()
+                    .cast())
         }
         val reason = event.getValueOfFlag(REASON).toValueOrNull()
         val warnId = event.getValueOfFlag(WARN_ID).toValueOrNull()
-        val filterMono = userId.map {
-            mapOf("guildId" to event.guildId.get().asLong(), "memberId" to it.asLong())
-        }.defaultIfEmpty(mapOf("guildId" to event.guildId.get().asLong()))
-        val warns = filterMono.flatMapMany { filter ->
-            event.xf8bot
-                .botDatabase
-                .execute(SelectAction("warns", listOf("*"), filter))
-                .flatMapMany { it.toFlux() }
-        }
+        val warns = memberIdMono
+            .flatMap { memberId ->
+                event.xf8bot
+                    .botDatabase
+                    .execute(FindWarnsAction(guildId = event.guildId.get(), memberId = memberId))
+            }
+            .switchIfEmpty(
+                event.xf8bot
+                    .botDatabase
+                    .execute(FindWarnsAction(guildId = event.guildId.get()))
+            )
+            .flatMapMany { it.toFlux() }
         return Mono.zip(
-            { array: Array<*> -> array.toList().all { it as Boolean } },
+            { array -> array.toList().map { it as Boolean }.all { it } },
             (warnId == null).toMono(),
-            warnerId.flux().count().map { it == 0L },
-            userId.flux().count().map { it == 0L },
+            warnerIdMono.flux().count().map { it == 0L },
+            memberIdMono.flux().count().map { it == 0L },
             (reason == null).toMono(),
         ).filter { it }
-            .switchIfEmpty(event.channel.flatMap {
-                it.createMessage("You must have at least 1 search query!")
-            }.then().cast())
+            .switchIfEmpty(event.channel
+                .flatMap { it.createMessage("You must have at least 1 search query!") }
+                .then()
+                .cast())
             .flatMap {
                 if (reason != null && reason.equals("all", ignoreCase = true)) {
-                    userId.flatMap { userId ->
-                        warns
-                            .flatMap { it.map { row, _ -> row } }
-                            .flatMap {
-                                event.xf8bot
-                                    .botDatabase
-                                    .execute(
-                                        DeleteAction(
-                                            "warns", mapOf(
-                                                "guildId" to it["guildId", Long::class.java],
-                                                "memberId" to it["guildId", Long::class.java],
-                                                "warnerId" to it["guildId", Long::class.java],
-                                                "warnId" to it["guildId", String::class.java],
-                                                "reason" to it["guildId", String::class.java]
+                    memberIdMono
+                        .flatMap { _ ->
+                            warns.flatMap { it.map { row, _ -> row } }
+                                .flatMap {
+                                    event.xf8bot.botDatabase
+                                        .execute(
+                                            RemoveWarnAction(
+                                                guildId = (it["guildId", java.lang.Long::class.java] as Long).toSnowflake(),
+                                                memberId = (it["memberId", java.lang.Long::class.java] as Long).toSnowflake(),
+                                                warnerId = (it["warnerId", java.lang.Long::class.java] as Long).toSnowflake(),
+                                                warnId = it["warnId", String::class.java],
+                                                reason = it["reason", String::class.java]
                                             )
                                         )
-                                    )
-                                    .toMono()
-                            }
-                            .flatMap {
-                                event.guild.flatMap {
-                                    it.getMemberById(userId)
+                                        .toMono()
                                 }
-                            }
-                            .flatMap { member ->
-                                event.channel.flatMap {
-                                    it.createMessage("Successfully removed warn(s) for ${member.displayName}.")
-                                }
-                            }
-                            .switchIfEmpty(event.channel.flatMap {
-                                it.createMessage("Cannot remove all warns without a user!")
-                            })
-                            .then()
-                    }
-                } else {
-                    val warnsToDeleteCriteria = mutableListOf<Mono<Pair<String, Any>>>()
-
-                    warnId?.let { warnsToDeleteCriteria.add(("warnId" to it).toMono()) }
-                    reason?.let { warnsToDeleteCriteria.add(("reason" to it).toMono()) }
-                    warnsToDeleteCriteria.add(userId.map { "memberId" to it.asLong() })
-                    warnsToDeleteCriteria.add(warnerId.map { "warnerId" to it.asLong() })
-
-                    Flux.zip(warnsToDeleteCriteria) {
-                        val map = mutableMapOf<String, Any>()
-
-                        for (any in it) {
-                            val pair = any as Pair<*, *>
-
-                            map[pair.first as String] = pair.second as Any
-                        }
-
-                        map
-                    }.flatMap { criteria ->
-                        event.xf8bot
-                            .botDatabase
-                            .execute(DeleteAction("warns", criteria))
-                    }.cast(Any::class.java)
-                        .flatMap {
-                            //context.guild.flatMap { it.getMemberById(memberId) }.flatMap { member ->
-                            event.channel.flatMap {
-                                it.createMessage("Successfully removed warn(s)!") // for ${member.displayName}.")
-                            }
-                            //}
+                                .then(event.channel.flatMap {
+                                    it.createMessage("Successfully removed all warns!")
+                                })
                         }
                         .switchIfEmpty(event.channel.flatMap {
-                            it.createMessage("The user does not have a warn with that reason!")
-                        }).then()
+                            it.createMessage("Cannot remove all warns without a user!")
+                        })
+                        .then()
+                } else {
+                    Mono.zip(memberIdMono, warnerIdMono)
+                        .flatMap {
+                            event.xf8bot
+                                .botDatabase
+                                .execute(
+                                    RemoveWarnAction(
+                                        guildId = event.guildId.get(),
+                                        memberId = it.t1,
+                                        warnerId = it.t2,
+                                        warnId = warnId,
+                                        reason = reason
+                                    )
+                                )
+                        }
+                        .then(event.channel.flatMap {
+                            it.createMessage("Successfully removed warn(s)!")
+                        })
+                        .then()
                 }
             }
     }

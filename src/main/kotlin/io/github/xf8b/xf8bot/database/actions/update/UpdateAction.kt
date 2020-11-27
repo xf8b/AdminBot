@@ -19,32 +19,28 @@
 
 package io.github.xf8b.xf8bot.database.actions.update
 
-import com.google.crypto.tink.KeysetHandle
 import io.github.xf8b.xf8bot.database.DatabaseAction
 import io.r2dbc.spi.Connection
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 
-class UpdateAction(
+open class UpdateAction(
     override val table: String,
     private val setFields: Map<String, *>,
     private val criteria: Map<String, *>
 ) : DatabaseAction<Void> {
-    override fun run(
-        connection: Connection,
-        keySetHandle: KeysetHandle?
-    ): Mono<Void> {
+    private fun update(connection: Connection, fields: Map<String, *>, updateCriteria: Map<String, *>): Mono<Void> {
         var sql = "UPDATE $1 SET "
         val indexedParametersForSet = mutableListOf<String>()
         val indexedParametersForCriteria = mutableListOf<String>()
 
-        for (i in 2..setFields.size) {
-            indexedParametersForSet.add("${setFields.keys.toList()[i - 1]} = $$i")
+        for (i in 2..fields.size) {
+            indexedParametersForSet.add("${fields.keys.toList()[i - 1]} = $$i")
         }
 
-        for (i in setFields.size..(criteria.size + setFields.size)) {
-            indexedParametersForCriteria.add("${criteria.keys.toList()[i - 1]} = $$i")
+        for (i in fields.size..(updateCriteria.size + fields.size)) {
+            indexedParametersForCriteria.add("${updateCriteria.keys.toList()[i - 1]} = $$i")
         }
 
         sql += indexedParametersForSet.joinToString()
@@ -56,7 +52,7 @@ class UpdateAction(
                 bind("$1", table)
 
                 for (i in 2..(indexedParametersForSet + indexedParametersForCriteria).size) {
-                    bind("$$i", criteria.values.toList()[i - 1]!!)
+                    bind("$$i", updateCriteria.values.toList()[i - 1]!!)
                 }
             }
             .execute()
@@ -64,4 +60,21 @@ class UpdateAction(
             .flatMap { it.rowsUpdated.toMono() }
             .then()
     }
+
+    override fun run(connection: Connection): Mono<Void> = update(connection, setFields, criteria)
+
+    /*
+    override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {
+        val primitive: Aead = keySetHandle.getPrimitive(Aead::class.java)
+
+        val encryptedSetFields = setFields.mapKeys {
+            primitive.encrypt(it.toString().toByteArray(), null).decodeToString()
+        }
+        val encryptedCriteria = criteria.mapValues { (_, value) ->
+            primitive.encrypt(value.toString().toByteArray(), null).decodeToString()
+        }
+
+        return update(connection, encryptedSetFields, encryptedCriteria)
+    }
+    */
 }

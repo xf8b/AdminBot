@@ -19,12 +19,13 @@
 
 package io.github.xf8b.xf8bot.database
 
-import com.google.crypto.tink.KeysetHandle
 import io.r2dbc.spi.Connection
 import reactor.core.publisher.Mono
 
 interface DatabaseAction<R> {
     val table: String
 
-    fun run(connection: Connection, keySetHandle: KeysetHandle?): Mono<R>
+    fun run(connection: Connection): Mono<R>
+
+    // fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<R>
 }

@@ -34,6 +34,8 @@ import io.github.xf8b.xf8bot.util.toImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import org.apache.commons.text.WordUtils
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toFlux
+import reactor.kotlin.core.publisher.toMono
 
 // TODO: make paginated embed system so this can go back to using reactions for pages
 class HelpCommand : AbstractCommand(
@@ -82,18 +84,14 @@ class HelpCommand : AbstractCommand(
         } else {
             for (commandType in CommandType.values()) {
                 if (commandOrSection.get().equals(commandType.name, ignoreCase = true)) {
-                    val pageNumber = event.getValueOfArgument(PAGE).orElse(0)
+                    val pageNumber = event.getValueOfArgument(PAGE).orElse(1)
                     val commandsWithCurrentCommandType = event.xf8bot
                         .commandRegistry
                         .getCommandsWithCommandType(commandType)
-                    if (commandsWithCurrentCommandType.size > 6) {
-                        if (!(0 until commandsWithCurrentCommandType.size % 6).contains(pageNumber)) {
-                            return event.channel
-                                .flatMap {
-                                    it.createMessage("No page with the index ${pageNumber + 1} exists!")
-                                }
-                                .then()
-                        }
+                    if (!commandsWithCurrentCommandType.indices.contains((pageNumber - 1) * 6)) {
+                        return event.channel
+                            .flatMap { it.createMessage("No page with the index $pageNumber exists!") }
+                            .then()
                     }
                     return event.prefix.flatMap { prefix ->
                         event.channel.flatMap {
@@ -112,53 +110,36 @@ class HelpCommand : AbstractCommand(
             }
 
             for (command in event.xf8bot.commandRegistry) {
-                val name = command.name
-                val nameWithPrefix = command.getNameWithPrefix(event.xf8bot, guildId).block()!!
-                val aliases = command.aliases
-                val aliasesWithPrefixes = command.getAliasesWithPrefixes(event.xf8bot, guildId).collectList().block()!!
-
                 if (commandOrSection.get() == command.rawName) {
-                    val description = command.description
-                    val usage = command.getUsageWithPrefix(event.xf8bot, guildId).block()!!
-                    val actions = command.actions
-                    return event.channel.flatMap {
-                        generateCommandEmbed(
-                            it,
-                            nameWithPrefix,
-                            description,
-                            usage,
-                            aliasesWithPrefixes,
-                            actions
-                        )
+                    return event.channel.flatMap { channel ->
+                        Mono.zip(
+                            command.getUsageWithPrefix(event.xf8bot, guildId),
+                            command.getAliasesWithPrefixes(event.xf8bot, guildId).collectList()
+                        ).flatMap {
+                            generateCommandEmbed(channel, command, it.t1, it.t2)
+                        }
                     }.then()
-                } else if (aliases.isNotEmpty()) {
-                    for (alias in aliases) {
+                } else if (command.aliases.isNotEmpty()) {
+                    for (alias in command.aliases) {
                         if (commandOrSection.get() == alias.replace("\${prefix}", "")) {
-                            val description = command.description
-                            val usage = command.getUsageWithPrefix(event.xf8bot, guildId).block()!!
-                            val actions = command.actions
-
-                            return event.channel.flatMap {
-                                generateCommandEmbed(
-                                    it,
-                                    nameWithPrefix,
-                                    description,
-                                    usage,
-                                    aliasesWithPrefixes,
-                                    actions
-                                )
+                            return event.channel.flatMap { channel ->
+                                Mono.zip(
+                                    command.getUsageWithPrefix(event.xf8bot, guildId),
+                                    command.getAliasesWithPrefixes(event.xf8bot, guildId).collectList()
+                                ).flatMap {
+                                    generateCommandEmbed(channel, command, it.t1, it.t2)
+                                }
                             }.then()
                         }
                     }
                 }
             }
         }
-        return event.channel.flatMap {
-            it.createMessage("Could not find command/section ${commandOrSection.get()}!")
-        }.then()
+        return event.channel
+            .flatMap { it.createMessage("Could not find command/section ${commandOrSection.get()}!") }
+            .then()
     }
 
-    // todo: figure out how to remove block
     private fun generateCommandTypeEmbed(
         event: CommandFiredEvent,
         commandRegistry: CommandRegistry,
@@ -167,76 +148,87 @@ class HelpCommand : AbstractCommand(
         guildId: String,
         pageNumber: Int,
         prefix: String
-    ): Mono<Message> = messageChannel.createEmbedDsl {
-        title("Help Page #${pageNumber + 1}")
-        description(
-            """
-                Actions are not listed on this page. To see them, do `${prefix}help <command>`.
-                To go to a different page, use `${prefix}help <section> <page>`.
-                """.trimIndent(),
-        )
-        color(Color.BLUE)
-        val commandsWithCurrentCommandType = commandRegistry.getCommandsWithCommandType(commandType)
-
-        for (i in pageNumber * 6 until pageNumber * 6 + 6) {
-            val command: AbstractCommand = try {
-                commandsWithCurrentCommandType[i]
-            } catch (exception: IndexOutOfBoundsException) {
-                break
+    ): Mono<Message> =
+        commandRegistry.getCommandsWithCommandType(commandType)
+            .toFlux()
+            .skip((pageNumber - 1) * 6L)
+            .take(6)
+            .flatMap {
+                Mono.zip(
+                    it.getNameWithPrefix(event.xf8bot, guildId),
+                    it.rawName.toMono(),
+                    it.description.toMono(),
+                    it.getUsageWithPrefix(event.xf8bot, guildId),
+                    it.administratorLevelRequired.toMono()
+                )
             }
+            .collectList()
+            .flatMap { commandInfos ->
+                messageChannel.createEmbedDsl {
+                    title("Help Page #$pageNumber")
+                    description(
+                        """
+                        Actions are not listed on this page. To see them, do `${prefix}help <command>`.
+                        To go to a different page, use `${prefix}help <section> <page>`.
+                        """.trimIndent(),
+                    )
 
-            val name = command.getNameWithPrefix(event.xf8bot, guildId).block()!!
-            val nameWithPrefixRemoved = command.rawName
-            val description = command.description
-            val usage = command.getUsageWithPrefix(event.xf8bot, guildId).block()!!
-            field(
-                "`$name`",
-                """
-                $description
-                Usage: `$usage`
-                If you want to go to the help page for this command, use `${prefix}help $nameWithPrefixRemoved`.
-                """.trimIndent(),
-                false
-            )
-        }
-    }
+                    commandInfos.forEach {
+                        field(
+                            "`${it.t1}`",
+                            """
+                            ${it.t3}
+                            Usage: `${it.t4}`
+                            Administrator Level Required: ${it.t5}
+                            If you want to go to the help page for this command, use `${prefix}help ${it.t2}`.
+                            """.trimIndent(),
+                            inline = false
+                        )
+                    }
+
+                    color(Color.BLUE)
+                }
+            }
 
     private fun generateCommandEmbed(
         messageChannel: MessageChannel,
-        name: String,
-        description: String,
+        command: AbstractCommand,
         usage: String,
-        aliases: List<String>,
-        actions: Map<String, String>
+        aliases: List<String>
     ): Mono<Message> = messageChannel.createEmbedDsl {
-        title("Help Page For `$name`")
+        title("Help Page For `${command.rawName}`")
+
         field(
-            "`$name`",
+            "`${command.rawName}`",
             """
-            $description
+            ${command.description}
             Usage: `$usage`
             """.trimIndent(),
-            false
+            inline = false
         )
+
+        field("Administrator Level Required", command.administratorLevelRequired.toString(), inline = false)
+        field(
+            "Bot Required Permissions",
+            command.botRequiredPermissions
+                .joinToString { WordUtils.capitalizeFully(it.name.replace("_", " ")) },
+            inline = false
+        )
+
         color(Color.BLUE)
 
-        if (actions.isNotEmpty()) {
-            val actionsFormatted = StringBuilder()
-            actions.forEach { (action: String, description: String) ->
-                actionsFormatted
-                    .append("`").append(action).append("`: ")
-                    .append(description)
-                    .append("\n")
-            }
-            field("Actions", actionsFormatted.toString().replace("\n$".toRegex(), ""), false)
+        if (command.actions.isNotEmpty()) {
+            val actionsFormatted = command.actions
+                .toList()
+                .joinToString(separator = "\n") { "`${it.first}`: ${it.second}" }
+
+            field("Actions", actionsFormatted, false)
         }
 
         if (aliases.isNotEmpty()) {
-            val aliasesFormatted = StringBuilder()
-            aliases.forEach {
-                aliasesFormatted.append("`").append(it).append("`\n")
-            }
-            field("Aliases", aliasesFormatted.toString().replace("\n$".toRegex(), ""), false)
+            val aliasesFormatted = aliases.joinToString(separator = "\n") { "`$it`" }
+
+            field("Aliases", aliasesFormatted, false)
         }
     }
 

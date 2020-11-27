@@ -19,7 +19,6 @@
 
 package io.github.xf8b.xf8bot.database.actions.add
 
-import com.google.crypto.tink.KeysetHandle
 import io.github.xf8b.xf8bot.database.DatabaseAction
 import io.r2dbc.spi.Connection
 import reactor.core.publisher.Mono
@@ -30,15 +29,11 @@ open class InsertAction(
     override val table: String,
     private val toInsert: List<*>
 ) : DatabaseAction<Void> {
-    override fun run(
-        connection: Connection,
-        keySetHandle: KeysetHandle?
-    ): Mono<Void> {
-        // FIXME possible SQL injection attack here
+    private fun insert(connection: Connection, fields: List<*>): Mono<Void> {
         var sql = """INSERT INTO "$table" VALUES ("""
         val indexedParameters = mutableListOf<String>()
 
-        for (i in 1..toInsert.size) {
+        for (i in 1..fields.size) {
             indexedParameters.add("$$i")
         }
 
@@ -48,7 +43,7 @@ open class InsertAction(
         return connection.createStatement(sql)
             .apply {
                 for (i in 1..indexedParameters.size) {
-                    bind("$$i", toInsert[i - 1]!!)
+                    bind("$$i", fields[i - 1]!!)
                 }
             }
             .execute()
@@ -56,4 +51,18 @@ open class InsertAction(
             .flatMap { it.rowsUpdated.toMono() }
             .then()
     }
+
+    override fun run(connection: Connection): Mono<Void> = insert(connection, toInsert)
+
+    /*
+    override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {
+        val primitive: Aead = keySetHandle.getPrimitive(Aead::class.java)
+
+        val encryptedToInsert = toInsert.map {
+            primitive.encrypt(it.toString().toByteArray(), null).decodeToString()
+        }
+
+        return insert(connection, encryptedToInsert)
+    }
+    */
 }

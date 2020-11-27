@@ -69,6 +69,7 @@ import kotlin.system.exitProcess
 // TODO: reactify all the classes
 // TODO: add spam protection
 // TODO: leveling system
+// TODO: create webhook for bans, warns, etc?
 class Xf8bot private constructor(private val botConfiguration: BotConfiguration) {
     val commandRegistry = CommandRegistry()
     val version = Scanner(
@@ -101,11 +102,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
                 )
             ).build()
         ),
-        if (botConfiguration.encryptionEnabled) {
-            keySetHandle
-        } else {
-            null
-        }
+        if (botConfiguration.encryptionEnabled) keySetHandle else null
     )
     val client = DiscordClient.create(botConfiguration.token)
         .gateway()
@@ -131,7 +128,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
             exitProcess(1)
         }
         .block()!!
-    val prefixCache = PrefixCache(botDatabase, "prefixes")
+    val prefixCache = PrefixCache(botDatabase)
     val audioPlayerManager = DefaultAudioPlayerManager()
         .apply {
             configuration.frameBufferFactory = AudioFrameBufferFactory(::NonAllocatingAudioFrameBuffer)
@@ -193,7 +190,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
             if (webhookUrl.isNotBlank()) {
                 discordAppender.webhookUri = webhookUrl
                 val webhookIdAndToken = InputParsing.parseWebhookUrl(webhookUrl)
-                // TODO: move logging to webhooks
+
                 client.getWebhookByIdWithToken(webhookIdAndToken.first, webhookIdAndToken.second).flatMap {
                     it.executeDsl {
                         username(self.username)

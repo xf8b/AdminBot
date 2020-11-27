@@ -41,6 +41,7 @@ class CommandRegistry : Registry<AbstractCommand>() {
         }
     }
 
-    fun getCommandsWithCommandType(commandType: CommandType): List<AbstractCommand> =
-        LinkedList(registered.filter(commandType::equals))
+    fun getCommandsWithCommandType(commandType: CommandType): List<AbstractCommand> = LinkedList(registered.filter {
+        it.commandType == commandType
+    })
 }

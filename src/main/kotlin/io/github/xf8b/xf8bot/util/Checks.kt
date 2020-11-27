@@ -114,7 +114,7 @@ object Checks {
             .map { true }
             .switchIfEmpty(channel.toMono()
                 .flatMap {
-                    it.createMessage("Could not execute command \'${command.name.skip(1)}\' because of insufficient permissions!")
+                    it.createMessage("Could not execute command \'${command.name.drop(1)}\' because of insufficient permissions!")
                 }
                 .thenReturn(false))
     }
@@ -153,7 +153,7 @@ object Checks {
     fun isThereEnoughArguments(command: AbstractCommand, event: CommandFiredEvent): Mono<Boolean> = when {
         AbstractCommand.ExecutionChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS in command.disabledChecks -> true.toMono()
 
-        event.message.content.split(" ").skip(1).size < command.minimumAmountOfArgs -> {
+        event.message.content.split(" ").drop(1).size < command.minimumAmountOfArgs -> {
             command.getUsageWithPrefix(event.xf8bot, event.guildId.get().asString()).flatMap { usage ->
                 event.channel
                     .flatMap { it.createMessage("Huh? Could you repeat that? The usage of this command is: `$usage`.") }

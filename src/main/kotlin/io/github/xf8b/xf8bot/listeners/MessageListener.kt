@@ -113,7 +113,7 @@ class MessageListener(
                 flagParseResult.result!!,
                 argumentParseResult.result!!
             )
-            val commandName = command.name.skip(1)
+            val commandName = command.name.drop(1)
 
             commandFiredEvent.guild
                 .filterWhen { Checks.doesBotHavePermissionsRequired(command, it.selfMember, commandFiredEvent.channel) }

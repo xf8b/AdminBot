@@ -27,7 +27,7 @@ import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.data.Warn
-import io.github.xf8b.xf8bot.database.actions.find.SelectAction
+import io.github.xf8b.xf8bot.database.actions.find.FindWarnsAction
 import io.github.xf8b.xf8bot.util.*
 import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import kotlinx.coroutines.reactor.mono
@@ -73,42 +73,29 @@ class WarnsCommand : AbstractCommand(
                 event.guild
                     .flatMap {
                         val warnsMono = event.xf8bot.botDatabase
-                            .execute(
-                                SelectAction(
-                                    table = "warns",
-                                    listOf(
-                                        "guildId",
-                                        "memberId",
-                                        "warnerId",
-                                        "reason",
-                                        "warnId"
-                                    ),
-                                    mapOf(
-                                        "guildId" to event.guildId.get().asLong(),
-                                        "memberId" to member.id.asLong()
-                                    )
-                                )
-                            )
+                            .execute(FindWarnsAction(guildId = event.guildId.get(), memberId = member.id))
                             .flatMapMany { it.toFlux() }
                             .flatMap { it.map { row, _ -> row } }
                             .map { row ->
                                 Warn(
-                                    row["guildId", Long::class.java]!!.toSnowflake(),
-                                    row["memberId", Long::class.java]!!.toSnowflake(),
-                                    row["warnerId", Long::class.java]!!.toSnowflake(),
+                                    (row["guildId", java.lang.Long::class.java] as Long).toSnowflake(),
+                                    (row["memberId", java.lang.Long::class.java] as Long).toSnowflake(),
+                                    (row["warnerId", java.lang.Long::class.java] as Long).toSnowflake(),
                                     row["reason", String::class.java]!!,
                                     row["warnId", UUID::class.java]!!
                                 )
                             }
                             .collectList()
                             .flatMap { warns ->
-                                warns.toFlux().flatMap {
-                                    mono {
-                                        it.getWarnerMember(event.client)
-                                            .map { it.nicknameMention }
-                                            .block()!! to it.reason and it.warnId
+                                warns.toFlux()
+                                    .flatMap {
+                                        mono {
+                                            it.getWarnerMember(event.client)
+                                                .map { it.nicknameMention }
+                                                .block()!! to it.reason and it.warnId
+                                        }
                                     }
-                                }.collectList()
+                                    .collectList()
                             }
 
                         warnsMono.flatMap sendWarns@{ warns ->
@@ -117,12 +104,12 @@ class WarnsCommand : AbstractCommand(
                                     it.createEmbedDsl {
                                         title("Warnings For `${member.username}`")
 
-                                        warns.forEach { (memberWhoWarnedMention, reason, warnId) ->
+                                        warns.forEach { (warner, reason, warnId) ->
                                             field(
                                                 "`$reason`",
                                                 """
                                                 Warn ID: $warnId
-                                                Member Who Warned: $memberWhoWarnedMention
+                                                Member Who Warned/ Warner: $warner
                                                 """.trimIndent(),
                                                 true
                                             )

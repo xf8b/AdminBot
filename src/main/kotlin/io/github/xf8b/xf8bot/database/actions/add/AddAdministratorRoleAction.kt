@@ -25,4 +25,7 @@ class AddAdministratorRoleAction(
     guildId: Snowflake,
     roleId: Snowflake,
     administratorLevel: Int
-) : InsertAction("administratorRoles", listOf(guildId.asLong(), roleId.asLong(), administratorLevel))
+) : InsertAction(
+    table = "administratorRoles",
+    toInsert = listOf(guildId.asLong(), roleId.asLong(), administratorLevel)
+)

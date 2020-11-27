@@ -23,32 +23,27 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import discord4j.common.util.Snowflake
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.database.BotDatabase
-import io.github.xf8b.xf8bot.database.actions.add.InsertAction
-import io.github.xf8b.xf8bot.database.actions.find.SelectAction
-import io.github.xf8b.xf8bot.database.actions.update.UpdateAction
+import io.github.xf8b.xf8bot.database.actions.add.AddPrefixAction
+import io.github.xf8b.xf8bot.database.actions.find.FindPrefixAction
+import io.github.xf8b.xf8bot.database.actions.update.UpdatePrefixAction
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import java.time.Duration
 
-class PrefixCache(
-    private val botDatabase: BotDatabase,
-    private val table: String
-) : ReactiveMutableCache<Snowflake, String, Mono<Void>> {
+class PrefixCache(private val botDatabase: BotDatabase) : ReactiveMutableCache<Snowflake, String, Mono<Void>> {
     private val cache = Caffeine.newBuilder()
         .expireAfterWrite(Duration.ofSeconds(5))
-        .build<Snowflake, Mono<String>> { snowflake ->
-            botDatabase
-                .execute(
-                    SelectAction(
-                        table,
-                        listOf("prefix"),
-                        mapOf("guildId" to snowflake.asLong())
-                    )
-                )
-                .flatMap { it.getOrNull(0)?.map { row, _ -> row }?.toMono() ?: Mono.empty() }
+        .build<Snowflake, Mono<String>> { guildId ->
+            botDatabase.execute(FindPrefixAction(guildId))
+                .flatMap {
+                    it.getOrNull(0)
+                        ?.map { row, _ -> row }
+                        ?.toMono()
+                        ?: Mono.empty()
+                }
                 .map { it["prefix", String::class.java] }
                 .switchIfEmpty(
-                    botDatabase.execute(InsertAction(table, listOf(snowflake.asLong(), Xf8bot.DEFAULT_PREFIX)))
+                    botDatabase.execute(AddPrefixAction(guildId, Xf8bot.DEFAULT_PREFIX))
                         .toMono()
                         .thenReturn(Xf8bot.DEFAULT_PREFIX)
                 )
@@ -57,14 +52,7 @@ class PrefixCache(
 
     override fun get(key: Snowflake): Mono<String> = cache.get(key)!!
 
-    override fun set(key: Snowflake, value: String): Mono<Void> = botDatabase
-        .execute(
-            UpdateAction(
-                table,
-                mapOf("prefix" to value),
-                mapOf("guildId" to key.asLong())
-            )
-        )
+    override fun set(key: Snowflake, value: String): Mono<Void> = botDatabase.execute(UpdatePrefixAction(key, value))
         .toMono()
         .then(Mono.fromRunnable { cache.refresh(key) })
 }
