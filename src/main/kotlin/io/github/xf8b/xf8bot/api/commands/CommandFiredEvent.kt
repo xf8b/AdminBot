@@ -28,6 +28,7 @@ import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
+import io.github.xf8b.xf8bot.util.toMono
 import reactor.core.publisher.Mono
 import java.util.*
 
@@ -43,7 +44,7 @@ class CommandFiredEvent(
     event.guildId.map(Snowflake::asLong).toValueOrNull(),
     event.member.toValueOrNull()
 ) {
-    val prefix: Mono<String> get() = guildId.map { xf8bot.prefixCache.get(it) }.orElse(Mono.empty())
+    val prefix: Mono<String> get() = guildId.toMono().flatMap { xf8bot.prefixCache.get(it) }
     val channel: Mono<MessageChannel> get() = message.channel
     val author: Optional<User> get() = message.author
 

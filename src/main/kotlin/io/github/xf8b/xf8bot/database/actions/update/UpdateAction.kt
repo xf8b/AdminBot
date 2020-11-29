@@ -31,15 +31,15 @@ open class UpdateAction(
     private val criteria: Map<String, *>
 ) : DatabaseAction<Void> {
     private fun update(connection: Connection, fields: Map<String, *>, updateCriteria: Map<String, *>): Mono<Void> {
-        var sql = "UPDATE $1 SET "
+        var sql = "UPDATE $table SET "
         val indexedParametersForSet = mutableListOf<String>()
         val indexedParametersForCriteria = mutableListOf<String>()
 
-        for (i in 2..fields.size) {
+        for (i in 1..fields.size) {
             indexedParametersForSet.add("${fields.keys.toList()[i - 1]} = $$i")
         }
 
-        for (i in fields.size..(updateCriteria.size + fields.size)) {
+        for (i in fields.size until (updateCriteria.size + fields.size)) {
             indexedParametersForCriteria.add("${updateCriteria.keys.toList()[i - 1]} = $$i")
         }
 
@@ -49,9 +49,7 @@ open class UpdateAction(
 
         return connection.createStatement(sql)
             .apply {
-                bind("$1", table)
-
-                for (i in 2..(indexedParametersForSet + indexedParametersForCriteria).size) {
+                for (i in 1 until (indexedParametersForSet + indexedParametersForCriteria).size) {
                     bind("$$i", updateCriteria.values.toList()[i - 1]!!)
                 }
             }

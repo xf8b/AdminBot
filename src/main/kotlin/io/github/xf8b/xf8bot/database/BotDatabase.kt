@@ -33,31 +33,34 @@ class BotDatabase(private val connectionPool: ConnectionPool, private val keySet
             connection.createStatement(
                 """
                 CREATE TABLE IF NOT EXISTS "administratorRoles" (
-                --  name        type       nullability
+                --  name        type       nullability  key type
                     guildId     bigint     NOT NULL,
-                    roleId      bigint     NOT NULL,
-                    level       int        NOT NULL, -- administrator level for the role, ranges from 1 to 4
-                    PRIMARY KEY (roleId)
+                    roleId      bigint     NOT NULL     PRIMARY KEY,
+                    level       int        NOT NULL -- administrator level for the role, ranges from 1 to 4
                 );
                 CREATE TABLE IF NOT EXISTS "warns" (
-                --  name         type       nullability
+                --  name         type       nullability  key type
                     guildId      bigint     NOT NULL,
                     memberId     bigint     NOT NULL,
                     warnerId     bigint     NOT NULL,
-                    warnId       uuid       NOT NULL, -- unique id for the warn
-                    reason       text       NOT NULL,
-                    PRIMARY KEY (warnId)
+                    warnId       uuid       NOT NULL     PRIMARY KEY, -- unique id for the warn
+                    reason       text       NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS "disabledCommands" (
                 --  name        type       nullability
                     guildId     bigint     NOT NULL,
                     command     text       NOT NULL
                 );
-                CREATE TABLE IF NOT EXISTS "prefixes" (
+                CREATE TABLE IF NOT EXISTS "experience" ( 
                 --  name        type       nullability
                     guildId     bigint     NOT NULL,
-                    prefix      text       NOT NULL,
-                    PRIMARY KEY (guildId)
+                    memberId    bigint     NOT NULL,
+                    xp          bigint     NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS "prefixes" (
+                --  name        type       nullability  key type
+                    guildId     bigint     NOT NULL     PRIMARY KEY,
+                    prefix      text       NOT NULL
                 );
                 """.trimIndent()
             ).execute().toMono().flatMap { it.rowsUpdated.toMono() }.then()

@@ -58,7 +58,7 @@ class TimeFlag(
         }
         time to timeUnit
     },
-    override val errorMessageFunction: Function<in String, out String> = functionReturning(Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE)
+    override val errorMessageFunction: Function<in String, out String> = functionReturning("Invalid value `%s`! Required value: Duration (e.g. 2m for 2 minutes, 6h for 6 hours).")
 ) : Flag<Pair<Long, TimeUnit>> {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

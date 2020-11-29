@@ -168,7 +168,7 @@ class HelpCommand : AbstractCommand(
                     title("Help Page #$pageNumber")
                     description(
                         """
-                        Actions are not listed on this page. To see them, do `${prefix}help <command>`.
+                        More detailed command information is not listed on this page. To see it, use `${prefix}help <command>`.
                         To go to a different page, use `${prefix}help <section> <page>`.
                         """.trimIndent(),
                     )

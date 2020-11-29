@@ -152,6 +152,7 @@ abstract class AbstractCommand(
         BOT_ADMINISTRATOR("Commands only for bot administrators."),
         MUSIC("Commands related with playing music."),
         INFO("Commands which give information."),
+        LEVELING("Leveling commands. Somewhat useless."),
         SETTINGS("Commands that are used for settings/configurations."),
         OTHER("Other commands which do not fit in any of the above categories."),
     }

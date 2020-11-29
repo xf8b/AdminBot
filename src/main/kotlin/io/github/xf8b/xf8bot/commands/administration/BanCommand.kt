@@ -79,7 +79,7 @@ class BanCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val reason = event.getValueOfFlag(REASON).orElse("No ban reason was provided.")
+        val reason = event.getValueOfFlagNullable(REASON) ?: "No ban reason was provided."
         return InputParsing.parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
             .map { it.toSnowflake() }
             .switchIfEmpty(event.channel

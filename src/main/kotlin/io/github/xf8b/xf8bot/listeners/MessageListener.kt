@@ -64,7 +64,9 @@ class MessageListener(
         val commandRequested = content.trim().split(" ").toTypedArray()[0]
         val foundCommand = findCommand(commandRequested, guildId)
 
-        return foundCommand.flatMap { command ->
+        // FIXME: fix levels
+
+        return /*handleLevels(event).thenEmpty(*/ foundCommand.flatMap { command ->
             xf8bot.botDatabase
                 .execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
                 .filter { it.isNotEmpty() }
@@ -74,16 +76,18 @@ class MessageListener(
                         .flatMap { PermissionUtil.getAdministratorLevel(xf8bot, it, event.member.get()) }
                         .map { it >= 4 }
                         .filter { it }
-                        .switchIfEmpty(event.message.channel
-                            .flatMap {
-                                it.createMessage("Sorry, but this command has been disabled by an administrator.")
-                            }
-                            .thenReturn(false)) // we want it to NOT filter when it is disabled, to prevent onCommandFired from firing
+                        .switchIfEmpty(
+                            event.message.channel
+                                .flatMap {
+                                    it.createMessage("Sorry, but this command has been disabled by an administrator.")
+                                }
+                                .thenReturn(false)) // we want it to NOT filter when it is disabled, to prevent onCommandFired from firing
                         .not()
                 }
                 .switchIfEmpty(onCommandFired(event, command, content).cast())
                 .cast()
         }
+        // )
     }
 
     private fun findCommand(commandRequested: String, guildId: String): Mono<AbstractCommand> =
@@ -101,6 +105,40 @@ class MessageListener(
                     }
                 }
                 .singleOrEmpty())
+
+    /*
+    private fun handleLevels(event: MessageCreateEvent): Mono<Void> = xf8bot.botDatabase
+        .execute(GetXpAction(event.guildId.get(), event.member.get().id))
+        .filter { it.isNotEmpty() }
+        .flatMapMany { it.toFlux() }
+        .flatMap { it.map { row, _ -> row } }
+        .map { it["xp", java.lang.Long::class.java] }
+        .doOnNext { println("hi xp = $it") }
+        .cast<Long>()
+        .switchIfEmpty(
+            xf8bot.botDatabase
+                .execute(AddXpAction(guildId = event.guildId.get(), memberId = event.member.get().id))
+                .then(Mono.fromRunnable { println("added new xp thingy") })
+        )
+        .flatMap { previousXp ->
+            val previousLevel = LevelsCalculator.xpToLevels(previousXp as Long)
+            val newXp = previousXp + LevelsCalculator.randomXp(5, 25)
+            val newLevel = LevelsCalculator.xpToLevels(newXp)
+
+            xf8bot.botDatabase
+                .execute(UpdateXpAction(guildId = event.guildId.get(), memberId = event.member.get().id, xp = newXp))
+                .then(Mono.zip(previousLevel.toMono(), newLevel.toMono()).flatMap { levelTuple ->
+                    if (levelTuple.t1 < levelTuple.t2) {
+                        event.message.channel.flatMap {
+                            it.createMessage("Congratulations, you've leveled up from ${levelTuple.t1} to ${levelTuple.t2}!")
+                        }
+                    } else {
+                        Mono.empty()
+                    }
+                })
+        }
+        .then()
+        */
 
     private fun onCommandFired(event: MessageCreateEvent, command: AbstractCommand, content: String): Mono<Void> {
         val flagParseResult = FLAG_PARSER.parse(command, content)
