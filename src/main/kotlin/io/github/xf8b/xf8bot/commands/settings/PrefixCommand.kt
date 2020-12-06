@@ -21,7 +21,6 @@ package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
-import discord4j.core.`object`.entity.channel.MessageChannel
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
@@ -45,26 +44,28 @@ class PrefixCommand : AbstractCommand(
         )
     }
 
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val channelMono: Mono<MessageChannel> = event.channel
-        val guildId = event.guildId.orElseThrow { ThisShouldNotHaveBeenThrownException() }
-        val previousPrefix = event.prefix.block()!!
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.prefix.flatMap { previousPrefix ->
+        val guildId = event.guildId.orElseThrow(::ThisShouldNotHaveBeenThrownException)
         val newPrefix = event.getValueOfArgument(NEW_PREFIX)
-        val xf8bot = event.xf8bot
-        return when {
-            // reset prefix
-            newPrefix.isEmpty -> xf8bot.prefixCache.set(guildId, Xf8bot.DEFAULT_PREFIX).then(channelMono.flatMap {
-                it.createMessage("Successfully reset prefix.")
-            }).then()
 
-            previousPrefix == newPrefix.get() -> channelMono.flatMap {
+        when {
+            // reset prefix
+            newPrefix.isEmpty -> event.xf8bot.prefixCache
+                .set(guildId, Xf8bot.DEFAULT_PREFIX)
+                .then(event.channel.flatMap {
+                    it.createMessage("Successfully reset prefix.")
+                })
+
+            previousPrefix == newPrefix.get() -> event.channel.flatMap {
                 it.createMessage("You can't set the prefix to the same thing, silly.")
-            }.then()
+            }
 
             // set prefix
-            else -> xf8bot.prefixCache.set(guildId, newPrefix.get()).then(channelMono.flatMap {
-                it.createMessage("Successfully set prefix from $previousPrefix to ${newPrefix.get()}.")
-            }).then()
-        }
+            else -> event.xf8bot.prefixCache
+                .set(guildId, newPrefix.get())
+                .then(event.channel.flatMap {
+                    it.createMessage("Successfully set prefix from $previousPrefix to ${newPrefix.get()}.")
+                })
+        }.then()
     }
 }

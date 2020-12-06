@@ -45,7 +45,7 @@ class MessageListener(
     private val commandRegistry: CommandRegistry
 ) : ReactiveEventAdapter() {
     override fun onMessageCreate(event: MessageCreateEvent): Mono<Void> {
-        if (event.message.content.isEmpty()
+        if (event.message.content.isEmpty
             || event.member.isEmpty
             || event.message.author.map(User::isBot).orElse(true)
         ) {
@@ -76,12 +76,11 @@ class MessageListener(
                         .flatMap { PermissionUtil.getAdministratorLevel(xf8bot, it, event.member.get()) }
                         .map { it >= 4 }
                         .filter { it }
-                        .switchIfEmpty(
-                            event.message.channel
-                                .flatMap {
-                                    it.createMessage("Sorry, but this command has been disabled by an administrator.")
-                                }
-                                .thenReturn(false)) // we want it to NOT filter when it is disabled, to prevent onCommandFired from firing
+                        .switchIfEmpty(event.message.channel
+                            .flatMap {
+                                it.createMessage("Sorry, but this command has been disabled by an administrator.")
+                            }
+                            .thenReturn(false)) // we want it to NOT filter when it is disabled, to prevent onCommandFired from firing
                         .not()
                 }
                 .switchIfEmpty(onCommandFired(event, command, content).cast())
@@ -113,12 +112,11 @@ class MessageListener(
         .flatMapMany { it.toFlux() }
         .flatMap { it.map { row, _ -> row } }
         .map { it["xp", java.lang.Long::class.java] }
-        .doOnNext { println("hi xp = $it") }
         .cast<Long>()
         .switchIfEmpty(
             xf8bot.botDatabase
                 .execute(AddXpAction(guildId = event.guildId.get(), memberId = event.member.get().id))
-                .then(Mono.fromRunnable { println("added new xp thingy") })
+                .cast()
         )
         .flatMap { previousXp ->
             val previousLevel = LevelsCalculator.xpToLevels(previousXp as Long)
@@ -138,7 +136,7 @@ class MessageListener(
                 })
         }
         .then()
-        */
+     */
 
     private fun onCommandFired(event: MessageCreateEvent, command: AbstractCommand, content: String): Mono<Void> {
         val flagParseResult = FLAG_PARSER.parse(command, content)

@@ -24,7 +24,7 @@ import io.github.xf8b.xf8bot.data.Warn
 class AddWarningAction(warn: Warn) : InsertAction(
     table = "warns",
     toInsert = listOf(
-        warn.guildId,
+        warn.guildId.asLong(),
         warn.memberId.asLong(),
         warn.warnerId.asLong(),
         warn.warnId,
