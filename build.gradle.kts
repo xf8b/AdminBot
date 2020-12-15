@@ -7,7 +7,7 @@ plugins {
     idea
     kotlin("jvm") version "1.4.0"
     id("com.github.johnrengelman.shadow") version "6.0.0"
-    id("io.freefair.lombok") version "5.1.1"
+    id("io.freefair.lombok") version "5.3.0"
     id("net.minecrell.licenser") version "0.4.1"
 }
 
