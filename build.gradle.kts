@@ -45,7 +45,7 @@ dependencies {
     //caching
     implementation("com.github.ben-manes.caffeine:caffeine:${property("caffeineVersion")}")
     //drivers
-    implementation("org.mongodb:mongodb-driver-reactivestreams:4.1.0-beta2")
+    implementation("org.mongodb:mongodb-driver-reactivestreams:4.2.0-SNAPSHOT")
     //util
     implementation("org.apache.commons:commons-text:${property("commonsTextVersion")}")
     implementation("net.jodah:typetools:${property("typeToolsVersion")}")
