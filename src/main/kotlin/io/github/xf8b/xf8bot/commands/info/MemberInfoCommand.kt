@@ -19,9 +19,7 @@
 
 package io.github.xf8b.xf8bot.commands.info
 
-import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
-import discord4j.core.`object`.entity.Member
 import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.exceptions.UnexpectedException
@@ -40,78 +38,57 @@ class MemberInfoCommand : AbstractCommand(
     name = "\${prefix}memberinfo",
     description = "Shows information about the member.",
     commandType = CommandType.INFO,
-    aliases = ImmutableList.of("\${prefix}userinfo"),
-    arguments = ImmutableList.of(MEMBER),
+    aliases = "\${prefix}userinfo".toSingletonImmutableList(),
+    arguments = MEMBER.toSingletonImmutableList(),
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet()
 ) {
-    companion object {
-        private val MEMBER: StringArgument = StringArgument(
-            name = "member",
-            index = Range.atLeast(1),
-            required = false
-        )
-        private val FORMATTER = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL)
-            .withLocale(Locale.US)
-            .withZone(ZoneOffset.UTC)
-    }
-
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
         InputParsing.parseUserId(
             event.guild,
-            event.getValueOfArgument(MEMBER).orElse(
-                event.author
-                    .orElseThrow(::UnexpectedException)
-                    .id
-                    .asString()
-            )
+            event.getValueOfArgument(MEMBER).orElse(event.author.orElseThrow(::UnexpectedException).id.asString())
         ).map(Long::toSnowflake)
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->
-                event.guild
-                    .flatMap { it.getMemberById(userId) }
+                event.guild.flatMap { it.getMemberById(userId) }
                     .onErrorResume(Checks.isClientExceptionWithCode(10007)) {
                         event.channel
                             .flatMap { it.createMessage("The member is not in the guild!") }
                             .then() // yes i know, very hacky
                             .cast()
                     } // unknown member
-                    .flatMap { member: Member ->
+                    .flatMap { member ->
                         val displayName = member.displayName
                         val avatarUrl = member.avatarUrl
                         val memberJoinDiscordTime = member.id.timestamp
                         val memberJoinServerTime = member.joinTime
                         val id = member.id.asString()
+
                         /*
                          * index   type
                          * t1      color
-                         * t2      status
-                         * t3      activity
-                         * t4      is owner
-                         * t5      roles
-                         * t6      administrator level
+                         * t2      is owner
+                         * t3      administrator level
+                         * t4      roles
                          */
                         val otherInfo = Mono.zip(
                             member.color,
-                            member.presence.map { it.status },
-                            member.presence
-                                .map { it.activity }
-                                .flatMap { it.toMono() }
-                                .map { it.name }
-                                .defaultIfEmpty("No activity."),
                             event.guild.map { member.id == it.ownerId },
+                            event.guild.flatMap { PermissionUtil.getAdministratorLevel(event.xf8bot, it, member) },
                             OrderUtil.orderRoles(member.roles)
                                 .map { it.mention }
                                 .collectList()
                                 .map { it.joinToString(separator = " ") }
                                 .defaultIfEmpty("No roles"),
-                            event.guild.flatMap { PermissionUtil.getAdministratorLevel(event.xf8bot, it, member) }
                         )
+
                         otherInfo.flatMap { info ->
                             event.channel.flatMap {
                                 it.createEmbedDsl {
+                                    val (color, isOwner, administratorLevel, roles) = info
+
                                     title("Info For `${member.tagWithDisplayName}`")
                                     author(name = displayName, iconUrl = avatarUrl)
 
@@ -121,12 +98,12 @@ class MemberInfoCommand : AbstractCommand(
 
                                     field("ID", id, inline = false)
 
-                                    field("Administrator Level", info.t6.toString(), inline = false)
+                                    field("Administrator Level", administratorLevel.toString(), inline = false)
 
-                                    field("Is Owner", info.t4.toString(), inline = true)
+                                    field("Is Owner", isOwner.toString(), inline = true)
                                     field("Is Bot", member.isBot.toString(), inline = true)
 
-                                    field("Roles", info.t5, inline = false)
+                                    field("Roles", roles, inline = false)
 
                                     field(
                                         "Joined Discord (UTC)",
@@ -141,7 +118,7 @@ class MemberInfoCommand : AbstractCommand(
 
                                     field(
                                         "Role Color RGB",
-                                        "Red: ${info.t1.red}, Green: ${info.t1.green}, Blue: ${info.t1.blue}",
+                                        "Red: ${color.red}, Green: ${color.green}, Blue: ${color.blue}",
                                         inline = true
                                     )
 
@@ -153,4 +130,15 @@ class MemberInfoCommand : AbstractCommand(
                         }
                     }
             }.then()
+
+    companion object {
+        private val MEMBER: StringArgument = StringArgument(
+            name = "member",
+            index = Range.atLeast(1),
+            required = false
+        )
+        private val FORMATTER = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL)
+            .withLocale(Locale.US)
+            .withZone(ZoneOffset.UTC)
+    }
 }

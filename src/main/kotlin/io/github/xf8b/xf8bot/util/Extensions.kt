@@ -30,6 +30,7 @@ import io.r2dbc.spi.Result
 import org.reflections.Reflections
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
+import reactor.util.function.*
 import java.time.Instant
 import java.util.*
 import java.util.function.Function
@@ -73,3 +74,13 @@ inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTy
 fun <I, R> functionReturning(returnedValue: R): Function<I, R> = Function { returnedValue }
 
 val Result.hasUpdatedRows: Mono<Boolean> get() = this.rowsUpdated.toMono().map { it != 0 }
+
+// increase clarity
+operator fun <A, B> Tuple2<A, B>.component1(): A = this.t1
+operator fun <A, B> Tuple2<A, B>.component2(): B = this.t2
+operator fun <A, B, C> Tuple3<A, B, C>.component3(): C = this.t3
+operator fun <A, B, C, D> Tuple4<A, B, C, D>.component4(): D = this.t4
+operator fun <A, B, C, D, E> Tuple5<A, B, C, D, E>.component5(): E = this.t5
+operator fun <A, B, C, D, E, F> Tuple6<A, B, C, D, E, F>.component6(): F = this.t6
+operator fun <A, B, C, D, E, F, G> Tuple7<A, B, C, D, E, F, G>.component7(): G = this.t7
+operator fun <A, B, C, D, E, F, G, H> Tuple8<A, B, C, D, E, F, G, H>.component8(): H = this.t8

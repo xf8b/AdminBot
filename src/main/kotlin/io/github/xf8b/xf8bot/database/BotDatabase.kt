@@ -67,18 +67,17 @@ class BotDatabase(private val connectionPool: ConnectionPool, private val keySet
         }.block()
     }
 
-    private fun <T> connectAndExecute(run: (Connection) -> Mono<T>): Mono<T> =
-        connectionPool.create().flatMap { connection ->
-            run(connection).flatMap { result ->
-                connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
-                    if (connected) {
-                        connection.close().toMono().thenReturn(result)
-                    } else {
-                        result.toMono()
-                    }
+    private fun <T> connectAndExecute(run: (Connection) -> Mono<T>) = connectionPool.create().flatMap { connection ->
+        run(connection).flatMap { result ->
+            connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
+                if (connected) {
+                    connection.close().toMono().thenReturn(result)
+                } else {
+                    result.toMono()
                 }
             }
         }
+    }
 
     override fun <T> execute(action: DatabaseAction<T>): Mono<T> = connectAndExecute { connection ->
         /*
@@ -87,6 +86,6 @@ class BotDatabase(private val connectionPool: ConnectionPool, private val keySet
         } else {
         */
         action.run(connection)
-        //}
+        // }
     }
 }

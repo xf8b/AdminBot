@@ -22,8 +22,7 @@ package io.github.xf8b.xf8bot.api.commands.parsers
 import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 
-@FunctionalInterface
-interface CommandParser<E> {
+fun interface CommandParser<E> {
     /**
      * Parses [toParse] for flags from [command] and returns a [Result] containing a map of [E]s to their values.
      * You must cast the value.
