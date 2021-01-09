@@ -33,16 +33,11 @@ class FindWarnsAction(criteria: Map<String, *>) : SelectAction(
         warnId: String? = null,
         reason: String? = null
     ) : this(mutableMapOf<String, Any>().apply {
-        when {
-            guildId != null -> this["guildId"] = guildId.asLong()
-            memberId != null -> this["memberId"] = memberId.asLong()
-            warnerId != null -> this["warnerId"] = warnerId.asLong()
-            warnId != null -> this["warnId"] = warnId
-            reason != null -> this["reason"] = reason
-        }
-    }) {
-        if (guildId == null && warnId == null && reason == null && memberId == null && warnerId == null) {
-            throw IllegalArgumentException("Criteria is required!")
-        }
-    }
+        if (guildId != null) this["guildId"] = guildId.asLong()
+        if (memberId != null) this["memberId"] = memberId.asLong()
+        if (warnerId != null) this["warnerId"] = warnerId.asLong()
+        if (warnId != null) this["warnId"] = warnId
+        if (reason != null) this["reason"] = reason
+        if (this.isEmpty()) throw IllegalArgumentException("Criteria is required!")
+    })
 }

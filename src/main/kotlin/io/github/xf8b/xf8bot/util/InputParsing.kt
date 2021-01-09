@@ -98,7 +98,7 @@ object InputParsing {
             Mono.just(stringToParse.toLong())
         } catch (_: NumberFormatException) {
             try {
-                if (stringToParse.replace("[<@!>]".toRegex(), "").length != 18) {
+                if (stringToParse.replace("[<@&>]".toRegex(), "").length != 18) {
                     throw NumberFormatException()
                 }
                 // after this point we know its a role mention

@@ -81,7 +81,7 @@ class AdministratorsCommand : AbstractCommand(
         return event.guild.flatMap { guild ->
             val isAdministrator = canMemberUseCommand(event.xf8bot, guild, member, this)
 
-            return@flatMap when (action) {
+            return@flatMap when (action.toLowerCase(Locale.ROOT)) {
                 "add", "addrole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
                     if (event.getValueOfFlag(ROLE).isEmpty || event.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty) {
                         return@ifAdministratorRun event.channel.flatMap {
@@ -130,7 +130,7 @@ class AdministratorsCommand : AbstractCommand(
                             getUsageWithPrefix(event.xf8bot, guildId.asString()).flatMap { usage ->
                                 it.createMessage("Huh? Could you repeat that? The usage of this command is: `${usage}`.")
                             }
-                        }.then()
+                        }
                     }
 
                     parseRoleId(event.guild, event.getValueOfFlag(ROLE).get())

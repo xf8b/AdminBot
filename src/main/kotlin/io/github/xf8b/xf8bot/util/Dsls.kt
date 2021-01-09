@@ -36,35 +36,47 @@ import java.util.function.Consumer
 class MessageCreateDsl : Consumer<MessageCreateSpec> {
     private val actions: MutableList<MessageCreateSpec.() -> MessageCreateSpec> = ArrayList()
 
-    fun content(content: String) = actions.add { setContent(content) }.let { }
+    fun content(content: String) {
+        actions.add { setContent(content) }
+    }
 
-    fun nonce(nonce: Snowflake) = actions.add { setNonce(nonce) }.let { }
+    fun nonce(nonce: Snowflake) {
+        actions.add { setNonce(nonce) }
+    }
 
-    fun tts(tts: Boolean) = actions.add { setTts(tts) }.let { }
+    fun tts(tts: Boolean) {
+        actions.add { setTts(tts) }
+    }
 
-    fun allowedMentions(allowedMentions: AllowedMentions) = actions.add {
-        setAllowedMentions(allowedMentions)
-    }.let { }
+    fun allowedMentions(allowedMentions: AllowedMentions) {
+        actions.add { setAllowedMentions(allowedMentions) }
+    }
 
-    fun embed(consumer: EmbedCreateDsl.() -> Unit) = actions.add { setEmbed(EmbedCreateDsl().apply(consumer)) }.let { }
+    fun embed(consumer: EmbedCreateDsl.() -> Unit) {
+        actions.add { setEmbed(EmbedCreateDsl().apply(consumer)) }
+    }
 
-    fun messageReference(messageId: Snowflake) = actions.add { setMessageReference(messageId) }.let { }
+    fun messageReference(messageId: Snowflake) {
+        actions.add { setMessageReference(messageId) }
+    }
 
     // file
-    fun file(fileName: String, inputStream: InputStream) = actions.add {
-        addFile(fileName, inputStream)
-    }.let { }
+    fun file(fileName: String, inputStream: InputStream) {
+        actions.add { addFile(fileName, inputStream) }
+    }
 
-    fun spoilerFile(fileName: String, inputStream: InputStream) = actions.add {
-        addFileSpoiler(fileName, inputStream)
-    }.let { }
+    fun spoilerFile(fileName: String, inputStream: InputStream) {
+        actions.add { addFileSpoiler(fileName, inputStream) }
+    }
 
     /**
      * Performs this operation on the given argument.
      *
      * @param t the input argument
      */
-    override fun accept(t: MessageCreateSpec) = actions.forEach { it(t) }
+    override fun accept(t: MessageCreateSpec) {
+        for (action in actions) action(t)
+    }
 }
 
 class EmbedCreateDsl : Consumer<EmbedCreateSpec> {
