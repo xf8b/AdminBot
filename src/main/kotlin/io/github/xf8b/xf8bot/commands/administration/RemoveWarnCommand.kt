@@ -38,6 +38,7 @@ import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 import reactor.util.function.Tuples
+import java.util.*
 
 class RemoveWarnCommand : AbstractCommand(
     name = "\${prefix}removewarn",
@@ -98,7 +99,7 @@ class RemoveWarnCommand : AbstractCommand(
                                                 guildId = (it["guildId", java.lang.Long::class.java] as Long).toSnowflake(),
                                                 memberId = (it["memberId", java.lang.Long::class.java] as Long).toSnowflake(),
                                                 warnerId = (it["warnerId", java.lang.Long::class.java] as Long).toSnowflake(),
-                                                warnId = it["warnId", String::class.java],
+                                                warnId = it["warnId", UUID::class.java],
                                                 reason = it["reason", String::class.java]
                                             )
                                         )
@@ -121,9 +122,15 @@ class RemoveWarnCommand : AbstractCommand(
                             if (memberId.asLong() == 0L) memberId = null
                             if (warnerId.asLong() == 0L) warnerId = null
 
-                            event.xf8bot
-                                .botDatabase
-                                .execute(RemoveWarnAction(event.guildId.get(), memberId, warnerId, warnId, reason))
+                            event.xf8bot.botDatabase.execute(
+                                RemoveWarnAction(
+                                    event.guildId.get(),
+                                    memberId,
+                                    warnerId,
+                                    UUID.fromString(warnId),
+                                    reason
+                                )
+                            )
                         }
                         .then(event.channel.flatMap {
                             it.createMessage("Successfully removed warn(s)!")

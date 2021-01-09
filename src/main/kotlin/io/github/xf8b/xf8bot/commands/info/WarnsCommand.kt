@@ -20,6 +20,7 @@
 package io.github.xf8b.xf8bot.commands.info
 
 import com.google.common.collect.Range
+import discord4j.core.`object`.entity.Member
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.tuples.and
@@ -73,7 +74,7 @@ class WarnsCommand : AbstractCommand(
                 event.guild
                     .flatMap {
                         val warnsMono = event.xf8bot.botDatabase
-                            .execute(FindWarnsAction(guildId = event.guildId.get(), memberId = member.id))
+                            .execute(FindWarnsAction(event.guildId.get(), member.id))
                             .flatMapMany { it.toFlux() }
                             .flatMap { it.map { row, _ -> row } }
                             .map { row ->
@@ -85,18 +86,14 @@ class WarnsCommand : AbstractCommand(
                                     row["warnId", UUID::class.java]!!
                                 )
                             }
-                            .collectList()
-                            .flatMap { warns ->
-                                warns.toFlux()
-                                    .flatMap {
-                                        mono {
-                                            it.getWarnerMember(event.client)
-                                                .map { it.nicknameMention }
-                                                .block()!! to it.reason and it.warnId
-                                        }
-                                    }
-                                    .collectList()
+                            .flatMap {
+                                mono {
+                                    it.getWarnerMember(event.client)
+                                        .map(Member::getNicknameMention)
+                                        .block()!! to it.reason and it.warnId
+                                }
                             }
+                            .collectList()
 
                         warnsMono.flatMap sendWarns@{ warns ->
                             if (warns.isNotEmpty()) {
@@ -109,7 +106,7 @@ class WarnsCommand : AbstractCommand(
                                                 "`$reason`",
                                                 """
                                                 Warn ID: $warnId
-                                                Member Who Warned/ Warner: $warner
+                                                Member Who Warned/Warner: $warner
                                                 """.trimIndent(),
                                                 true
                                             )

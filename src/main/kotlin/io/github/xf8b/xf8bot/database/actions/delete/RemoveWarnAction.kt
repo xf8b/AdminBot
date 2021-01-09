@@ -27,13 +27,13 @@ class RemoveWarnAction(criteria: Map<String, *>) : DeleteAction(table = "warns",
         guildId: Snowflake? = null,
         memberId: Snowflake? = null,
         warnerId: Snowflake? = null,
-        warnId: String? = null,
+        warnId: UUID? = null,
         reason: String? = null
     ) : this(mutableMapOf<String, Any>().apply {
         if (guildId != null) this["guildId"] = guildId.asLong()
         if (memberId != null) this["memberId"] = memberId.asLong()
         if (warnerId != null) this["warnerId"] = warnerId.asLong()
-        if (warnId != null) this["warnId"] = UUID.fromString(warnId)
+        if (warnId != null) this["warnId"] = warnId
         if (reason != null) this["reason"] = reason
         if (this.isEmpty()) throw IllegalArgumentException("Criteria is required!")
     })
