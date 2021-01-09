@@ -68,19 +68,11 @@ class RemoveWarnCommand : AbstractCommand(
         val reason = event.getValueOfFlag(REASON).toNullable()
         val warnId = event.getValueOfFlag(WARN_ID).toNullable()
         val warns = memberIdMono
-            .flatMap { memberId ->
-                event.xf8bot
-                    .botDatabase
-                    .execute(FindWarnsAction(guildId = event.guildId.get(), memberId = memberId))
-            }
-            .switchIfEmpty(
-                event.xf8bot
-                    .botDatabase
-                    .execute(FindWarnsAction(guildId = event.guildId.get()))
-            )
+            .flatMap { memberId -> event.xf8bot.botDatabase.execute(FindWarnsAction(event.guildId.get(), memberId)) }
+            .switchIfEmpty(event.xf8bot.botDatabase.execute(FindWarnsAction(event.guildId.get())))
             .flatMapMany { it.toFlux() }
         return Mono.zip(
-            { array -> array.toList().map { it as Boolean }.all { it } },
+            { array -> array.filterIsInstance<Boolean>().any { !it } },
             (warnId == null).toMono(),
             warnerIdMono.flux().count().map { it == 0L },
             memberIdMono.flux().count().map { it == 0L },
