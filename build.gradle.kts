@@ -11,11 +11,9 @@ plugins {
     id("com.github.ben-manes.versions") version "0.36.0"
 }
 
-infix fun Project.property(name: String): Any = this.findProperty(name)!!
-
-group = project property "mavenGroup"
-base.archivesBaseName = (project property "projectName") as String
-version = project property "currentVersion"
+group = project.property("mavenGroup")!!
+base.archivesBaseName = project.property("projectName") as String
+version = project.property("currentVersion")!!
 
 repositories {
     jcenter()
@@ -33,39 +31,39 @@ repositories {
 dependencies {
     // junit
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.junit.jupiter:junit-jupiter-api:${project property "junitVersion"}")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${project property "junitVersion"}")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:${project.property("junitVersion")}")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${project.property("junitVersion")}")
     // discord4j
-    implementation("com.discord4j:discord4j-core:${project property "discord4jVersion"}")
+    implementation("com.discord4j:discord4j-core:${project.property("discord4jVersion")}")
     // reactor
-    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:${project property "reactorKotlinExtensions"}")
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:${project.property("reactorKotlinExtensions")}")
     // music
-    implementation("com.sedmelluq:lavaplayer:${project property "lavaplayerVersion"}")
+    implementation("com.sedmelluq:lavaplayer:${project.property("lavaplayerVersion")}")
     // parsing libs
-    implementation("com.beust:jcommander:${project property "jCommanderVersion"}")
+    implementation("com.beust:jcommander:${project.property("jCommanderVersion")}")
     // logging
-    implementation("ch.qos.logback:logback-classic:${project property "logbackClassicVersion"}")
-    implementation("com.github.napstr:logback-discord-appender:${project property "logbackDiscordAppenderVersion"}")
+    implementation("ch.qos.logback:logback-classic:${project.property("logbackClassicVersion")}")
+    implementation("com.github.napstr:logback-discord-appender:${project.property("logbackDiscordAppenderVersion")}")
     // config
-    implementation("com.electronwill.night-config:toml:${project property "nightConfigVersion"}")
+    implementation("com.electronwill.night-config:toml:${project.property("nightConfigVersion")}")
     // caching
-    implementation("com.github.ben-manes.caffeine:caffeine:${project property "caffeineVersion"}")
+    implementation("com.github.ben-manes.caffeine:caffeine:${project.property("caffeineVersion")}")
     // db
-    implementation("io.r2dbc:r2dbc-postgresql:${project property "driverVersion"}")
-    implementation("io.r2dbc:r2dbc-pool:${project property "poolVersion"}")
+    implementation("io.r2dbc:r2dbc-postgresql:${project.property("driverVersion")}")
+    implementation("io.r2dbc:r2dbc-pool:${project.property("poolVersion")}")
     // coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${project property "coroutinesVersion"}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${project property "coroutinesVersion"}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${project.property("coroutinesVersion")}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${project.property("coroutinesVersion")}")
     // scripting
     implementation("org.codehaus.groovy:groovy-all:${project.findProperty("groovyVersion")}")
     // encryption
-    implementation("com.google.crypto.tink:tink:${project property "tinkVersion"}")
+    implementation("com.google.crypto.tink:tink:${project.property("tinkVersion")}")
     // util
-    implementation("org.apache.commons:commons-text:${project property "commonsTextVersion"}")
-    implementation("net.jodah:typetools:${project property "typeToolsVersion"}")
-    implementation("org.reflections:reflections:${project property "reflectionsVersion"}")
-    implementation("com.google.guava:guava:${project property "guavaVersion"}")
-    implementation("io.github.xf8b:utils:${project property "utilsVersion"}")
+    implementation("org.apache.commons:commons-text:${project.property("commonsTextVersion")}")
+    implementation("net.jodah:typetools:${project.property("typeToolsVersion")}")
+    implementation("org.reflections:reflections:${project.property("reflectionsVersion")}")
+    implementation("com.google.guava:guava:${project.property("guavaVersion")}")
+    implementation("io.github.xf8b:utils:${project.property("utilsVersion")}")
 }
 
 tasks {
@@ -95,7 +93,7 @@ tasks {
 
 application {
     @Suppress("DEPRECATION") //apparently shadow needs this
-    mainClassName = (project property "mainClass") as String
+    mainClassName = project.property("mainClass") as String
 }
 
 java {
@@ -117,9 +115,9 @@ license {
     header = rootProject.file("headers/LICENSE_HEADER.txt")
 
     ext {
-        set("name", "xf8b")
-        set("years", "2020")
-        set("projectName", project property "projectName")
+        this["name"] = "xf8b"
+        this["years"] = "2020, 2021"
+        this["projectName"] = project.property("projectName")
     }
 
     include("**/*.kt")

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 xf8b.
+ * Copyright (c) 2020, 2021 xf8b.
  *
  * This file is part of xf8bot.
  *

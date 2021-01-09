@@ -1,7 +1,7 @@
 /*
  * Copyright 2016-2018 John Grosh (jagrosh) & Kaidan Gustave (TheMonitorLizard)
  *
- * Modifications copyright (c) 2020 xf8b
+ * Modifications copyright (c) 2020, 2021 xf8b
  * Changed to be in Kotlin, and not use JDA-Utilities or JDA
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
