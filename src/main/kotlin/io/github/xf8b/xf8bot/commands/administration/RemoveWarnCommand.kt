@@ -20,6 +20,7 @@
 package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
+import discord4j.common.util.Snowflake
 import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
@@ -28,12 +29,15 @@ import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveWarnAction
 import io.github.xf8b.xf8bot.database.actions.find.FindWarnsAction
 import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
+import io.github.xf8b.xf8bot.util.component1
+import io.github.xf8b.xf8bot.util.component2
 import io.github.xf8b.xf8bot.util.toImmutableList
 import io.github.xf8b.xf8bot.util.toSnowflake
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
+import reactor.util.function.Tuples
 
 class RemoveWarnCommand : AbstractCommand(
     name = "\${prefix}removewarn",
@@ -110,18 +114,16 @@ class RemoveWarnCommand : AbstractCommand(
                         .then()
                 } else {
                     Mono.zip(memberIdMono, warnerIdMono)
+                        .defaultIfEmpty(Tuples.of(0L.toSnowflake(), 0L.toSnowflake()))
                         .flatMap {
+                            var (memberId: Snowflake?, warnerId: Snowflake?) = it
+
+                            if (memberId.asLong() == 0L) memberId = null
+                            if (warnerId.asLong() == 0L) warnerId = null
+
                             event.xf8bot
                                 .botDatabase
-                                .execute(
-                                    RemoveWarnAction(
-                                        guildId = event.guildId.get(),
-                                        memberId = it.t1,
-                                        warnerId = it.t2,
-                                        warnId = warnId,
-                                        reason = reason
-                                    )
-                                )
+                                .execute(RemoveWarnAction(event.guildId.get(), memberId, warnerId, warnId, reason))
                         }
                         .then(event.channel.flatMap {
                             it.createMessage("Successfully removed warn(s)!")

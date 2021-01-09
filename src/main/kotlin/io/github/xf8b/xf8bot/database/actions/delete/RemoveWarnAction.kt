@@ -20,11 +20,9 @@
 package io.github.xf8b.xf8bot.database.actions.delete
 
 import discord4j.common.util.Snowflake
+import java.util.*
 
-class RemoveWarnAction(criteria: Map<String, *>) : DeleteAction(
-    table = "warns",
-    criteria = criteria
-) {
+class RemoveWarnAction(criteria: Map<String, *>) : DeleteAction(table = "warns", criteria) {
     constructor(
         guildId: Snowflake? = null,
         memberId: Snowflake? = null,
@@ -32,16 +30,11 @@ class RemoveWarnAction(criteria: Map<String, *>) : DeleteAction(
         warnId: String? = null,
         reason: String? = null
     ) : this(mutableMapOf<String, Any>().apply {
-        when {
-            guildId != null -> this["guildId"] = guildId.asLong()
-            memberId != null -> this["memberId"] = memberId.asLong()
-            warnerId != null -> this["warnerId"] = warnerId.asLong()
-            warnId != null -> this["warnId"] = warnId
-            reason != null -> this["reason"] = reason
-        }
-    }) {
-        if (guildId == null && warnId == null && reason == null && memberId == null && warnerId == null) {
-            throw IllegalArgumentException("Criteria is required!")
-        }
-    }
+        if (guildId != null) this["guildId"] = guildId.asLong()
+        if (memberId != null) this["memberId"] = memberId.asLong()
+        if (warnerId != null) this["warnerId"] = warnerId.asLong()
+        if (warnId != null) this["warnId"] = UUID.fromString(warnId)
+        if (reason != null) this["reason"] = reason
+        if (this.isEmpty()) throw IllegalArgumentException("Criteria is required!")
+    })
 }
