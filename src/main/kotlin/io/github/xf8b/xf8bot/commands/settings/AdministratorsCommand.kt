@@ -203,7 +203,7 @@ class AdministratorsCommand : AbstractCommand(
             name = "action",
             index = Range.singleton(1),
             validityPredicate = { value ->
-                when (value) {
+                when (value.toLowerCase(Locale.ROOT)) {
                     "add", "addrole",
                     "rm", "remove", "removerole",
                     "ls", "list", "listroles", "get", "getroles" -> true

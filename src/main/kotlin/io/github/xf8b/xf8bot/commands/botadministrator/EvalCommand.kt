@@ -19,27 +19,26 @@
 
 package io.github.xf8b.xf8bot.commands.botadministrator
 
-import com.google.common.collect.ImmutableList.of
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.LoggerDelegate
+import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorResume
-import javax.script.ScriptEngine
 import javax.script.ScriptException
 
 class EvalCommand : AbstractCommand(
     name = "\${prefix}eval",
     description = "Evaluates Groovy code. Bot administrators only!",
     commandType = CommandType.BOT_ADMINISTRATOR,
-    aliases = of("\${prefix}evaluate"),
-    arguments = of(CODE_TO_EVAL),
+    aliases = "\${prefix}evaluate".toSingletonImmutableList(),
+    arguments = CODE_TO_EVAL.toSingletonImmutableList(),
     botAdministratorOnly = true
 ) {
     companion object {
@@ -52,7 +51,8 @@ class EvalCommand : AbstractCommand(
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
         val thingToEval = event.getValueOfArgument(CODE_TO_EVAL).get()
-        val engine: ScriptEngine = GroovyScriptEngineImpl()
+        val engine = GroovyScriptEngineImpl()
+
         engine.put("event", event)
         engine.put("guild", event.guild.awaitSingle())
         engine.put("channel", event.channel.awaitSingle())

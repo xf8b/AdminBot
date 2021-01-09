@@ -48,6 +48,10 @@ class CommandFiredEvent(
     val channel: Mono<MessageChannel> get() = message.channel
     val author: Optional<User> get() = message.author
 
+    operator fun <T : Any> get(flag: Argument<T>) = argumentToValueMap[flag] as T?
+
+    operator fun <T : Any> get(flag: Flag<T>) = flagToValueMap[flag] as T?
+
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> getValueOfFlagNullable(flag: Flag<T>) = flagToValueMap[flag] as T?
 
