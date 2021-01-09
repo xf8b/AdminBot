@@ -78,9 +78,9 @@ class WarnsCommand : AbstractCommand(
                             .flatMap { it.map { row, _ -> row } }
                             .map { row ->
                                 Warn(
-                                    (row["guildId", java.lang.Long::class.java] as Long).toSnowflake(),
-                                    (row["memberId", java.lang.Long::class.java] as Long).toSnowflake(),
-                                    (row["warnerId", java.lang.Long::class.java] as Long).toSnowflake(),
+                                    row["guildId", Long::class.javaObjectType]!!.toSnowflake(),
+                                    row["memberId", Long::class.javaObjectType]!!.toSnowflake(),
+                                    row["warnerId", Long::class.javaObjectType]!!.toSnowflake(),
                                     row["reason", String::class.java]!!,
                                     row["warnId", UUID::class.java]!!
                                 )

@@ -1,4 +1,5 @@
 import net.minecrell.gradle.licenser.LicenseProperties
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile as CompileKotlin
 
 plugins {
     idea
@@ -71,12 +72,11 @@ tasks {
         options.encoding = "UTF-8"
     }
 
-    compileKotlin {
-        kotlinOptions.jvmTarget = "15"
-    }
-
-    compileTestKotlin {
-        kotlinOptions.jvmTarget = "15"
+    withType<CompileKotlin>().configureEach {
+        kotlinOptions {
+            jvmTarget = "15"
+            languageVersion = "1.4"
+        }
     }
 
     test {

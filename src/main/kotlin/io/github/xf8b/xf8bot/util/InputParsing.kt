@@ -49,6 +49,7 @@ object InputParsing {
      */
     fun parseUserId(guildPublisher: Publisher<Guild>, stringToParse: String, ignoreCase: Boolean = false): Mono<Long> {
         val guildMono = guildPublisher.toMono()
+
         return try {
             if (stringToParse.length != 18) throw NumberFormatException()
             // after this point we know its a user id
@@ -61,6 +62,7 @@ object InputParsing {
                 // after this point we know its a user mention
                 stringToParse.replace("[<@!>]".toRegex(), "").toLong().toMono()
             } catch (_: NumberFormatException) {
+                /*
                 val memberWhoMatchesUsernameMono: Mono<Long> = guildMono.flatMapMany { guild ->
                     guild.requestMembers()
                         .filter { it.username.trim().equals(stringToParse, ignoreCase) }
@@ -76,6 +78,14 @@ object InputParsing {
                 }.takeLast(1).singleOrEmpty()
 
                 memberWhoMatchesUsernameMono.switchIfEmpty(memberWhoMatchesNicknameMono)
+                */
+
+                guildMono.flatMapMany { guild ->
+                    guild.requestMembers()
+                        .filter { it.tag.equals(stringToParse, ignoreCase) }
+                        .map(Member::getId)
+                        .map(Snowflake::asLong)
+                }.singleOrEmpty()
             }
         }
     }

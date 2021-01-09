@@ -36,19 +36,13 @@ class SomeoneCommand : AbstractCommand(
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val membersToPickFrom = event.guild.flatMap { guild ->
             if (event.getValueOfFlag(IGNORE_BOTS).isEmpty || !event.getValueOfFlag(IGNORE_BOTS).get()) {
-                guild.requestMembers()
-                    .collectList()
+                guild.requestMembers().collectList()
             } else {
-                guild.requestMembers()
-                    .filter { it.isNotBot }
-                    .collectList()
+                guild.requestMembers().filter { it.isNotBot }.collectList()
             }
         }
-        return membersToPickFrom
-            .map {
-                it.shuffle()
-                it[0]
-            }
+
+        return membersToPickFrom.map { it.random() }
             .flatMap { member -> event.channel.flatMap { it.createMessage(member.nicknameMention) } }
             .then()
     }

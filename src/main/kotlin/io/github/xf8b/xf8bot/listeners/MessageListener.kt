@@ -45,7 +45,7 @@ class MessageListener(
     private val commandRegistry: CommandRegistry
 ) : ReactiveEventAdapter() {
     override fun onMessageCreate(event: MessageCreateEvent): Mono<Void> {
-        if (event.message.content.isEmpty
+        if (event.message.content.isBlank()
             || event.member.isEmpty
             || event.message.author.map(User::isBot).orElse(true)
         ) {

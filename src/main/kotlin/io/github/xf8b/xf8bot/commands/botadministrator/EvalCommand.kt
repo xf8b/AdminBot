@@ -53,7 +53,7 @@ class EvalCommand : AbstractCommand(
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
         val thingToEval = event.getValueOfArgument(CODE_TO_EVAL).get()
         val engine: ScriptEngine = GroovyScriptEngineImpl()
-        engine.put("context", event)
+        engine.put("event", event)
         engine.put("guild", event.guild.awaitSingle())
         engine.put("channel", event.channel.awaitSingle())
         engine.put("member", event.member.get())

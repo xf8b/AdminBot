@@ -75,7 +75,7 @@ class HostInformationCommand : AbstractCommand(
                 field("Arch", arch, true)
                 field("Uptime", uptime, false)
                 field("Available Processors", availableProcessors.toString(), false)
-                field("Memory", "${freeMemory}MB free, ${totalMemory}MB total", false)
+                field("Memory", "${freeMemory}MB free, ${totalMemory}MB total", true)
                 field("Swap", "${freeSwap}MB free, ${totalSwap}MB total", true)
                 field("CPU Load", cpuLoad, false)
                 field("JVM Vendor", jvmVendor, true)
@@ -101,8 +101,7 @@ class HostInformationCommand : AbstractCommand(
     companion object {
         private fun formatMemory(memoryUsage: MemoryUsage): String {
             val usedMemory = bytesToMegaBytes(memoryUsage.used)
-            val maxMemory = memoryUsage.max
-                .takeUnless((-1L)::equals)
+            val maxMemory = memoryUsage.max.takeUnless((-1L)::equals)
                 ?.let { "${it / (1024 * 1024)}MB maximum" }
                 ?: "no maximum"
 

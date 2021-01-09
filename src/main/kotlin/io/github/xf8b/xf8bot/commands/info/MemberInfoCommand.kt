@@ -119,7 +119,7 @@ class MemberInfoCommand : AbstractCommand(
                                     field("Nickname", member.nickname.orElse("No nickname"), inline = true)
                                     field("Discriminator", member.discriminator.toString(), inline = true)
 
-                                    field("ID:", id, inline = false)
+                                    field("ID", id, inline = false)
 
                                     field("Administrator Level", info.t6.toString(), inline = false)
 
@@ -129,23 +129,23 @@ class MemberInfoCommand : AbstractCommand(
                                     field("Roles", info.t5, inline = false)
 
                                     field(
-                                        "Joined Discord (UTC):",
-                                        FORMATTER.format(memberJoinDiscordTime).substring(0),
+                                        "Joined Discord (UTC)",
+                                        FORMATTER.format(memberJoinDiscordTime).dropLast(2),
                                         inline = true
                                     )
                                     field(
-                                        "Joined Server (UTC):",
-                                        FORMATTER.format(memberJoinServerTime),
+                                        "Joined Server (UTC)",
+                                        FORMATTER.format(memberJoinServerTime).dropLast(2),
                                         inline = true
                                     )
 
                                     field(
-                                        "Role Color RGB:",
+                                        "Role Color RGB",
                                         "Red: ${info.t1.red}, Green: ${info.t1.green}, Blue: ${info.t1.blue}",
                                         inline = true
                                     )
 
-                                    field("Avatar URL:", avatarUrl, inline = true)
+                                    field("Avatar URL", avatarUrl, inline = true)
 
                                     timestamp()
                                 }

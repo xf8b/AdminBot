@@ -52,10 +52,10 @@ class BotDatabase(private val connectionPool: ConnectionPool, private val keySet
                     command     text       NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS "experience" ( 
-                --  name        type       nullability
-                    guildId     bigint     NOT NULL,
-                    memberId    bigint     NOT NULL,
-                    xp          bigint     NOT NULL
+                --  name         type       nullability
+                    guildId      bigint     NOT NULL,
+                    memberId     bigint     NOT NULL,
+                    xp           bigint     NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS "prefixes" (
                 --  name        type       nullability  key type
@@ -67,9 +67,9 @@ class BotDatabase(private val connectionPool: ConnectionPool, private val keySet
         }.block()
     }
 
-    private fun <T> connectAndExecute(toExecute: (Connection) -> Mono<T>): Mono<T> =
+    private fun <T> connectAndExecute(run: (Connection) -> Mono<T>): Mono<T> =
         connectionPool.create().flatMap { connection ->
-            toExecute(connection).flatMap { result ->
+            run(connection).flatMap { result ->
                 connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
                     if (connected) {
                         connection.close().toMono().thenReturn(result)
