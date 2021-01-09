@@ -17,7 +17,7 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.commands.botadministrator
+package io.github.xf8b.xf8bot.commands.other
 
 import com.google.common.collect.ImmutableList
 import discord4j.rest.util.Color
@@ -34,9 +34,8 @@ import java.time.format.DateTimeParseException
 class EmbedCommand : AbstractCommand(
     name = "\${prefix}embed",
     description = "Creates an embed in the current channel",
-    commandType = CommandType.BOT_ADMINISTRATOR,
-    flags = ImmutableList.of(TITLE, URL, DESCRIPTION, FIELDS, FOOTER, COLOR, IMAGE, THUMBNAIL, TIMESTAMP),
-    botAdministratorOnly = true
+    commandType = CommandType.OTHER,
+    flags = ImmutableList.of(TITLE, URL, DESCRIPTION, FIELDS, FOOTER, COLOR, IMAGE, THUMBNAIL, TIMESTAMP)
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val title = event[TITLE]!!

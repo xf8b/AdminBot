@@ -17,7 +17,7 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.commands.other
+package io.github.xf8b.xf8bot.commands.`fun`
 
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono
 class SomeoneCommand : AbstractCommand(
     name = "\${prefix}someone",
     description = "Pings a random person.",
-    commandType = CommandType.OTHER,
+    commandType = CommandType.FUN,
     aliases = "@someone".toSingletonImmutableList(),
     flags = IGNORE_BOTS.toSingletonImmutableList()
 ) {

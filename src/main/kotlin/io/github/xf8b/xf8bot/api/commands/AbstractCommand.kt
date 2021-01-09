@@ -154,6 +154,7 @@ abstract class AbstractCommand(
         INFO("Commands which give information."),
         LEVELING("Leveling commands. Somewhat useless."),
         SETTINGS("Commands that are used for settings/configurations."),
+        FUN("Random commands for fun."),
         OTHER("Other commands which do not fit in any of the above categories."),
     }
 

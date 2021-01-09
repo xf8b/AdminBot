@@ -17,31 +17,29 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.commands.botadministrator
+package io.github.xf8b.xf8bot.commands.other
 
-import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
+import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
 
 class SayCommand : AbstractCommand(
     name = "\${prefix}say",
     description = "Sends the passed in content to the current channel.",
-    commandType = CommandType.BOT_ADMINISTRATOR,
-    arguments = ImmutableList.of(CONTENT),
-    minimumAmountOfArgs = 1,
-    botAdministratorOnly = true
+    commandType = CommandType.OTHER,
+    arguments = CONTENT.toSingletonImmutableList()
 ) {
+    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel
+        .flatMap { it.createMessage(event[CONTENT]) }
+        .then(event.message.delete())
+
     companion object {
         private val CONTENT = StringArgument(
             name = "content",
             index = Range.atLeast(1)
         )
     }
-
-    override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap {
-        it.createMessage(event.getValueOfArgument(CONTENT).get())
-    }.then(event.message.delete())
 }

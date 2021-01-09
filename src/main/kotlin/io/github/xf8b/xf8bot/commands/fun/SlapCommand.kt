@@ -17,7 +17,7 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.commands.other
+package io.github.xf8b.xf8bot.commands.`fun`
 
 import com.google.common.collect.Range
 import io.github.xf8b.utils.exceptions.UnexpectedException
@@ -35,7 +35,7 @@ class SlapCommand : AbstractCommand(
     Possible items:
     ${ITEMS.joinToString("\n") { "- $it" }}
     """.trimIndent(),
-    commandType = CommandType.OTHER,
+    commandType = CommandType.FUN,
     arguments = PERSON.toSingletonImmutableList()
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.guild
