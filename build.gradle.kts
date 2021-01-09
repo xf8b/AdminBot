@@ -14,6 +14,7 @@ plugins {
 infix fun Project.property(name: String): Any = this.findProperty(name)!!
 
 group = project property "mavenGroup"
+base.archivesBaseName = (project property "projectName") as String
 version = project property "currentVersion"
 
 repositories {
