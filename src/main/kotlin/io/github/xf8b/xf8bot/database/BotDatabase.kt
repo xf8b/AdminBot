@@ -19,7 +19,6 @@
 
 package io.github.xf8b.xf8bot.database
 
-import com.google.crypto.tink.KeysetHandle
 import io.github.xf8b.xf8bot.util.toMono
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.spi.Connection
@@ -27,7 +26,7 @@ import io.r2dbc.spi.ValidationDepth
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 
-class BotDatabase(private val connectionPool: ConnectionPool, private val keySetHandle: KeysetHandle?) : Database {
+class BotDatabase(private val connectionPool: ConnectionPool/*, private val keySetHandle: KeysetHandle?*/) : Database {
     init {
         connectAndExecute<Void> { connection ->
             connection.createStatement(
@@ -67,19 +66,20 @@ class BotDatabase(private val connectionPool: ConnectionPool, private val keySet
         }.block()
     }
 
-    private fun <T> connectAndExecute(run: (Connection) -> Mono<T>) = connectionPool.create().flatMap { connection ->
-        run(connection).flatMap { result ->
-            connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
-                if (connected) {
-                    connection.close().toMono().thenReturn(result)
-                } else {
-                    result.toMono()
+    private fun <T> connectAndExecute(run: (Connection) -> Mono<out T>) =
+        connectionPool.create().flatMap { connection ->
+            run(connection).flatMap { result ->
+                connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
+                    if (connected) {
+                        connection.close().toMono().thenReturn(result)
+                    } else {
+                        result.toMono()
+                    }
                 }
             }
         }
-    }
 
-    override fun <T> execute(action: DatabaseAction<T>): Mono<T> = connectAndExecute { connection ->
+    override fun <T> execute(action: DatabaseAction<T>): Mono<out T> = connectAndExecute { connection ->
         /*
         if (keySetHandle != null) {
             action.runEncrypted(connection, keySetHandle)

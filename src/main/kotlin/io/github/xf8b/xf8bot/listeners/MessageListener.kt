@@ -35,10 +35,9 @@ import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
 import io.github.xf8b.xf8bot.util.*
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.onErrorResume
 import reactor.kotlin.core.publisher.toFlux
-import reactor.kotlin.extra.bool.not
+import reactor.kotlin.extra.bool.logicalOr
 
 class MessageListener(
     private val xf8bot: Xf8bot,
@@ -67,24 +66,24 @@ class MessageListener(
         // FIXME: fix levels
 
         return /*handleLevels(event).thenEmpty(*/ foundCommand.flatMap { command ->
-            xf8bot.botDatabase
-                .execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
+            xf8bot.botDatabase.execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
                 .filter { it.isNotEmpty() }
                 .filterWhen { it[0].hasUpdatedRows }
-                .filterWhen { _ ->
+                .flatMap {
                     event.guild
                         .flatMap { PermissionUtil.getAdministratorLevel(xf8bot, it, event.member.get()) }
                         .map { it >= 4 }
-                        .filter { it }
-                        .switchIfEmpty(event.message.channel
-                            .flatMap {
-                                it.createMessage("Sorry, but this command has been disabled by an administrator.")
-                            }
-                            .thenReturn(false)) // we want it to NOT filter when it is disabled, to prevent onCommandFired from firing
-                        .not()
                 }
-                .switchIfEmpty(onCommandFired(event, command, content).cast())
-                .cast()
+                .defaultIfEmpty(true)
+                .flatMap { allowedToRun ->
+                    if (allowedToRun) {
+                        onCommandFired(event, command, content)
+                    } else {
+                        event.message.channel
+                            .flatMap { it.createMessage("Sorry, but this command has been disabled by an administrator.") }
+                            .then()
+                    }
+                }
         }
         // )
     }
@@ -92,18 +91,12 @@ class MessageListener(
     private fun findCommand(commandRequested: String, guildId: String): Mono<AbstractCommand> =
         commandRegistry.toFlux()
             .filterWhen { command ->
-                command.getNameWithPrefix(xf8bot, guildId).map {
-                    it.equals(commandRequested, ignoreCase = true)
-                }
+                command.getNameWithPrefix(xf8bot, guildId)
+                    .map { it.equals(commandRequested, ignoreCase = true) }
+                    .logicalOr(command.getAliasesWithPrefixes(xf8bot, guildId)
+                        .any { alias -> alias.equals(commandRequested, ignoreCase = true) })
             }
             .singleOrEmpty()
-            .switchIfEmpty(commandRegistry.toFlux()
-                .filterWhen { command ->
-                    command.getAliasesWithPrefixes(xf8bot, guildId).any { alias ->
-                        alias.equals(commandRequested, ignoreCase = true)
-                    }
-                }
-                .singleOrEmpty())
 
     /*
     private fun handleLevels(event: MessageCreateEvent): Mono<Void> = xf8bot.botDatabase

@@ -86,7 +86,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
     }
     val botDatabase = BotDatabase(
         ConnectionPool(
-            ConnectionPoolConfiguration.builder().connectionFactory(
+            ConnectionPoolConfiguration.builder(
                 PostgresqlConnectionFactory(
                     PostgresqlConnectionConfiguration.builder()
                         .host(botConfiguration.databaseHost)
@@ -98,7 +98,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
                 )
             ).build()
         ),
-        if (botConfiguration.encryptionEnabled) keySetHandle else null
+        // if (botConfiguration.encryptionEnabled) keySetHandle else null
     )
     val client = DiscordClient.create(botConfiguration.token)
         .gateway()
