@@ -21,6 +21,7 @@ package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
+import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
@@ -46,25 +47,25 @@ class PrefixCommand : AbstractCommand(
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.prefix.flatMap { previousPrefix ->
         val guildId = event.guildId.orElseThrow(::ThisShouldNotHaveBeenThrownException)
-        val newPrefix = event.getValueOfArgument(NEW_PREFIX)
+        val newPrefix = event.getValueOfArgument(NEW_PREFIX).toNullable()
 
         when {
             // reset prefix
-            newPrefix.isEmpty -> event.xf8bot.prefixCache
+            newPrefix == null -> event.xf8bot.prefixCache
                 .set(guildId, Xf8bot.DEFAULT_PREFIX)
                 .then(event.channel.flatMap {
                     it.createMessage("Successfully reset prefix.")
                 })
 
-            previousPrefix == newPrefix.get() -> event.channel.flatMap {
+            previousPrefix == newPrefix -> event.channel.flatMap {
                 it.createMessage("You can't set the prefix to the same thing, silly.")
             }
 
             // set prefix
             else -> event.xf8bot.prefixCache
-                .set(guildId, newPrefix.get())
+                .set(guildId, newPrefix)
                 .then(event.channel.flatMap {
-                    it.createMessage("Successfully set prefix from $previousPrefix to ${newPrefix.get()}.")
+                    it.createMessage("Successfully set prefix from $previousPrefix to $newPrefix.")
                 })
         }.then()
     }

@@ -72,12 +72,8 @@ import kotlin.system.exitProcess
 // TODO: create webhook for bans, warns, etc?
 class Xf8bot private constructor(private val botConfiguration: BotConfiguration) {
     val commandRegistry = CommandRegistry()
-    val version = Scanner(
-        Thread.currentThread()
-            .contextClassLoader
-            .getResourceAsStream("version.txt")
-            ?: error("The version file does not exist!")
-    ).use { SemanticVersion(it.nextLine()) }
+    val version = Scanner(resource("version.txt") ?: error("The version file does not exist!"))
+        .use { SemanticVersion(it.nextLine()) }
     private val keySetHandle = if (Files.exists(getUserDirAndResolve("encryption_keyset.json"))) {
         CleartextKeysetHandle.read(JsonKeysetReader.withPath(getUserDirAndResolve("encryption_keyset.json")))
     } else {
@@ -133,7 +129,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         .apply {
             configuration.frameBufferFactory = AudioFrameBufferFactory(::NonAllocatingAudioFrameBuffer)
         }
-        .also { AudioSourceManagers.registerRemoteSources(it) }
+        .also(AudioSourceManagers::registerRemoteSources)
 
     companion object {
         const val DEFAULT_PREFIX = ">"

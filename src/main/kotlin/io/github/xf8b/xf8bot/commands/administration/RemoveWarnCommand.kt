@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
-import io.github.xf8b.utils.optional.toValueOrNull
+import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
@@ -65,8 +65,8 @@ class RemoveWarnCommand : AbstractCommand(
                     .then()
                     .cast())
         }
-        val reason = event.getValueOfFlag(REASON).toValueOrNull()
-        val warnId = event.getValueOfFlag(WARN_ID).toValueOrNull()
+        val reason = event.getValueOfFlag(REASON).toNullable()
+        val warnId = event.getValueOfFlag(WARN_ID).toNullable()
         val warns = memberIdMono
             .flatMap { memberId ->
                 event.xf8bot

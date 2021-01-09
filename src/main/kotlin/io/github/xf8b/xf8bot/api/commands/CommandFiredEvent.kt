@@ -23,8 +23,8 @@ import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.utils.optional.toOptional
-import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
@@ -41,8 +41,8 @@ class CommandFiredEvent(
     event.client,
     event.shardInfo,
     event.message,
-    event.guildId.map(Snowflake::asLong).toValueOrNull(),
-    event.member.toValueOrNull()
+    event.guildId.map(Snowflake::asLong).toNullable(),
+    event.member.toNullable()
 ) {
     val prefix: Mono<String> get() = guildId.toMono().flatMap { xf8bot.prefixCache.get(it) }
     val channel: Mono<MessageChannel> get() = message.channel

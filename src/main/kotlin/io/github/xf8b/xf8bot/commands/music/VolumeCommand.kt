@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
-import io.github.xf8b.utils.optional.toValueOrNull
+import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
@@ -74,7 +74,7 @@ class VolumeCommand : AbstractCommand(
             event.xf8bot.audioPlayerManager,
             channel
         )
-        val volume = event.getValueOfArgument(VOLUME).toValueOrNull()
+        val volume = event.getValueOfArgument(VOLUME).toNullable()
 
         if (volume == null) {
             event.channel.flatMap {

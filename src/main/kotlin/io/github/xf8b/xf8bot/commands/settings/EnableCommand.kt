@@ -20,8 +20,8 @@
 package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.Range
+import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.utils.optional.toOptional
-import io.github.xf8b.utils.optional.toValueOrNull
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
@@ -51,7 +51,7 @@ class EnableCommand : AbstractCommand(
                     }
                     .toOptional()
             }
-            .toValueOrNull()
+            .toNullable()
 
         return event.channel.flatMap { channel ->
             if (command == null) {

@@ -19,6 +19,9 @@
 
 package io.github.xf8b.xf8bot.util
 
+import java.io.InputStream
 import java.nio.file.Path
 
 fun getUserDirAndResolve(other: String): Path = Path.of(System.getProperty("user.dir")).resolve(other)
+
+fun resource(path: String): InputStream? = Thread.currentThread().contextClassLoader.getResourceAsStream(path)
