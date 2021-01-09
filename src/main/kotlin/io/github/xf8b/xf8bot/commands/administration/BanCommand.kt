@@ -23,12 +23,12 @@ import com.google.common.collect.ImmutableList
 import discord4j.common.util.Snowflake
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
@@ -68,7 +68,7 @@ class BanCommand : AbstractCommand(
                     when {
                         level > 7 -> "The maximum amount of message delete days is 7!"
                         level < 0 -> "The minimum amount of message delete days is 0!"
-                        else -> throw ThisShouldNotHaveBeenThrownException()
+                        else -> throw UnexpectedException()
                     }
                 } catch (exception: NumberFormatException) {
                     Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE

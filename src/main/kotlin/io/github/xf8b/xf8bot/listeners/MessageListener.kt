@@ -23,6 +23,7 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.event.ReactiveEventAdapter
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.http.client.ClientException
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
@@ -31,7 +32,6 @@ import io.github.xf8b.xf8bot.api.commands.parsers.ArgumentCommandParser
 import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
 import org.slf4j.Logger
 import reactor.core.publisher.Mono
@@ -170,7 +170,7 @@ class MessageListener(
                         .flatMap { it.createMessage("Client exception happened while handling command: ${exception.status}: ${exception.errorResponse.get().fields}") }
                         .then()
                 }
-                .onErrorResume(ThisShouldNotHaveBeenThrownException::class) {
+                .onErrorResume(UnexpectedException::class) {
                     commandFiredEvent.channel
                         .flatMap { it.createMessage("Something has horribly gone wrong. Please report this to the bot developer with the log.") }
                         .then()
@@ -185,10 +185,12 @@ class MessageListener(
                 flagParseResult.isFailure() -> event.message.channel
                     .flatMap { it.createMessage(flagParseResult.errorMessage) }
                     .then()
+
                 argumentParseResult.isFailure() -> event.message.channel
                     .flatMap { it.createMessage(argumentParseResult.errorMessage) }
                     .then()
-                else -> throw ThisShouldNotHaveBeenThrownException()
+
+                else -> throw UnexpectedException()
             }
         }
     }

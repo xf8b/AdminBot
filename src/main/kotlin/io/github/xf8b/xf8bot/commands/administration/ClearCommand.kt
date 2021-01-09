@@ -24,11 +24,11 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.rest.util.Permission
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.Checks
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import io.github.xf8b.xf8bot.util.toSnowflake
@@ -67,7 +67,7 @@ class ClearCommand : AbstractCommand(
                     when {
                         amount < 2 -> "Sorry, but you cannot clear less than 2 messages."
                         amount > 500 -> "Sorry, but you cannot clear more than 500 messages."
-                        else -> throw ThisShouldNotHaveBeenThrownException()
+                        else -> throw UnexpectedException()
                     }
                 } catch (exception: NumberFormatException) {
                     Argument.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
@@ -77,7 +77,7 @@ class ClearCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
-        val amountToClear = event.getValueOfArgument(AMOUNT).orElseThrow(::ThisShouldNotHaveBeenThrownException)
+        val amountToClear = event.getValueOfArgument(AMOUNT).orElseThrow(::UnexpectedException)
         val messagesToDelete = event.channel
             .flatMapMany { it.getMessagesBefore(Instant.now().toSnowflake()) }
             .take(amountToClear.toLong())

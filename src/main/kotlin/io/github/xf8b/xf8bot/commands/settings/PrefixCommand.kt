@@ -21,12 +21,12 @@ package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import reactor.core.publisher.Mono
 
 class PrefixCommand : AbstractCommand(
@@ -46,7 +46,7 @@ class PrefixCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.prefix.flatMap { previousPrefix ->
-        val guildId = event.guildId.orElseThrow(::ThisShouldNotHaveBeenThrownException)
+        val guildId = event.guildId.orElseThrow(::UnexpectedException)
         val newPrefix = event.getValueOfArgument(NEW_PREFIX).toNullable()
 
         when {

@@ -26,6 +26,7 @@ import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Role
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.utils.sorting.sortByValue
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
@@ -38,7 +39,6 @@ import io.github.xf8b.xf8bot.database.actions.add.AddAdministratorRoleAction
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveAdministratorRoleAction
 import io.github.xf8b.xf8bot.database.actions.find.FindAdministratorRoleAction
 import io.github.xf8b.xf8bot.database.actions.find.GetGuildAdministratorRolesAction
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
 import io.github.xf8b.xf8bot.util.InputParsing.parseRoleId
 import io.github.xf8b.xf8bot.util.PermissionUtil.canMemberUseCommand
@@ -193,7 +193,7 @@ class AdministratorsCommand : AbstractCommand(
                     })
                     .then()
 
-                else -> throw ThisShouldNotHaveBeenThrownException()
+                else -> throw UnexpectedException()
             }
         }
     }
@@ -236,7 +236,7 @@ class AdministratorsCommand : AbstractCommand(
                     when {
                         level > 4 -> "The maximum administrator level you can assign is 4!"
                         level < 1 -> "The minimum administrator level you can assign is 1!"
-                        else -> throw ThisShouldNotHaveBeenThrownException()
+                        else -> throw UnexpectedException()
                     }
                 } catch (exception: NumberFormatException) {
                     Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE

@@ -24,10 +24,10 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.entity.Member
 import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.*
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
@@ -60,7 +60,7 @@ class MemberInfoCommand : AbstractCommand(
             event.guild,
             event.getValueOfArgument(MEMBER).orElse(
                 event.author
-                    .orElseThrow(::ThisShouldNotHaveBeenThrownException)
+                    .orElseThrow(::UnexpectedException)
                     .id
                     .asString()
             )

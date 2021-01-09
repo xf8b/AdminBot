@@ -23,12 +23,12 @@ import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 
@@ -57,7 +57,7 @@ class VolumeCommand : AbstractCommand(
                     when {
                         level > 400 -> "The maximum volume is 400!"
                         level < 0 -> "The minimum volume is 1!"
-                        else -> throw ThisShouldNotHaveBeenThrownException()
+                        else -> throw UnexpectedException()
                     }
                 } catch (exception: NumberFormatException) {
                     Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE

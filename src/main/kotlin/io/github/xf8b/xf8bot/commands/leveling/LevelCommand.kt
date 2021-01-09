@@ -42,7 +42,7 @@ class LevelCommand : AbstractCommand(
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.xf8bot.botDatabase
         .execute(GetXpAction(guildId = event.guildId.get(), memberId = event.member.get().id))
         .filter { it.isNotEmpty() }
-        .flatMap { it[0].map { row, _ -> row["xp", java.lang.Long::class.java] }.toMono() }
+        .flatMap { it[0].map { row, _ -> row["xp", Long::class.javaObjectType] }.toMono() }
         .cast<Long>()
         .flatMap { xp ->
             event.channel.flatMap {

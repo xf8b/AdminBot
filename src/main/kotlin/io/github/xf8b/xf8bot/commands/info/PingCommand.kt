@@ -19,9 +19,9 @@
 
 package io.github.xf8b.xf8bot.commands.info
 
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import reactor.core.publisher.Mono
 import java.time.temporal.ChronoUnit
 
@@ -35,7 +35,7 @@ class PingCommand : AbstractCommand(
         .flatMap { message ->
             val gatewayPing = event.client
                 .getGatewayClient(event.shardInfo.index)
-                .orElseThrow { ThisShouldNotHaveBeenThrownException() }
+                .orElseThrow(::UnexpectedException)
                 .responseTime
                 .toMillis()
             val ping = event.message.timestamp.until(message.timestamp, ChronoUnit.MILLIS)

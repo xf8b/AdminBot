@@ -20,15 +20,14 @@
 package io.github.xf8b.xf8bot.commands.other
 
 import com.google.common.collect.Range
+import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
-import io.github.xf8b.xf8bot.exceptions.ThisShouldNotHaveBeenThrownException
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
 import java.util.concurrent.ThreadLocalRandom
 
-// doesn't actually do anything, only exists because i want it to be in help command
 class SlapCommand : AbstractCommand(
     name = "\${prefix}slap",
     description = """
@@ -45,12 +44,14 @@ class SlapCommand : AbstractCommand(
         .flatMap { selfDisplayName ->
             var senderUsername = event.member.get().displayName
             var personToSlap = event.getValueOfArgument(PERSON)
-                .orElseThrow(::ThisShouldNotHaveBeenThrownException)
+                .orElseThrow(::UnexpectedException)
             val itemToUse = ITEMS[ThreadLocalRandom.current().nextInt(ITEMS.size)]
+
             if (personToSlap.equals(selfDisplayName, ignoreCase = true)) {
                 personToSlap = senderUsername
                 senderUsername = selfDisplayName
             }
+
             event.channel.flatMap {
                 it.createMessage("$senderUsername slapped $personToSlap with a $itemToUse!")
             }
@@ -62,6 +63,7 @@ class SlapCommand : AbstractCommand(
             name = "person",
             index = Range.atLeast(1)
         )
+
         val ITEMS = arrayOf(
             "large bat",
             "large trout",

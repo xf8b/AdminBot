@@ -48,9 +48,7 @@ class InfoCommand : AbstractCommand(
                     field("Current Version", event.xf8bot.version.toStringVersion(), inline = true)
                     field(
                         "Build Metadata",
-                        event.xf8bot
-                            .version
-                            .buildMetadata
+                        event.xf8bot.version.buildMetadata
                             .takeUnless(String::isBlank)
                             ?: "No build metadata",
                         inline = true
@@ -65,12 +63,16 @@ class InfoCommand : AbstractCommand(
 
                     field("Current Prefix", "`$prefix`", inline = false)
 
-                    field("Discord Framework", "Discord4J (https://discord4j.com)", inline = true)
+                    field("Discord Framework", "[Discord4J](https://discord4j.com)", inline = true)
                     field("Discord4J Version", "3.2.0-SNAPSHOT", inline = true)
 
                     field("Total Amount of Commands", event.xf8bot.commandRegistry.size.toString(), inline = false)
 
-                    field("Documentation", "https://xf8b.github.io/documentation/xf8bot/", inline = true)
+                    field(
+                        "Documentation",
+                        "[Website](https://xf8b.github.io/documentation/xf8bot/)",
+                        inline = true
+                    )
                     field("GitHub Repository", "https://github.com/xf8b/xf8bot/", inline = true)
 
                     footer(
