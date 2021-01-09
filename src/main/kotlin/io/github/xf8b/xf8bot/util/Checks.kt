@@ -144,7 +144,7 @@ object Checks {
     ): Mono<Boolean> = when {
         AbstractCommand.ExecutionChecks.IS_BOT_ADMINISTRATOR in command.disabledChecks -> true.toMono() // ignore if check is disabled
         command.botAdministratorOnly && !xf8bot.isBotAdministrator(member.id) -> channel.toMono()
-            .flatMap { it.createMessage("Sorry, you aren't a administrator of xf8bot.") }
+            .flatMap { it.createMessage("Sorry, you aren't an administrator of xf8bot.") }
             .thenReturn(false)
         else -> true.toMono()
     }
