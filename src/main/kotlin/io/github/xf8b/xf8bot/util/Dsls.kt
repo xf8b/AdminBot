@@ -34,7 +34,7 @@ import java.time.Instant
 import java.util.function.Consumer
 
 class MessageCreateDsl : Consumer<MessageCreateSpec> {
-    private val actions: MutableList<MessageCreateSpec.() -> MessageCreateSpec> = ArrayList()
+    private val actions = mutableListOf<MessageCreateSpec.() -> Unit>()
 
     fun content(content: String) {
         actions.add { setContent(content) }
@@ -69,91 +69,103 @@ class MessageCreateDsl : Consumer<MessageCreateSpec> {
         actions.add { addFileSpoiler(fileName, inputStream) }
     }
 
-    /**
-     * Performs this operation on the given argument.
-     *
-     * @param t the input argument
-     */
     override fun accept(t: MessageCreateSpec) {
         for (action in actions) action(t)
     }
 }
 
 class EmbedCreateDsl : Consumer<EmbedCreateSpec> {
-    private val actions: MutableList<EmbedCreateSpec.() -> EmbedCreateSpec> = ArrayList()
+    private val actions = mutableListOf<EmbedCreateSpec.() -> Unit>()
 
-    fun title(title: String) = actions.add { setTitle(title) }.let { }
+    fun title(title: String) {
+        actions.add { setTitle(title) }
+    }
 
-    fun url(url: String) = actions.add { setUrl(url) }.let { }
+    fun url(url: String) {
+        actions.add { setUrl(url) }
+    }
 
-    fun description(description: String) = actions.add { setDescription(description) }.let { }
+    fun description(description: String) {
+        actions.add { setDescription(description) }
+    }
 
-    fun footer(footer: String, iconUrl: String? = null) = actions.add { setFooter(footer, iconUrl) }.let { }
+    fun footer(footer: String, iconUrl: String? = null) {
+        actions.add { setFooter(footer, iconUrl) }
+    }
 
-    fun field(name: String, value: String, inline: Boolean) = actions.add { addField(name, value, inline) }.let { }
+    fun field(name: String, value: String, inline: Boolean) {
+        actions.add { addField(name, value, inline) }
+    }
 
-    fun color(color: Color) = actions.add { setColor(color) }.let { }
+    fun color(color: Color) {
+        actions.add { setColor(color) }
+    }
 
-    fun timestamp(timestamp: Instant = Instant.now()) = actions.add { setTimestamp(timestamp) }.let { }
+    fun timestamp(timestamp: Instant = Instant.now()) {
+        actions.add { setTimestamp(timestamp) }
+    }
 
-    fun author(name: String, url: String? = null, iconUrl: String? = null) = actions.add {
-        setAuthor(name, url, iconUrl)
-    }.let { }
+    fun author(name: String, url: String? = null, iconUrl: String? = null) {
+        actions.add { setAuthor(name, url, iconUrl) }
+    }
 
-    fun image(url: String) = actions.add { setImage(url) }.let { }
+    fun image(url: String) {
+        actions.add { setImage(url) }
+    }
 
-    fun thumbnail(url: String) = actions.add { setThumbnail(url) }.let { }
+    fun thumbnail(url: String) {
+        actions.add { setThumbnail(url) }
+    }
 
-    /**
-     * Performs this operation on the given argument.
-     *
-     * @param t the input argument
-     */
-    override fun accept(t: EmbedCreateSpec) = actions.forEach { it(t) }
+    override fun accept(t: EmbedCreateSpec) {
+        for (action in actions) action(t)
+    }
 }
 
 class WebhookExecuteDsl : Consumer<WebhookExecuteSpec> {
-    private val actions: MutableList<WebhookExecuteSpec.() -> WebhookExecuteSpec> = ArrayList()
+    private val actions = mutableListOf<WebhookExecuteSpec.() -> Unit>()
 
-    fun content(content: String) = actions.add { setContent(content) }.let { }
+    fun content(content: String) {
+        actions.add { setContent(content) }
+    }
 
-    fun tts(tts: Boolean) = actions.add { setTts(tts) }.let { }
+    fun tts(tts: Boolean) {
+        actions.add { setTts(tts) }
+    }
 
-    fun file(fileName: String, inputStream: InputStream) = actions.add {
-        addFile(fileName, inputStream)
-    }.let { }
+    fun file(fileName: String, inputStream: InputStream) {
+        actions.add { addFile(fileName, inputStream) }
+    }
 
-    fun spoilerFile(fileName: String, inputStream: InputStream) = actions.add {
-        addFileSpoiler(fileName, inputStream)
-    }.let { }
+    fun spoilerFile(fileName: String, inputStream: InputStream) {
+        actions.add { addFileSpoiler(fileName, inputStream) }
+    }
 
-    fun embed(consumer: EmbedCreateDsl.() -> Unit) = actions.add { addEmbed(EmbedCreateDsl().apply(consumer)) }.let { }
+    fun embed(consumer: EmbedCreateDsl.() -> Unit) {
+        actions.add { addEmbed(EmbedCreateDsl().apply(consumer)) }
+    }
 
-    fun username(username: String) = actions.add { setUsername(username) }.let { }
+    fun username(username: String) {
+        actions.add { setUsername(username) }
+    }
 
-    fun avatarUrl(url: String) = actions.add { setAvatarUrl(url) }.let { }
+    fun avatarUrl(url: String) {
+        actions.add { setAvatarUrl(url) }
+    }
 
-    fun allowedMentions(allowedMentions: AllowedMentions) = actions.add {
-        setAllowedMentions(allowedMentions)
-    }.let { }
+    fun allowedMentions(allowedMentions: AllowedMentions) {
+        actions.add { setAllowedMentions(allowedMentions) }
+    }
 
-    override fun accept(t: WebhookExecuteSpec) = actions.forEach { it(t) }
+    override fun accept(t: WebhookExecuteSpec) {
+        for (action in actions) action(t)
+    }
 }
 
-fun MessageChannel.createMessageDsl(dslClosure: MessageCreateDsl.() -> Unit): Mono<Message> {
-    val dsl = MessageCreateDsl()
-    dslClosure(dsl)
-    return createMessage(dsl)
-}
+fun MessageChannel.createMessageDsl(init: MessageCreateDsl.() -> Unit): Mono<Message> =
+    createMessage(MessageCreateDsl().apply(init))
 
-fun MessageChannel.createEmbedDsl(dslClosure: EmbedCreateDsl.() -> Unit): Mono<Message> {
-    val dsl = EmbedCreateDsl()
-    dslClosure(dsl)
-    return createEmbed(dsl)
-}
+fun MessageChannel.createEmbedDsl(init: EmbedCreateDsl.() -> Unit): Mono<Message> =
+    createEmbed(EmbedCreateDsl().apply(init))
 
-fun Webhook.executeDsl(dslClosure: WebhookExecuteDsl.() -> Unit): Mono<Void> {
-    val dsl = WebhookExecuteDsl()
-    dslClosure(dsl)
-    return execute(dsl)
-}
+fun Webhook.executeDsl(init: WebhookExecuteDsl.() -> Unit): Mono<Void> = execute(WebhookExecuteDsl().apply(init))
