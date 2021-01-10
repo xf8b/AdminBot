@@ -90,7 +90,7 @@ class MemberInfoCommand : AbstractCommand(
                                     val (color, isOwner, administratorLevel, roles) = info
 
                                     title("Info For `${member.tagWithDisplayName}`")
-                                    author(name = displayName, iconUrl = avatarUrl)
+                                    author(displayName, avatarUrl)
 
                                     field("Username", member.username, inline = true)
                                     field("Nickname", member.nickname.orElse("No nickname"), inline = true)

@@ -82,8 +82,8 @@ class KickCommand : AbstractCommand(
                                     privateChannel.createEmbedDsl {
                                         title("You were kicked!")
 
-                                        field("Server", guild.name, false)
-                                        field("Reason", reason, false)
+                                        field("Server", guild.name, inline = false)
+                                        field("Reason", reason, inline = false)
 
                                         footer(
                                             "Kicked by: ${event.member.get().tagWithDisplayName}",

@@ -181,8 +181,8 @@ class AdministratorsCommand : AbstractCommand(
                             it.createEmbedDsl {
                                 title("Administrator Roles")
 
-                                field("Role", roleNames, true)
-                                field("Level", roleLevels, true)
+                                field("Role", roleNames, inline = true)
+                                field("Level", roleLevels, inline = true)
 
                                 color(Color.BLUE)
                             }

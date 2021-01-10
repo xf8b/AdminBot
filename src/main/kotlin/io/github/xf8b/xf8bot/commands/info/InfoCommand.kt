@@ -39,7 +39,7 @@ class InfoCommand : AbstractCommand(
         event.channel.flatMap { channel ->
             event.client.self.flatMap { self ->
                 channel.createEmbedDsl {
-                    author(self.username, "https://github.com/xf8b/xf8bot/", self.avatarUrl)
+                    author(self.username, url = "https://github.com/xf8b/xf8bot/", self.avatarUrl)
 
                     title("Information")
                     url("https://xf8b.github.io/documentation/xf8bot/")
@@ -77,7 +77,7 @@ class InfoCommand : AbstractCommand(
 
                     footer(
                         "Made by xf8b#9420 and open source contributors",
-                        "https://cdn.discordapp.com/avatars/332600665412993045/d1de6c46d40fcb4c6200f86cb5a073af.png"
+                        iconUrl = "https://cdn.discordapp.com/avatars/332600665412993045/d1de6c46d40fcb4c6200f86cb5a073af.png"
                     )
                     color(Color.BLUE)
                 }

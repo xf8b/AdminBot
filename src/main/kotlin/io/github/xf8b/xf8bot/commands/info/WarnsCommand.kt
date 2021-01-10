@@ -108,7 +108,7 @@ class WarnsCommand : AbstractCommand(
                                                 Warn ID: $warnId
                                                 Member Who Warned/Warner: $warner
                                                 """.trimIndent(),
-                                                true
+                                                inline = true
                                             )
                                         }
 

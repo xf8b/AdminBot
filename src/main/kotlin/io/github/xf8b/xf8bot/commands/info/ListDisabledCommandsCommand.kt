@@ -52,7 +52,7 @@ class ListDisabledCommandsCommand : AbstractCommand(
                 channel.createEmbedDsl {
                     title("Disabled Commands")
 
-                    field("Commands", disabledCommands.joinToString(separator = "\n") { "`$it`" }, false)
+                    field("Commands", disabledCommands.joinToString(separator = "\n") { "`$it`" }, inline = false)
 
                     footer("Disabled commands cannot be used by anyone, unless they have an administrator level of 4.")
                     color(Color.RED)

@@ -75,7 +75,7 @@ class HelpCommand : AbstractCommand(
                                         .replace(" ", "_")
                                 }`
                                 """.trimIndent(),
-                                false
+                                inline = false
                             )
                         }
                     }
@@ -222,13 +222,13 @@ class HelpCommand : AbstractCommand(
                 .toList()
                 .joinToString(separator = "\n") { "`${it.first}`: ${it.second}" }
 
-            field("Actions", actionsFormatted, false)
+            field("Actions", actionsFormatted, inline = false)
         }
 
         if (aliases.isNotEmpty()) {
             val aliasesFormatted = aliases.joinToString(separator = "\n") { "`$it`" }
 
-            field("Aliases", aliasesFormatted, false)
+            field("Aliases", aliasesFormatted, inline = false)
         }
     }
 

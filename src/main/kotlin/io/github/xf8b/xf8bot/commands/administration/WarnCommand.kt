@@ -90,8 +90,8 @@ class WarnCommand : AbstractCommand(
                                     it.createEmbedDsl {
                                         title("You were warned!")
 
-                                        field("Server", guild.name, false)
-                                        field("Reason", reason, false)
+                                        field("Server", guild.name, inline = false)
+                                        field("Reason", reason, inline = false)
 
                                         footer(
                                             "Warned by: ${event.member.get().tagWithDisplayName}",

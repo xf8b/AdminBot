@@ -46,10 +46,7 @@ class HostInformationCommand : AbstractCommand(
         val os = operatingSystemMXBean.name
         val osVersion = operatingSystemMXBean.version
         val availableProcessors = operatingSystemMXBean.availableProcessors
-        val cpuLoad = operatingSystemMXBean.cpuLoad.let {
-            if (it < 0) "Not available"
-            else "${it * 100}%"
-        }
+        val cpuLoad = operatingSystemMXBean.cpuLoad.let { if (it < 0) "Not available" else "${it * 100}%" }
         val freeMemory = operatingSystemMXBean.freeMemorySize / (1024 * 1024)
         val totalMemory = operatingSystemMXBean.totalMemorySize / (1024 * 1024)
         val freeSwap = operatingSystemMXBean.freeSwapSpaceSize / (1024 * 1024)
@@ -70,27 +67,26 @@ class HostInformationCommand : AbstractCommand(
                 url("https://stackoverflow.com/a/15733233")
                 description("Information about the computer that xf8bot is currently running on.")
 
-                field("OS", os, true)
-                field("OS Version", osVersion, true)
-                field("Arch", arch, true)
-                field("Uptime", uptime, false)
-                field("Available Processors", availableProcessors.toString(), false)
-                field("Memory", "${freeMemory}MB free, ${totalMemory}MB total", true)
-                field("Swap", "${freeSwap}MB free, ${totalSwap}MB total", true)
-                field("CPU Load", cpuLoad, false)
-                field("JVM Vendor", jvmVendor, true)
-                field("JVM Version", jvmVersion, true)
-                field("JVM Spec", "$jvmSpecName version $jvmSpecVersion by $jvmSpecVendor", false)
-                field("Thread Count", threadCount.toString(), false)
-                field("Heap Memory Usage", formatMemory(heapMemoryUsage), true)
-                field("Non Heap Memory Usage", formatMemory(nonHeapMemoryUsage), true)
+                field("OS", os, inline = true)
+                field("OS Version", osVersion, inline = true)
+                field("Arch", arch, inline = true)
+                field("Uptime", uptime, inline = false)
+                field("Available Processors", availableProcessors.toString(), inline = false)
+                field("Memory", "${freeMemory}MB free, ${totalMemory}MB total", inline = true)
+                field("Swap", "${freeSwap}MB free, ${totalSwap}MB total", inline = true)
+                field("CPU Load", cpuLoad, inline = false)
+                field("JVM Vendor", jvmVendor, inline = true)
+                field("JVM Version", jvmVersion, inline = true)
+                field("JVM Spec", "$jvmSpecName version $jvmSpecVersion by $jvmSpecVendor", inline = false)
+                field("Thread Count", threadCount.toString(), inline = false)
+                field("Heap Memory Usage", formatMemory(heapMemoryUsage), inline = true)
+                field("Non Heap Memory Usage", formatMemory(nonHeapMemoryUsage), inline = true)
 
                 footer(
                     """
                     i took some of the code for this from stack overflow
                     if you are a fellow java/kotlin programmer see https://stackoverflow.com/a/15733233
-                    """.trimIndent(),
-                    null
+                    """.trimIndent()
                 )
                 timestamp()
                 color(Color.BLUE)
