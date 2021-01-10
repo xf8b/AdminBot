@@ -16,16 +16,15 @@ base.archivesBaseName = project.property("projectName") as String
 version = project.property("currentVersion")!!
 
 repositories {
-    jcenter()
-    mavenCentral()
-    maven("https://jitpack.io")
-    maven("https://libraries.minecraft.net")
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
+    jcenter { name = "JCenter" }
+    mavenCentral { name = "Maven Central" }
+    maven("https://jitpack.io") { name = "Jitpack" }
+    maven("https://oss.sonatype.org/content/repositories/snapshots") { name = "Sonatype Snapshots" }
     // TODO: remove?
     // for discord4j 3.2.0
-    maven("https://repo.spring.io/milestone")
-    maven("https://repo.repsy.io/mvn/progamer28415/main")
-    maven("https://dl.bintray.com/kotlin/kotlin-eap")
+    maven("https://repo.spring.io/milestone") { name = "Spring" }
+    maven("https://repo.repsy.io/mvn/progamer28415/main") { name = "Repsy" }
+    maven("https://dl.bintray.com/kotlin/kotlin-eap") { name = "Kotlin Bintray" }
 }
 
 dependencies {
@@ -57,7 +56,7 @@ dependencies {
     // scripting
     implementation("org.codehaus.groovy:groovy-all:${project.findProperty("groovyVersion")}")
     // encryption
-    implementation("com.google.crypto.tink:tink:${project.property("tinkVersion")}")
+    // implementation("com.google.crypto.tink:tink:${project.property("tinkVersion")}")
     // util
     implementation("org.apache.commons:commons-text:${project.property("commonsTextVersion")}")
     implementation("net.jodah:typetools:${project.property("typeToolsVersion")}")

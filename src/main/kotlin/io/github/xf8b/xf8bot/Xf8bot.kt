@@ -24,12 +24,6 @@ import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.core.spi.FilterReply
 import com.beust.jcommander.JCommander
 import com.github.napstr.logback.DiscordAppender
-import com.google.crypto.tink.CleartextKeysetHandle
-import com.google.crypto.tink.JsonKeysetReader
-import com.google.crypto.tink.JsonKeysetWriter
-import com.google.crypto.tink.KeysetHandle
-import com.google.crypto.tink.aead.AeadConfig
-import com.google.crypto.tink.aead.AesGcmKeyManager
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrameBufferFactory
@@ -58,7 +52,6 @@ import io.r2dbc.postgresql.PostgresqlConnectionFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
-import java.nio.file.Files
 import java.util.*
 import kotlin.system.exitProcess
 
@@ -74,6 +67,8 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
     val commandRegistry = CommandRegistry()
     val version = Scanner(resource("version.txt") ?: error("The version file does not exist!"))
         .use { SemanticVersion(it.nextLine()) }
+
+    /*
     private val keySetHandle = if (Files.exists(getUserDirAndResolve("encryption_keyset.json"))) {
         CleartextKeysetHandle.read(JsonKeysetReader.withPath(getUserDirAndResolve("encryption_keyset.json")))
     } else {
@@ -84,6 +79,8 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
             )
         }
     }
+    */
+
     val botDatabase = BotDatabase(
         ConnectionPool(
             ConnectionPoolConfiguration.builder(
@@ -137,7 +134,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
 
         @JvmStatic
         fun main(vararg args: String) {
-            AeadConfig.register()
+            // AeadConfig.register()
             val classLoader = Thread.currentThread().contextClassLoader
             val url = classLoader.getResource("baseConfig.toml")
                 ?: throw NullPointerException("The base config file does not exist!")
