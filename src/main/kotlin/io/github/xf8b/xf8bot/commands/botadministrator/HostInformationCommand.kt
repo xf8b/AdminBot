@@ -46,7 +46,7 @@ class HostInformationCommand : AbstractCommand(
         val os = operatingSystemMxBean.name
         val osVersion = operatingSystemMxBean.version
         val availableProcessors = operatingSystemMxBean.availableProcessors
-        val cpuLoad = operatingSystemMxBean.cpuLoad.let { if (it < 0.0) "Not available" else "${it * 100.0}%" }
+        val cpuLoad = operatingSystemMxBean.cpuLoad * 100.0
         val freeMemory = operatingSystemMxBean.freeMemorySize.bytesToMegaBytes()
         val totalMemory = operatingSystemMxBean.totalMemorySize.bytesToMegaBytes()
         val freeSwap = operatingSystemMxBean.freeSwapSpaceSize.bytesToMegaBytes()
@@ -74,7 +74,7 @@ class HostInformationCommand : AbstractCommand(
                 field("Available Processors", availableProcessors.toString(), inline = false)
                 field("Memory", "${freeMemory}MB free, ${totalMemory}MB total", inline = true)
                 field("Swap", "${freeSwap}MB free, ${totalSwap}MB total", inline = true)
-                field("CPU Load", cpuLoad, inline = false)
+                field("CPU Load", "$cpuLoad%", inline = false)
                 field("JVM Vendor", jvmVendor, inline = true)
                 field("JVM Version", jvmVersion, inline = true)
                 field("JVM Spec", "$jvmSpecName version $jvmSpecVersion by $jvmSpecVendor", inline = false)
