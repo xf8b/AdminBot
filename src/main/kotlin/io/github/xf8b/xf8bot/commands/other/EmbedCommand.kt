@@ -33,7 +33,14 @@ import java.time.format.DateTimeParseException
 
 class EmbedCommand : AbstractCommand(
     name = "\${prefix}embed",
-    description = "Creates an embed in the current channel",
+    description = """
+    Creates an embed in the current channel.
+    Notes:
+    - Fields are separated by commas. Do not put any spaces before or after the commas.
+    - Fields are in the format <name>:<value>:<inline>. Inline is optional, and will default to `false`.
+    - Timestamps must follow ISO 8601.
+    - Color must be in decimal format. No hexadecimal allowed.
+    """.trimIndent(),
     commandType = CommandType.OTHER,
     flags = ImmutableList.of(TITLE, URL, DESCRIPTION, FIELDS, FOOTER, COLOR, IMAGE, THUMBNAIL, TIMESTAMP)
 ) {
