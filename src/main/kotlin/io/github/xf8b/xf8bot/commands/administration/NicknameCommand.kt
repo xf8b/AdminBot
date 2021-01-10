@@ -26,7 +26,7 @@ import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.Checks
-import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
+import io.github.xf8b.xf8bot.util.InputParsing
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
@@ -57,9 +57,9 @@ class NicknameCommand : AbstractCommand(
         val nickname = event[NICKNAME]
         val reset = nickname?.isBlank() ?: true
 
-        return parseUserId(event.guild, event[MEMBER]!!)
+        return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
             .switchIfEmpty(event.channel
-                .flatMap { it.createMessage("No member found!") }
+                .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky
                 .cast())
             .map(Snowflake::of)

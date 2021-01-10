@@ -30,7 +30,6 @@ import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.data.Warn
 import io.github.xf8b.xf8bot.database.actions.find.FindWarnsAction
 import io.github.xf8b.xf8bot.util.*
-import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import kotlinx.coroutines.reactor.mono
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
@@ -53,10 +52,11 @@ class WarnsCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
-        parseUserId(event.guild, event[MEMBER]!!)
+        InputParsing.parseUserId(event.guild, event[MEMBER]!!)
             .map(Long::toSnowflake)
-            .switchIfEmpty(event.channel
-                .flatMap { it.createMessage("No member found!") }
+            .switchIfEmpty(
+                event.channel
+                    .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->

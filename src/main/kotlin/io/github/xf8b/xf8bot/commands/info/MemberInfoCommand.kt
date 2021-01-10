@@ -22,7 +22,6 @@ package io.github.xf8b.xf8bot.commands.info
 import com.google.common.collect.Range
 import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
-import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
@@ -43,12 +42,10 @@ class MemberInfoCommand : AbstractCommand(
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet()
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
-        InputParsing.parseUserId(
-            event.guild,
-            event[MEMBER] ?: event.author.orElseThrow(::UnexpectedException).id.asString()
-        ).map(Long::toSnowflake)
+        InputParsing.parseUserId(event.guild, event[MEMBER] ?: event.author.get().id.asString())
+            .map(Long::toSnowflake)
             .switchIfEmpty(event.channel
-                .flatMap { it.createMessage("No member found!") }
+                .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->
@@ -89,7 +86,7 @@ class MemberInfoCommand : AbstractCommand(
                                 it.createEmbedDsl {
                                     val (color, isOwner, administratorLevel, roles) = info
 
-                                    title("Info For `${member.tagWithDisplayName}`")
+                                    title("Info For `${member.tag}`")
                                     author(displayName, avatarUrl)
 
                                     field("Username", member.username, inline = true)

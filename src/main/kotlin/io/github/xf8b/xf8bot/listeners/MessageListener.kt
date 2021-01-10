@@ -68,7 +68,7 @@ class MessageListener(
         return /*handleLevels(event).thenEmpty(*/ foundCommand.flatMap { command ->
             xf8bot.botDatabase.execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
                 .filter { it.isNotEmpty() }
-                .filterWhen { it[0].hasUpdatedRows }
+                .filterWhen { it[0].updatedRows }
                 .flatMap {
                     event.guild
                         .flatMap { PermissionUtil.getAdministratorLevel(xf8bot, it, event.member.get()) }

@@ -25,7 +25,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.rest.util.Color
-import io.github.xf8b.xf8bot.util.setTimestampToNow
+import io.github.xf8b.xf8bot.util.createEmbedDsl
 import org.apache.commons.lang3.time.DurationFormatUtils
 import reactor.core.publisher.Mono
 import kotlin.reflect.KMutableProperty0
@@ -43,20 +43,20 @@ class MusicAudioPlayerListener(
     }
 
     override fun onTrackStart(player: AudioPlayer, track: AudioTrack) {
-        messageCallback.invoke(messageChannelProperty.get().createEmbed {
-            it.setTitle("Now Playing")
-                .addField("Title", track.info.title, true)
-                .addField("Length", DurationFormatUtils.formatDurationHMS(track.info.length), true)
-                .addField("Author", track.info.author, true)
-                .setUrl(track.info.uri)
-                .setColor(Color.BLUE)
-                .setTimestampToNow()
+        messageCallback.invoke(messageChannelProperty.get().createEmbedDsl {
+            title("Now Playing")
+            url(track.info.uri)
+
+            field("Title", track.info.title, inline = true)
+            field("Length", DurationFormatUtils.formatDurationHMS(track.info.length), inline = true)
+            field("Author", track.info.author, inline = true)
+
+            color(Color.BLUE)
+            timestamp()
         })
     }
 
     override fun onTrackStuck(player: AudioPlayer, track: AudioTrack, thresholdMs: Long) {
-        messageCallback.invoke(
-            messageChannelProperty.get().createMessage("Track ${track.info.title} got stuck!")
-        )
+        messageCallback.invoke(messageChannelProperty.get().createMessage("Track ${track.info.title} got stuck!"))
     }
 }

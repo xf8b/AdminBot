@@ -25,8 +25,8 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveDisabledCommandAction
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
-import io.github.xf8b.xf8bot.util.hasUpdatedRows
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
+import io.github.xf8b.xf8bot.util.updatedRows
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import reactor.kotlin.extra.bool.logicalAnd
@@ -50,7 +50,7 @@ class EnableCommand : AbstractCommand(
             } else {
                 event.xf8bot.botDatabase
                     .execute(FindDisabledCommandAction(event.guildId.get(), command))
-                    .filterWhen { it.isNotEmpty().toMono().logicalAnd(it[0].hasUpdatedRows) }
+                    .filterWhen { it.isNotEmpty().toMono().logicalAnd(it[0].updatedRows) }
                     .flatMap {
                         event.xf8bot.botDatabase
                             .execute(RemoveDisabledCommandAction(event.guildId.get(), command))

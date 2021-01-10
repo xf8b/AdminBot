@@ -22,7 +22,6 @@ package io.github.xf8b.xf8bot.commands.settings
 import com.google.common.collect.ImmutableMap
 import com.google.common.collect.Range
 import discord4j.common.util.Snowflake
-import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Role
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
@@ -90,11 +89,18 @@ class AdministratorsCommand : AbstractCommand(
                             }
                         }.then()
                     }
-                    parseRoleId(event.guild, event[ROLE]!!).map(Long::toSnowflake)
+                    parseRoleId(event.guild, event[ROLE]!!)
+                        .map(Long::toSnowflake)
                         .switchIfEmpty(event.channel
                             .flatMap { it.createMessage("The role does not exist!") }
                             .then()
                             .cast())
+                        .onErrorResume<IndexOutOfBoundsException, Snowflake> {
+                            event.channel
+                                .flatMap { it.createMessage("There are multiple roles with that name! Please use the ID or a mention instead.") }
+                                .then()
+                                .cast()
+                        }
                         .flatMap { roleId: Snowflake ->
                             val level = event[ADMINISTRATOR_LEVEL]!!
 
@@ -102,7 +108,7 @@ class AdministratorsCommand : AbstractCommand(
                                 .execute(FindAdministratorRoleAction(guildId, roleId))
                                 .toMono()
                                 .filter { it.isNotEmpty() }
-                                .filterWhen { it[0].hasUpdatedRows }
+                                .filterWhen { it[0].updatedRows }
                                 .flatMap {
                                     event.channel.flatMap {
                                         it.createMessage("The role already has been added as an administrator role.")
@@ -135,17 +141,23 @@ class AdministratorsCommand : AbstractCommand(
                     }
 
                     parseRoleId(event.guild, event[ROLE]!!)
-                        .map { it.toSnowflake() }
+                        .map(Long::toSnowflake)
                         .switchIfEmpty(event.channel
                             .flatMap { it.createMessage("The role does not exist!") }
                             .then()
                             .cast())
+                        .onErrorResume<IndexOutOfBoundsException, Snowflake> {
+                            event.channel
+                                .flatMap { it.createMessage("There are multiple roles with that name! Please use the ID or a mention instead.") }
+                                .then()
+                                .cast()
+                        }
                         .flatMap { roleId: Snowflake ->
                             event.xf8bot.botDatabase
                                 .execute(FindAdministratorRoleAction(guildId, roleId))
                                 .toMono()
                                 .filter { it.isNotEmpty() }
-                                .filterWhen { it[0].hasUpdatedRows }
+                                .filterWhen { it[0].updatedRows }
                                 .flatMap {
                                     event.xf8bot.botDatabase
                                         .execute(RemoveAdministratorRoleAction(guildId, roleId))

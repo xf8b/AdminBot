@@ -27,11 +27,7 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveWarnAction
 import io.github.xf8b.xf8bot.database.actions.find.FindWarnsAction
-import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
-import io.github.xf8b.xf8bot.util.component1
-import io.github.xf8b.xf8bot.util.component2
-import io.github.xf8b.xf8bot.util.toImmutableList
-import io.github.xf8b.xf8bot.util.toSnowflake
+import io.github.xf8b.xf8bot.util.*
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
@@ -53,15 +49,15 @@ class RemoveWarnCommand : AbstractCommand(
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val memberIdMono = event[MEMBER].toMono().flatMap { member ->
-            parseUserId(event.guild, member)
+            InputParsing.parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
                 .switchIfEmpty(event.channel
-                    .flatMap { it.createMessage("The member does not exist!") }
-                    .then()
+                    .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
+                    .then() // yes i know, very hacky
                     .cast())
         }
         val warnerIdMono = event[WARNER].toMono().flatMap { member ->
-            parseUserId(event.guild, member)
+            InputParsing.parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
                 .switchIfEmpty(event.channel
                     .flatMap { it.createMessage("The member who warned does not exist!") }

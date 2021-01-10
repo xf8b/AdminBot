@@ -55,7 +55,7 @@ class KickCommand : AbstractCommand(
         return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
             .map { it.toSnowflake() }
             .switchIfEmpty(event.channel
-                .flatMap { it.createMessage("No member found!") }
+                .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId ->
@@ -87,7 +87,7 @@ class KickCommand : AbstractCommand(
                                         field("Reason", reason, inline = false)
 
                                         footer(
-                                            "Kicked by: ${event.member.get().tagWithDisplayName}",
+                                            "Kicked by: ${event.member.get().tag}",
                                             event.member.get().avatarUrl
                                         )
                                         timestamp()

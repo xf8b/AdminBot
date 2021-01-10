@@ -21,9 +21,7 @@ package io.github.xf8b.xf8bot.util
 
 import com.google.common.collect.ImmutableList
 import discord4j.common.util.Snowflake
-import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.User
-import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Permission
 import discord4j.rest.util.PermissionSet
 import io.r2dbc.spi.Result
@@ -36,12 +34,7 @@ import java.util.*
 import java.util.function.Function
 
 // extension fields
-val Member.tagWithDisplayName get() = "${this.displayName}#${this.discriminator}"
-
 val User.isNotBot get() = !isBot
-
-// extension functions
-fun EmbedCreateSpec.setTimestampToNow(): EmbedCreateSpec = this.setTimestamp(Instant.now())
 
 // to functions
 // to snowflake
@@ -66,11 +59,13 @@ fun <T> Triple<T, T, T>.toImmutableList(): ImmutableList<T> = ImmutableList.of(f
 
 // functions purely for using reified type parameters
 inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTypesOf(T::class.java)
+inline fun <reified E : Throwable, T> Mono<T>.onErrorResume(fallback: Function<in E, out Mono<out T>>): Mono<T> =
+    onErrorResume(E::class.java, fallback)
 
 // reduce boilerplate
 fun <I, R> functionReturning(returnedValue: R): Function<I, R> = Function { returnedValue }
 
-val Result.hasUpdatedRows: Mono<Boolean> get() = this.rowsUpdated.toMono().map { it != 0 }
+val Result.updatedRows: Mono<Boolean> get() = this.rowsUpdated.toMono().map { it != 0 }
 
 // increase clarity
 operator fun <A, B> Tuple2<A, B>.component1(): A = this.t1

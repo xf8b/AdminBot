@@ -84,7 +84,7 @@ class BanCommand : AbstractCommand(
         return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
             .map { it.toSnowflake() }
             .switchIfEmpty(event.channel
-                .flatMap { it.createMessage("No member found!") }
+                .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap { userId: Snowflake ->
@@ -119,7 +119,7 @@ class BanCommand : AbstractCommand(
                                             field("Reason", reason, inline = false)
 
                                             footer(
-                                                "Banned by: ${event.member.get().tagWithDisplayName}",
+                                                "Banned by: ${event.member.get().tag}",
                                                 event.member.get().avatarUrl
                                             )
                                             timestamp()

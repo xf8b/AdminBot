@@ -23,7 +23,7 @@ import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
-import io.github.xf8b.xf8bot.util.setTimestampToNow
+import io.github.xf8b.xf8bot.util.createEmbedDsl
 import reactor.core.publisher.Mono
 
 class QueueCommand : AbstractCommand(
@@ -42,22 +42,23 @@ class QueueCommand : AbstractCommand(
         event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {
                 event.channel.flatMap { channel ->
-                    channel.createEmbed { spec ->
-                        spec.setTitle("Queue")
-                            .setColor(Color.BLUE)
-                            .setTimestampToNow()
+                    channel.createEmbedDsl {
+                        title("Queue")
+
                         if (guildMusicHandler.musicTrackScheduler.queue.isEmpty()) {
-                            spec.addField("Songs", "No songs", true)
+                            field("Songs", "No songs", inline = true)
                         } else {
-                            spec.addField(
-                                "Songs", guildMusicHandler.musicTrackScheduler
-                                    .queue
+                            field(
+                                "Songs",
+                                guildMusicHandler.musicTrackScheduler.queue
                                     .take(6)
-                                    .joinToString(separator = "\n", limit = 6) {
-                                        "- ${it.info.title}"
-                                    }, true
+                                    .joinToString(separator = "\n") { "- ${it.info.title}" },
+                                inline = true
                             )
                         }
+
+                        color(Color.BLUE)
+                        timestamp()
                     }
                 }
             }

@@ -17,10 +17,6 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * Adapted from https://github.com/zp4rker/zlevels/blob/master/src/main/java/me/zp4rker/zlevels/util/LevelsUtil.java.
- * All credit goes to ZP4RKER.
- */
 package io.github.xf8b.xf8bot.util
 
 import java.util.concurrent.ThreadLocalRandom

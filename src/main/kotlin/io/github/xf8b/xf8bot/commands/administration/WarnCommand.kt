@@ -29,7 +29,6 @@ import io.github.xf8b.xf8bot.data.Warn
 import io.github.xf8b.xf8bot.database.actions.add.AddWarningAction
 import io.github.xf8b.xf8bot.util.*
 import io.github.xf8b.xf8bot.util.Checks.isClientExceptionWithCode
-import io.github.xf8b.xf8bot.util.InputParsing.parseUserId
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
@@ -65,10 +64,10 @@ class WarnCommand : AbstractCommand(
         val warnerId = event.member.orElseThrow().id
         val reason = event[REASON] ?: "No warn reason was provided."
 
-        return parseUserId(event.guild, event[MEMBER]!!)
+        return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
             .map { it.toSnowflake() }
             .switchIfEmpty(event.channel
-                .flatMap { it.createMessage("No member found!") }
+                .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky
                 .cast())
             .flatMap {
@@ -94,7 +93,7 @@ class WarnCommand : AbstractCommand(
                                         field("Reason", reason, inline = false)
 
                                         footer(
-                                            "Warned by: ${event.member.get().tagWithDisplayName}",
+                                            "Warned by: ${event.member.get().tag}",
                                             event.member.get().avatarUrl
                                         )
                                         timestamp()
