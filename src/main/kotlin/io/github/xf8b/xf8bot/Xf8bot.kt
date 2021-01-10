@@ -123,9 +123,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         .block()!!
     val prefixCache = PrefixCache(botDatabase)
     val audioPlayerManager = DefaultAudioPlayerManager()
-        .apply {
-            configuration.frameBufferFactory = AudioFrameBufferFactory(::NonAllocatingAudioFrameBuffer)
-        }
+        .apply { configuration.frameBufferFactory = AudioFrameBufferFactory(::NonAllocatingAudioFrameBuffer) }
         .also(AudioSourceManagers::registerRemoteSources)
 
     companion object {
@@ -204,9 +202,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
                 Mono.empty()
             }
         }
-        val disconnectPublisher = client.onDisconnect().doOnSuccess {
-            LOGGER.info("Successfully disconnected!")
-        }
+        val disconnectPublisher = client.onDisconnect().doOnSuccess { LOGGER.info("Successfully disconnected!") }
 
         return Mono.`when`(
             readyPublisher,

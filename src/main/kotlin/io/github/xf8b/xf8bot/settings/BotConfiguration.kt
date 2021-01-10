@@ -21,6 +21,7 @@ package io.github.xf8b.xf8bot.settings
 
 import com.beust.jcommander.Parameter
 import com.electronwill.nightconfig.core.file.CommentedFileConfig
+import com.electronwill.nightconfig.core.file.FileConfig
 import com.electronwill.nightconfig.core.file.FileNotFoundAction
 import discord4j.common.util.Snowflake
 import discord4j.core.shard.ShardingStrategy
@@ -81,48 +82,27 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) {
     init {
         // config is closed after this point
         // can still be used to get values, but save and load will throw an exception
-        config.use { it.load() }
-        token = config.getOrElse("required.token", env("BOT_TOKEN"))
-            ?: error("A bot token is required!")
-        activity = config
-            .getOrElse("required.activity", env("BOT_ACTIVITY")) ?: error("A activity is required!")
+        config.use(FileConfig::load)
+        token = config.getOrElse("required.token", env("BOT_TOKEN")) ?: error("A bot token is required!")
+        activity = config.getOrElse("required.activity", env("BOT_ACTIVITY")) ?: error("A activity is required!")
             .replace("\${defaultPrefix}", Xf8bot.DEFAULT_PREFIX)
-        logDumpWebhook = config.getOrElse("notRequired.logDumpWebhook", env("BOT_LOG_DUMP_WEBHOOK"))
-            ?: ""
-        botAdministrators = config
-            .get<List<Long>?>("required.admins")
-            ?.map(Long::toSnowflake)
-            ?: listOf(
-                env("BOT_ADMINISTRATOR")
-                    ?.toSnowflake()
-                    ?: error("Bot administrator(s) are required!")
-            )
+        logDumpWebhook = config.getOrElse("notRequired.logDumpWebhook", env("BOT_LOG_DUMP_WEBHOOK")) ?: ""
+        botAdministrators = config.get<List<Long>?>("required.admins")?.map(Long::toSnowflake)
+            ?: listOf(env("BOT_ADMINISTRATOR")?.toSnowflake() ?: error("Bot administrator(s) are required!"))
         shardingStrategy = ShardingStrategyConverter().convert(
-            config.getOrElse(
-                "required.sharding",
-                env("BOT_SHARDING_STRATEGY")
-            ) ?: error("A sharding strategy is required!")
+            config.getOrElse("required.sharding", env("BOT_SHARDING_STRATEGY"))
+                ?: error("A sharding strategy is required!")
         )
-        databaseHost = config.getOrElse(
-            "required.database.host",
-            env("BOT_DATABASE_HOST")
-        ) ?: error("A database host is required!")
-        databasePort = config.getOrElse(
-            "required.database.port",
-            env("BOT_DATABASE_PORT")?.toInt()
-        ) ?: error("A database port is required!")
-        databaseUsername = config.getOrElse(
-            "required.database.username",
-            env("BOT_DATABASE_USERNAME")
-        ) ?: error("A database username is required!")
-        databasePassword = config.getOrElse(
-            "required.database.password",
-            env("BOT_DATABASE_PASSWORD")
-        ) ?: error("A database password is required!")
-        databaseDatabase = config.getOrElse(
-            "required.database.database",
-            env("BOT_DATABASE_DATABASE")
-        ) ?: error("A database database is required!")
+        databaseHost = config.getOrElse("required.database.host", env("BOT_DATABASE_HOST"))
+            ?: error("A database host is required!")
+        databasePort = config.getOrElse("required.database.port", env("BOT_DATABASE_PORT")?.toInt())
+            ?: error("A database port is required!")
+        databaseUsername = config.getOrElse("required.database.username", env("BOT_DATABASE_USERNAME"))
+            ?: error("A database username is required!")
+        databasePassword = config.getOrElse("required.database.password", env("BOT_DATABASE_PASSWORD"))
+            ?: error("A database password is required!")
+        databaseDatabase = config.getOrElse("required.database.database", env("BOT_DATABASE_DATABASE"))
+            ?: error("A database database is required!")
         encryptionEnabled = config.getOrElse(
             "required.database.enableEncryption",
             env("BOT_ENCRYPTION_ENABLED")?.toBoolean()
