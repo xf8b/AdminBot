@@ -38,28 +38,28 @@ class HostInformationCommand : AbstractCommand(
     botAdministratorOnly = true
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean() as OperatingSystemMXBean
-        val runtimeMXBean = ManagementFactory.getRuntimeMXBean()
-        val memoryMXBean = ManagementFactory.getMemoryMXBean()
-        val threadMXBean = ManagementFactory.getThreadMXBean()
-        val arch = operatingSystemMXBean.arch
-        val os = operatingSystemMXBean.name
-        val osVersion = operatingSystemMXBean.version
-        val availableProcessors = operatingSystemMXBean.availableProcessors
-        val cpuLoad = operatingSystemMXBean.cpuLoad.let { if (it < 0) "Not available" else "${it * 100}%" }
-        val freeMemory = operatingSystemMXBean.freeMemorySize / (1024 * 1024)
-        val totalMemory = operatingSystemMXBean.totalMemorySize / (1024 * 1024)
-        val freeSwap = operatingSystemMXBean.freeSwapSpaceSize / (1024 * 1024)
-        val totalSwap = operatingSystemMXBean.totalSwapSpaceSize / (1024 * 1024)
-        val uptime = DurationFormatUtils.formatDurationHMS(runtimeMXBean.uptime)
-        val jvmVendor = runtimeMXBean.vmVendor
-        val jvmVersion = runtimeMXBean.vmVersion
-        val jvmSpecName = runtimeMXBean.specName
-        val jvmSpecVendor = runtimeMXBean.specVendor
-        val jvmSpecVersion = runtimeMXBean.specVersion
-        val heapMemoryUsage = memoryMXBean.heapMemoryUsage
-        val nonHeapMemoryUsage = memoryMXBean.nonHeapMemoryUsage
-        val threadCount = threadMXBean.threadCount
+        val operatingSystemMxBean = ManagementFactory.getOperatingSystemMXBean() as OperatingSystemMXBean
+        val runtimeMxBean = ManagementFactory.getRuntimeMXBean()
+        val memoryMxBean = ManagementFactory.getMemoryMXBean()
+        val threadMxBean = ManagementFactory.getThreadMXBean()
+        val arch = operatingSystemMxBean.arch
+        val os = operatingSystemMxBean.name
+        val osVersion = operatingSystemMxBean.version
+        val availableProcessors = operatingSystemMxBean.availableProcessors
+        val cpuLoad = operatingSystemMxBean.cpuLoad.let { if (it < 0.0) "Not available" else "${it * 100.0}%" }
+        val freeMemory = operatingSystemMxBean.freeMemorySize.bytesToMegaBytes()
+        val totalMemory = operatingSystemMxBean.totalMemorySize.bytesToMegaBytes()
+        val freeSwap = operatingSystemMxBean.freeSwapSpaceSize.bytesToMegaBytes()
+        val totalSwap = operatingSystemMxBean.totalSwapSpaceSize.bytesToMegaBytes()
+        val uptime = DurationFormatUtils.formatDurationHMS(runtimeMxBean.uptime)
+        val jvmVendor = runtimeMxBean.vmVendor
+        val jvmVersion = runtimeMxBean.vmVersion
+        val jvmSpecName = runtimeMxBean.specName
+        val jvmSpecVendor = runtimeMxBean.specVendor
+        val jvmSpecVersion = runtimeMxBean.specVersion
+        val heapMemoryUsage = memoryMxBean.heapMemoryUsage
+        val nonHeapMemoryUsage = memoryMxBean.nonHeapMemoryUsage
+        val threadCount = threadMxBean.threadCount
 
         return event.channel.flatMap { channel ->
             channel.createEmbedDsl {
@@ -79,8 +79,8 @@ class HostInformationCommand : AbstractCommand(
                 field("JVM Version", jvmVersion, inline = true)
                 field("JVM Spec", "$jvmSpecName version $jvmSpecVersion by $jvmSpecVendor", inline = false)
                 field("Thread Count", threadCount.toString(), inline = false)
-                field("Heap Memory Usage", formatMemory(heapMemoryUsage), inline = true)
-                field("Non Heap Memory Usage", formatMemory(nonHeapMemoryUsage), inline = true)
+                field("Heap Memory Usage", heapMemoryUsage.formatted(), inline = true)
+                field("Non Heap Memory Usage", nonHeapMemoryUsage.formatted(), inline = true)
 
                 footer(
                     """
@@ -95,15 +95,13 @@ class HostInformationCommand : AbstractCommand(
     }
 
     companion object {
-        private fun formatMemory(memoryUsage: MemoryUsage): String {
-            val usedMemory = bytesToMegaBytes(memoryUsage.used)
-            val maxMemory = memoryUsage.max.takeUnless((-1L)::equals)
-                ?.let { "${it / (1024 * 1024)}MB maximum" }
-                ?: "no maximum"
+        private fun MemoryUsage.formatted(): String {
+            val usedMemory = this.used.bytesToMegaBytes()
+            val maxMemory = if (this.max == -1L) "no maximum" else "${this.max.bytesToMegaBytes()}MB maximum"
 
             return "${usedMemory}MB used out of $maxMemory"
         }
 
-        private fun bytesToMegaBytes(bytes: Long) = bytes / (1000 * 1000)
+        private fun Long.bytesToMegaBytes() = this / (1000 * 1000)
     }
 }

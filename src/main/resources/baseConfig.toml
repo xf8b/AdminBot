@@ -15,6 +15,5 @@ database = "xf8bot"
 # not implemented yet however, so this is useless
 enableEncryption = true
 [notRequired]
-# Not required
 # Note: If you don't have a webhook for the log dump, leave the field as "" or remove it.
 logDumpWebhook = "https://discordapp.com/api/webhooks/please/fillinwithwebhook"
