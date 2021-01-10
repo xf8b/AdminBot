@@ -104,6 +104,6 @@ class HostInformationCommand : AbstractCommand(
             return "${usedMemory}MB used out of $maxMemory"
         }
 
-        private fun bytesToMegaBytes(bytes: Long) = bytes / (1024 * 1024)
+        private fun bytesToMegaBytes(bytes: Long) = bytes / (1000 * 1000)
     }
 }
