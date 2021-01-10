@@ -51,7 +51,7 @@ open class DeleteAction(
             .then()
     }
 
-    override fun run(connection: Connection): Mono<Void> = delete(connection, criteria)
+    override fun invoke(connection: Connection): Mono<Void> = delete(connection, criteria)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {

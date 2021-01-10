@@ -45,7 +45,7 @@ class MemberInfoCommand : AbstractCommand(
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
         InputParsing.parseUserId(
             event.guild,
-            event.getValueOfArgument(MEMBER).orElse(event.author.orElseThrow(::UnexpectedException).id.asString())
+            event[MEMBER] ?: event.author.orElseThrow(::UnexpectedException).id.asString()
         ).map(Long::toSnowflake)
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }

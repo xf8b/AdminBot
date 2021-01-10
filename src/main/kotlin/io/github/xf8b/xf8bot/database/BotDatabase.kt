@@ -19,7 +19,6 @@
 
 package io.github.xf8b.xf8bot.database
 
-import io.github.xf8b.xf8bot.util.toMono
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.spi.Connection
 import io.r2dbc.spi.ValidationDepth
@@ -73,19 +72,11 @@ class BotDatabase(private val connectionPool: ConnectionPool/*, private val keyS
                     if (connected) {
                         connection.close().toMono().thenReturn(result)
                     } else {
-                        result.toMono()
+                        result!!.toMono()
                     }
                 }
             }
         }
 
-    override fun <T> execute(action: DatabaseAction<T>): Mono<out T> = connectAndExecute { connection ->
-        /*
-        if (keySetHandle != null) {
-            action.runEncrypted(connection, keySetHandle)
-        } else {
-        */
-        action.run(connection)
-        // }
-    }
+    override fun <T> execute(action: DatabaseAction<T>): Mono<out T> = connectAndExecute(action)
 }

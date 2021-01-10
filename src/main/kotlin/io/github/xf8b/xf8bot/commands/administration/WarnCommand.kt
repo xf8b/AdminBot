@@ -63,9 +63,9 @@ class WarnCommand : AbstractCommand(
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val warnerId = event.member.orElseThrow().id
-        val reason = event.getValueOfFlag(REASON).orElse("No warn reason was provided.")
+        val reason = event[REASON] ?: "No warn reason was provided."
 
-        return parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
+        return parseUserId(event.guild, event[MEMBER]!!)
             .map { it.toSnowflake() }
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }

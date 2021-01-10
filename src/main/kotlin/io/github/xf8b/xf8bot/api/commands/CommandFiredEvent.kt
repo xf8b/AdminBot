@@ -19,12 +19,10 @@
 
 package io.github.xf8b.xf8bot.api.commands
 
-import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import io.github.xf8b.utils.optional.toNullable
-import io.github.xf8b.utils.optional.toOptional
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
@@ -41,28 +39,18 @@ class CommandFiredEvent(
     event.client,
     event.shardInfo,
     event.message,
-    event.guildId.map(Snowflake::asLong).toNullable(),
+    event.guildId.toNullable()?.asLong(),
     event.member.toNullable()
 ) {
     val prefix: Mono<String> get() = guildId.toMono().flatMap { xf8bot.prefixCache.get(it) }
     val channel: Mono<MessageChannel> get() = message.channel
     val author: Optional<User> get() = message.author
 
+    @Suppress("UNCHECKED_CAST")
     operator fun <T : Any> get(flag: Argument<T>) = argumentToValueMap[flag] as T?
 
+    @Suppress("UNCHECKED_CAST")
     operator fun <T : Any> get(flag: Flag<T>) = flagToValueMap[flag] as T?
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getValueOfFlagNullable(flag: Flag<T>) = flagToValueMap[flag] as T?
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getValueOfFlag(flag: Flag<T>) = getValueOfFlagNullable(flag).toOptional()
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getValueOfArgumentNullable(argument: Argument<T>) = argumentToValueMap[argument] as T?
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getValueOfArgument(argument: Argument<T>) = getValueOfArgumentNullable(argument).toOptional()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -96,5 +84,5 @@ class CommandFiredEvent(
         return result
     }
 
-    override fun toString() = "CommandFiredContext(message=$message, guildId=$guildId, member=$member)"
+    override fun toString() = "CommandFiredEvent(message=$message, guildId=$guildId, member=$member)"
 }

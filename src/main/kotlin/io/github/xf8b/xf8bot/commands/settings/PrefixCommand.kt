@@ -22,7 +22,6 @@ package io.github.xf8b.xf8bot.commands.settings
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import io.github.xf8b.utils.exceptions.UnexpectedException
-import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
@@ -33,7 +32,6 @@ class PrefixCommand : AbstractCommand(
     name = "\${prefix}prefix",
     description = "Sets the prefix to the specified prefix.",
     commandType = CommandType.SETTINGS,
-    minimumAmountOfArgs = 1,
     arguments = ImmutableList.of(NEW_PREFIX),
     administratorLevelRequired = 4
 ) {
@@ -47,15 +45,13 @@ class PrefixCommand : AbstractCommand(
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.prefix.flatMap { previousPrefix ->
         val guildId = event.guildId.orElseThrow(::UnexpectedException)
-        val newPrefix = event.getValueOfArgument(NEW_PREFIX).toNullable()
+        val newPrefix = event[NEW_PREFIX]
 
         when {
             // reset prefix
             newPrefix == null -> event.xf8bot.prefixCache
                 .set(guildId, Xf8bot.DEFAULT_PREFIX)
-                .then(event.channel.flatMap {
-                    it.createMessage("Successfully reset prefix.")
-                })
+                .then(event.channel.flatMap { it.createMessage("Successfully reset prefix.") })
 
             previousPrefix == newPrefix -> event.channel.flatMap {
                 it.createMessage("You can't set the prefix to the same thing, silly.")
@@ -64,9 +60,7 @@ class PrefixCommand : AbstractCommand(
             // set prefix
             else -> event.xf8bot.prefixCache
                 .set(guildId, newPrefix)
-                .then(event.channel.flatMap {
-                    it.createMessage("Successfully set prefix from $previousPrefix to $newPrefix.")
-                })
+                .then(event.channel.flatMap { it.createMessage("Successfully set prefix from $previousPrefix to $newPrefix.") })
         }.then()
     }
 }

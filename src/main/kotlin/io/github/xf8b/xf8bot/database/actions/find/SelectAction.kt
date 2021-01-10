@@ -70,7 +70,7 @@ open class SelectAction(
             .cast()
     }
 
-    override fun run(connection: Connection) = select(connection, selectedFields, criteria)
+    override fun invoke(connection: Connection) = select(connection, selectedFields, criteria)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<List<Result>> {

@@ -20,7 +20,6 @@
 package io.github.xf8b.xf8bot.commands.`fun`
 
 import com.google.common.collect.Range
-import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
@@ -43,8 +42,7 @@ class SlapCommand : AbstractCommand(
         .map { it.displayName }
         .flatMap { selfDisplayName ->
             var senderUsername = event.member.get().displayName
-            var personToSlap = event.getValueOfArgument(PERSON)
-                .orElseThrow(::UnexpectedException)
+            var personToSlap = event[PERSON]!!
             val itemToUse = ITEMS[ThreadLocalRandom.current().nextInt(ITEMS.size)]
 
             if (personToSlap.equals(selfDisplayName, ignoreCase = true)) {

@@ -77,7 +77,7 @@ class ClearCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
-        val amountToClear = event.getValueOfArgument(AMOUNT).orElseThrow(::UnexpectedException)
+        val amountToClear = event[AMOUNT]!!
         val messagesToDelete = event.channel
             .flatMapMany { it.getMessagesBefore(Instant.now().toSnowflake()) }
             .take(amountToClear.toLong())

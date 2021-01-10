@@ -59,7 +59,7 @@ open class UpdateAction(
             .then()
     }
 
-    override fun run(connection: Connection): Mono<Void> = update(connection, setFields, criteria)
+    override fun invoke(connection: Connection): Mono<Void> = update(connection, setFields, criteria)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {

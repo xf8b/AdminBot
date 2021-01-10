@@ -51,8 +51,9 @@ class HelpCommand : AbstractCommand(
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val guildId = event.guildId.orElseThrow().asString()
-        val commandOrSection = event.getValueOfArgument(SECTION_OR_COMMAND)
-        if (commandOrSection.isEmpty) {
+        val commandOrSection = event[SECTION_OR_COMMAND]
+
+        if (commandOrSection == null) {
             return event.prefix.flatMap { prefix ->
                 event.channel.flatMap {
                     it.createEmbedDsl {
@@ -83,8 +84,8 @@ class HelpCommand : AbstractCommand(
             }.then()
         } else {
             for (commandType in CommandType.values()) {
-                if (commandOrSection.get().equals(commandType.name, ignoreCase = true)) {
-                    val pageNumber = event.getValueOfArgument(PAGE).orElse(1)
+                if (commandOrSection.equals(commandType.name, ignoreCase = true)) {
+                    val pageNumber = event[PAGE] ?: 1
                     val commandsWithCurrentCommandType = event.xf8bot
                         .commandRegistry
                         .getCommandsWithCommandType(commandType)
@@ -110,7 +111,7 @@ class HelpCommand : AbstractCommand(
             }
 
             for (command in event.xf8bot.commandRegistry) {
-                if (commandOrSection.get() == command.rawName) {
+                if (commandOrSection == command.rawName) {
                     return event.channel.flatMap { channel ->
                         Mono.zip(
                             command.getUsageWithPrefix(event.xf8bot, guildId),
@@ -121,7 +122,7 @@ class HelpCommand : AbstractCommand(
                     }.then()
                 } else if (command.aliases.isNotEmpty()) {
                     for (alias in command.aliases) {
-                        if (commandOrSection.get() == alias.replace("\${prefix}", "")) {
+                        if (commandOrSection == alias.replace("\${prefix}", "")) {
                             return event.channel.flatMap { channel ->
                                 Mono.zip(
                                     command.getUsageWithPrefix(event.xf8bot, guildId),
@@ -136,7 +137,7 @@ class HelpCommand : AbstractCommand(
             }
         }
         return event.channel
-            .flatMap { it.createMessage("Could not find command/section ${commandOrSection.get()}!") }
+            .flatMap { it.createMessage("Could not find command/section $commandOrSection!") }
             .then()
     }
 

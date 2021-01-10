@@ -96,14 +96,9 @@ application {
 }
 
 java {
-    //toolchain seems to have issues currently, see CI for example
-    /*
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(15))
     }
-    */
-    sourceCompatibility = JavaVersion.VERSION_15
-    targetCompatibility = JavaVersion.VERSION_15
 }
 
 license {

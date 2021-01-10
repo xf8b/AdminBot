@@ -74,29 +74,30 @@ class AdministratorsCommand : AbstractCommand(
     administratorLevelRequired = 4
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val guildId: Snowflake = event.guildId.get()
-        val member: Member = event.member.get()
-        val action: String = event.getValueOfArgument(ACTION).get()
+        val guildId = event.guildId.get()
+        val member = event.member.get()
+        val action = event[ACTION]!!
 
         return event.guild.flatMap { guild ->
             val isAdministrator = canMemberUseCommand(event.xf8bot, guild, member, this)
 
             return@flatMap when (action.toLowerCase(Locale.ROOT)) {
                 "add", "addrole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
-                    if (event.getValueOfFlag(ROLE).isEmpty || event.getValueOfFlag(ADMINISTRATOR_LEVEL).isEmpty) {
+                    if (event[ROLE] == null || event[ADMINISTRATOR_LEVEL] == null) {
                         return@ifAdministratorRun event.channel.flatMap {
                             getUsageWithPrefix(event.xf8bot, guildId.asString()).flatMap { usage ->
                                 it.createMessage("Huh? Could you repeat that? The usage of this command is: `${usage}`.")
                             }
                         }.then()
                     }
-                    parseRoleId(event.guild, event.getValueOfFlag(ROLE).get())
-                        .map { it.toSnowflake() }
-                        .switchIfEmpty(event.channel.flatMap {
-                            it.createMessage("The role does not exist!")
-                        }.then().cast())
+                    parseRoleId(event.guild, event[ROLE]!!).map(Long::toSnowflake)
+                        .switchIfEmpty(event.channel
+                            .flatMap { it.createMessage("The role does not exist!") }
+                            .then()
+                            .cast())
                         .flatMap { roleId: Snowflake ->
-                            val level: Int = event.getValueOfFlag(ADMINISTRATOR_LEVEL).get()
+                            val level = event[ADMINISTRATOR_LEVEL]!!
+
                             event.xf8bot.botDatabase
                                 .execute(FindAdministratorRoleAction(guildId, roleId))
                                 .toMono()
@@ -125,7 +126,7 @@ class AdministratorsCommand : AbstractCommand(
 
 
                 "rm", "remove", "removerole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
-                    if (event.getValueOfFlag(ROLE).isEmpty) {
+                    if (event[ROLE] == null) {
                         return@ifAdministratorRun event.channel.flatMap {
                             getUsageWithPrefix(event.xf8bot, guildId.asString()).flatMap { usage ->
                                 it.createMessage("Huh? Could you repeat that? The usage of this command is: `${usage}`.")
@@ -133,7 +134,7 @@ class AdministratorsCommand : AbstractCommand(
                         }
                     }
 
-                    parseRoleId(event.guild, event.getValueOfFlag(ROLE).get())
+                    parseRoleId(event.guild, event[ROLE]!!)
                         .map { it.toSnowflake() }
                         .switchIfEmpty(event.channel
                             .flatMap { it.createMessage("The role does not exist!") }

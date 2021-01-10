@@ -49,7 +49,7 @@ class SkipCommand : AbstractCommand(
             event.xf8bot.audioPlayerManager,
             channel
         )
-        val amountToSkip = event.getValueOfArgument(AMOUNT_TO_SKIP).orElse(1)
+        val amountToSkip = event[AMOUNT_TO_SKIP] ?: 1
 
         event.client.voiceConnectionRegistry.getVoiceConnection(guildId)
             .flatMap {

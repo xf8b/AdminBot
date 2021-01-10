@@ -52,7 +52,7 @@ open class InsertAction(
             .then()
     }
 
-    override fun run(connection: Connection): Mono<Void> = insert(connection, toInsert)
+    override fun invoke(connection: Connection): Mono<Void> = insert(connection, toInsert)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {

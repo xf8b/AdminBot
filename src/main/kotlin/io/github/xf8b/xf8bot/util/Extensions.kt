@@ -52,9 +52,6 @@ fun Long.toSnowflake(): Snowflake = Snowflake.of(this)
 fun Instant.toSnowflake(): Snowflake = Snowflake.of(this)
 
 // to mono
-@JvmName("nullableToMono")
-fun <T> T?.toMono(): Mono<T> = Mono.justOrEmpty(this)
-
 @JvmName("optionalToMono")
 fun <T> Optional<T>.toMono(): Mono<T> = Mono.justOrEmpty(this)
 

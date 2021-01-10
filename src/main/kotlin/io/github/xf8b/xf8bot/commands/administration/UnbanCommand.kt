@@ -44,7 +44,7 @@ class UnbanCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val memberIdOrUsername = event.getValueOfArgument(MEMBER).get()
+        val memberIdOrUsername = event[MEMBER]!!
 
         return event.guild.flatMap { guild ->
             guild.bans

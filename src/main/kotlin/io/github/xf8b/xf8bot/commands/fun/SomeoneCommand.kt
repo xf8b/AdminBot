@@ -35,7 +35,7 @@ class SomeoneCommand : AbstractCommand(
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val membersToPickFrom = event.guild.flatMap { guild ->
-            if (event.getValueOfFlag(IGNORE_BOTS).isEmpty || !event.getValueOfFlag(IGNORE_BOTS).get()) {
+            if (event[IGNORE_BOTS] == null || event[IGNORE_BOTS] == false) {
                 guild.requestMembers().collectList()
             } else {
                 guild.requestMembers().filter { it.isNotBot }.collectList()

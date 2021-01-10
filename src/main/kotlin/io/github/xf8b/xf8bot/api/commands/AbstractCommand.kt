@@ -42,53 +42,40 @@ abstract class AbstractCommand(
     val actions: Map<String, String> = ImmutableMap.of(),
     /** Aliases for this command. Works the same as [name]. */
     val aliases: List<String> = ImmutableList.of(),
-    /** Flags that this command takes in (optionally or mandatory) */
+    /** Flags that this command takes in (optional or mandatory) */
     val flags: List<Flag<*>> = ImmutableList.of(),
-    /** Arguments that this command takes in (optionally or mandatory) */
+    /** Arguments that this command takes in (optional or mandatory) */
     val arguments: List<Argument<*>> = ImmutableList.of(),
-    /** Minimum amount of arguments required to use this command. Automatically set, do not set this */
-    @Deprecated("Do not set this, rather use the automatically generated one. Getting is fine.")
-    val minimumAmountOfArgs: Int = arguments.filter { it.required }.size,
-    /** Usage for this command shown on the help page. Automatically set, do not set this */
-    @Deprecated("Do not set this, rather use the automatically generated usage. Getting is fine.")
-    val usage: String = generateUsage(name, flags, arguments),
     /** Permissions that the bot requires before this command be ran */
     val botRequiredPermissions: PermissionSet = PermissionSet.none(),
     /** Checks ran during command handling that are disabled */
     val disabledChecks: EnumSet<ExecutionChecks> = EnumSet.noneOf(ExecutionChecks::class.java),
-    /** Administrator level required to run this command according to [io.github.xf8b.xf8bot.commands.settings.AdministratorsCommand] */
+    /** Administrator level required to run this command according to [the documentation](https://xf8b.github.io/documentation/xf8bot/commands/administration/level_4/administrators/) */
     val administratorLevelRequired: Int = 0,
-    /** If this command is only to be run by bot administrators */
+    /** If this command can only be run by bot administrators */
     val botAdministratorOnly: Boolean = false
 ) {
-    companion object {
-        private fun generateUsage(commandName: String, flags: List<Flag<*>>, arguments: List<Argument<*>>): String {
-            val argumentsUsage = arguments.joinToString(separator = " ") {
-                if (it.required) "<${it.name}>" else "[${it.name}]"
-            }
-            val flagsUsage = flags.joinToString(separator = " ") { flag ->
-                var usage = ""
+    enum class CommandType(val description: String) {
+        ADMINISTRATION("Commands related with administration."),
+        BOT_ADMINISTRATOR("Commands only for bot administrators."),
+        MUSIC("Commands related with playing music."),
+        INFO("Commands which give information."),
+        LEVELING("Leveling commands. Somewhat useless."),
+        SETTINGS("Commands that are used for settings/configurations."),
+        FUN("Random commands for fun."),
+        OTHER("Other commands which do not fit in any of the above categories."),
+    }
 
-                // end result example: ${prefix}hello <person> [-p [ping] = true]] <-c <channel>>
-
-                usage += if (flag.required) "<" else "["
-                usage += "-${flag.shortName} "
-                usage += if (flag.requiresValue) "<${flag.longName}>" else "[${flag.longName}]"
-                if (flag.defaultValue != null) usage += " = ${flag.defaultValue}"
-                usage += (if (flag.required) ">" else "]")
-
-                usage
-            }
-            var finalUsage = commandName
-
-            if (argumentsUsage.isNotEmpty()) finalUsage += " $argumentsUsage"
-            if (flagsUsage.isNotEmpty()) finalUsage += " $flagsUsage"
-
-            return finalUsage
-        }
+    enum class ExecutionChecks {
+        IS_ADMINISTRATOR,
+        IS_BOT_ADMINISTRATOR,
+        SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS,
+        BOT_HAS_REQUIRED_PERMISSIONS
     }
 
     val rawName get() = name.replace("\${prefix}", "")
+    val usage = generateUsage(name, flags, arguments)
+    val minimumAmountOfArgs = arguments.filter { it.required }.size
 
     abstract fun onCommandFired(event: CommandFiredEvent): Mono<Void>
 
@@ -132,6 +119,7 @@ abstract class AbstractCommand(
     @Suppress("DEPRECATION")
     override fun hashCode(): Int {
         var result = name.hashCode()
+
         result = 31 * result + description.hashCode()
         result = 31 * result + commandType.hashCode()
         result = 31 * result + actions.hashCode()
@@ -147,21 +135,32 @@ abstract class AbstractCommand(
         return result
     }
 
-    enum class CommandType(val description: String) {
-        ADMINISTRATION("Commands related with administration."),
-        BOT_ADMINISTRATOR("Commands only for bot administrators."),
-        MUSIC("Commands related with playing music."),
-        INFO("Commands which give information."),
-        LEVELING("Leveling commands. Somewhat useless."),
-        SETTINGS("Commands that are used for settings/configurations."),
-        FUN("Random commands for fun."),
-        OTHER("Other commands which do not fit in any of the above categories."),
-    }
+    companion object {
+        private fun generateUsage(commandName: String, flags: List<Flag<*>>, arguments: List<Argument<*>>): String {
+            val argumentsUsage = arguments.joinToString(separator = " ") { argument ->
+                if (argument.required) "<${argument.name}>" else "[${argument.name}]"
+            }
 
-    enum class ExecutionChecks {
-        IS_ADMINISTRATOR,
-        IS_BOT_ADMINISTRATOR,
-        SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS,
-        BOT_HAS_REQUIRED_PERMISSIONS
+            val flagsUsage = flags.joinToString(separator = " ") { flag ->
+                var usage = ""
+
+                // end result example: ${prefix}hello <person> [-p [ping] = true]] <-c <channel>>
+
+                usage += if (flag.required) "<" else "["
+                usage += "-${flag.shortName} "
+                usage += if (flag.requiresValue) "<${flag.longName}>" else "[${flag.longName}]"
+                if (flag.defaultValue != null) usage += " = ${flag.defaultValue}"
+                usage += (if (flag.required) ">" else "]")
+
+                usage
+            }
+
+            var finalUsage = commandName
+
+            if (argumentsUsage.isNotEmpty()) finalUsage += " $argumentsUsage"
+            if (flagsUsage.isNotEmpty()) finalUsage += " $flagsUsage"
+
+            return finalUsage
+        }
     }
 }

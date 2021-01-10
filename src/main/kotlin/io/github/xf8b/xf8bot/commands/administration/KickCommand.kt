@@ -50,8 +50,9 @@ class KickCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val reason = event.getValueOfFlag(REASON).orElse("No kick reason was provided.")
-        return InputParsing.parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
+        val reason = event[REASON] ?: "No kick reason was provided."
+
+        return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
             .map { it.toSnowflake() }
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }

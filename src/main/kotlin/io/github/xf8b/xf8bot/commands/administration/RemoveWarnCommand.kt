@@ -21,7 +21,6 @@ package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
 import discord4j.common.util.Snowflake
-import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
@@ -50,11 +49,10 @@ class RemoveWarnCommand : AbstractCommand(
     commandType = CommandType.ADMINISTRATION,
     aliases = ("\${prefix}removewarns" to "\${prefix}rmwarn" and "\${prefix}rmwarns").toImmutableList(),
     flags = ImmutableList.of(MEMBER, WARNER, REASON, WARN_ID),
-    minimumAmountOfArgs = 2,
     administratorLevelRequired = 1
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val memberIdMono = Mono.justOrEmpty(event.getValueOfFlag(MEMBER)).flatMap { member ->
+        val memberIdMono = event[MEMBER].toMono().flatMap { member ->
             parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
                 .switchIfEmpty(event.channel
@@ -62,7 +60,7 @@ class RemoveWarnCommand : AbstractCommand(
                     .then()
                     .cast())
         }
-        val warnerIdMono = Mono.justOrEmpty(event.getValueOfFlag(WARNER)).flatMap { member ->
+        val warnerIdMono = event[WARNER].toMono().flatMap { member ->
             parseUserId(event.guild, member)
                 .map { it.toSnowflake() }
                 .switchIfEmpty(event.channel
@@ -70,8 +68,8 @@ class RemoveWarnCommand : AbstractCommand(
                     .then()
                     .cast())
         }
-        val reason = event.getValueOfFlag(REASON).toNullable()
-        val warnId = event.getValueOfFlag(WARN_ID).toNullable()
+        val reason = event[REASON]
+        val warnId = event[WARN_ID]
         val warns = memberIdMono
             .flatMap { memberId -> event.xf8bot.botDatabase.execute(FindWarnsAction(event.guildId.get(), memberId)) }
             .switchIfEmpty(event.xf8bot.botDatabase.execute(FindWarnsAction(event.guildId.get())))

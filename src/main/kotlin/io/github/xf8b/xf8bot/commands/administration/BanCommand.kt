@@ -79,8 +79,9 @@ class BanCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val reason = event.getValueOfFlagNullable(REASON) ?: "No ban reason was provided."
-        return InputParsing.parseUserId(event.guild, event.getValueOfFlag(MEMBER).get())
+        val reason = event[REASON] ?: "No ban reason was provided."
+
+        return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
             .map { it.toSnowflake() }
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
@@ -129,7 +130,7 @@ class BanCommand : AbstractCommand(
                                         Mono.empty()
                                     } // cannot send messages to user
                                     .then(member.ban {
-                                        it.setDeleteMessageDays(event.getValueOfFlag(MESSAGE_DELETE_DAYS).orElse(0))
+                                        it.setDeleteMessageDays(event[MESSAGE_DELETE_DAYS] ?: 0)
                                         it.reason = reason
                                     })
                                     .then(event.channel.flatMap {

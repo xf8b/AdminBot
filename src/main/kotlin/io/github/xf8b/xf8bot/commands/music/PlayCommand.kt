@@ -43,7 +43,7 @@ class PlayCommand : AbstractCommand(
             index = Range.atLeast(1)
         )
         private const val YOUTUBE_URL_REGEX = "https://(www\\.)?youtube\\.com/watch\\?v=.+"
-        private const val OTHER_YOUTUBE_URL_REGEX = "https://(www\\.)?youtu\\.be/watch\\?v=.+"
+        private const val YOUTU_BE_URL_REGEX = "https://(www\\.)?youtu\\.be/watch\\?v=.+"
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel.flatMap { channel ->
@@ -53,10 +53,10 @@ class PlayCommand : AbstractCommand(
             event.xf8bot.audioPlayerManager,
             channel
         )
-        val temp = event.getValueOfArgument(YOUTUBE_VIDEO_NAME_OR_LINK).get()
+        val temp = event[YOUTUBE_VIDEO_NAME_OR_LINK]!!
         val videoUrlOrSearch: String = when {
-            temp.matches(YOUTUBE_URL_REGEX.toRegex()) -> temp
-            temp.matches(OTHER_YOUTUBE_URL_REGEX.toRegex()) -> temp
+            temp matches YOUTUBE_URL_REGEX.toRegex() -> temp
+            temp matches YOUTU_BE_URL_REGEX.toRegex() -> temp
             else -> "ytsearch: $temp"
         }
 

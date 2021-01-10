@@ -20,8 +20,6 @@
 package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.Range
-import io.github.xf8b.utils.optional.toNullable
-import io.github.xf8b.utils.optional.toOptional
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
@@ -39,16 +37,9 @@ class DisableCommand : AbstractCommand(
     administratorLevelRequired = 4
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val command = event.getValueOfArgument(COMMAND)
-            .flatMap { command ->
-                event.xf8bot.commandRegistry
-                    .find { command1 ->
-                        command1.name == "\${prefix}$command"
-                                || command1.aliases.any { it == "\${prefix}$command" }
-                    }
-                    .toOptional()
-            }
-            .toNullable()
+        val command = event.xf8bot.commandRegistry.find { command ->
+            command.rawName == event[COMMAND]!! || command.aliases.any { it.removePrefix("\${prefix}") == event[COMMAND]!! }
+        }
 
         return event.channel.flatMap { channel ->
             when {

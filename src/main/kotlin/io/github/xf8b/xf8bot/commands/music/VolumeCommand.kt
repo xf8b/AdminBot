@@ -36,7 +36,6 @@ class VolumeCommand : AbstractCommand(
     name = "\${prefix}volume",
     description = "Changes the volume of the music in the current VC.",
     commandType = CommandType.MUSIC,
-    minimumAmountOfArgs = 1,
     arguments = ImmutableList.of(VOLUME)
 ) {
     companion object {
@@ -74,7 +73,7 @@ class VolumeCommand : AbstractCommand(
             event.xf8bot.audioPlayerManager,
             channel
         )
-        val volume = event.getValueOfArgument(VOLUME).toNullable()
+        val volume = event[VOLUME]
 
         if (volume == null) {
             event.channel.flatMap {

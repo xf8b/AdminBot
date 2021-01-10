@@ -50,7 +50,7 @@ class EvalCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = mono {
-        val thingToEval = event.getValueOfArgument(CODE_TO_EVAL).get()
+        val thingToEval = event[CODE_TO_EVAL]!!
         val engine = GroovyScriptEngineImpl()
 
         engine.put("event", event)

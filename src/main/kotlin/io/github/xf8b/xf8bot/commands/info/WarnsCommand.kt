@@ -53,7 +53,7 @@ class WarnsCommand : AbstractCommand(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
-        parseUserId(event.guild, event.getValueOfArgument(MEMBER).get())
+        parseUserId(event.guild, event[MEMBER]!!)
             .map(Long::toSnowflake)
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found!") }
