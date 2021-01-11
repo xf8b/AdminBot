@@ -45,8 +45,8 @@ class EmbedCommand : AbstractCommand(
     flags = ImmutableList.of(TITLE, URL, DESCRIPTION, FIELDS, FOOTER, COLOR, IMAGE, THUMBNAIL, TIMESTAMP)
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val title = event[TITLE]!!
-        val description = event[DESCRIPTION]!!
+        val title = event[TITLE]
+        val description = event[DESCRIPTION]
         val url = event[URL]
         val fields = event[FIELDS]?.split(",")
         val footer = event[FOOTER]
@@ -57,8 +57,8 @@ class EmbedCommand : AbstractCommand(
 
         return event.channel.flatMap { channel ->
             channel.createEmbedDsl {
-                title(title)
-                description(description)
+                if (title != null) title(title)
+                if (description != null) description(description)
                 if (url != null) url(url)
 
                 if (fields != null) {
@@ -76,7 +76,7 @@ class EmbedCommand : AbstractCommand(
                 if (color != null) color(color)
                 if (image != null) image(image)
                 if (thumbnail != null) thumbnail(thumbnail)
-                if (timestamp != null) timestamp(timestamp) else timestamp()
+                if (timestamp != null) timestamp(timestamp)
             }
         }.then(event.message.delete())
     }
@@ -84,12 +84,14 @@ class EmbedCommand : AbstractCommand(
     companion object {
         private val TITLE = StringFlag(
             shortName = "title",
-            longName = "title"
+            longName = "title",
+            required = false
         )
 
         private val DESCRIPTION = StringFlag(
             shortName = "d",
-            longName = "description"
+            longName = "description",
+            required = false
         )
 
         private val URL = StringFlag(
