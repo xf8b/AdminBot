@@ -125,7 +125,7 @@ object Checks {
                 .flatMap { permissionsMet ->
                     if (!permissionsMet) {
                         channel.toMono()
-                            .flatMap { it.createMessage("Could not execute command \'${command.name.drop(1)}\' because of insufficient permissions!") }
+                            .flatMap { it.createMessage("Could not execute command \'${command.rawName}\' because of insufficient permissions!") }
                             .thenReturn(false)
                     } else {
                         true.toMono()
