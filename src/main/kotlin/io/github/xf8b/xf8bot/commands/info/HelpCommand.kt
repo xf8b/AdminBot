@@ -212,7 +212,9 @@ class HelpCommand : AbstractCommand(
         field(
             "Bot Required Permissions",
             command.botRequiredPermissions
-                .joinToString { WordUtils.capitalizeFully(it.name.replace("_", " ")) },
+                .joinToString { WordUtils.capitalizeFully(it.name.replace("_", " ")) }
+                .takeIf(String::isNotEmpty)
+                ?: "No permissions required",
             inline = false
         )
 
