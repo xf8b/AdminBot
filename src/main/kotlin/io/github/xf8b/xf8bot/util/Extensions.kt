@@ -57,6 +57,9 @@ fun <T> Double<T, T>.toImmutableList(): ImmutableList<T> = ImmutableList.of(firs
 
 fun <T> Triple<T, T, T>.toImmutableList(): ImmutableList<T> = ImmutableList.of(first, second, third)
 
+// to uuid
+fun String.toUuid(): UUID = UUID.fromString(this)
+
 // functions purely for using reified type parameters
 inline fun <reified T> Reflections.getSubTypesOf(): Set<Class<out T>> = getSubTypesOf(T::class.java)
 inline fun <reified E : Throwable, T> Mono<T>.onErrorResume(fallback: Function<in E, out Mono<out T>>): Mono<T> =
@@ -66,6 +69,12 @@ inline fun <reified E : Throwable, T> Mono<T>.onErrorResume(fallback: Function<i
 fun <I, R> functionReturning(returnedValue: R): Function<I, R> = Function { returnedValue }
 
 val Result.updatedRows: Mono<Boolean> get() = this.rowsUpdated.toMono().map { it != 0 }
+
+inline fun <reified T> Iterable<*>.cast() = this.map { element -> element as T }
+
+inline fun <reified T> Array<*>.cast() = this.map { element -> element as T }.toTypedArray()
+
+val Long.Companion.JAVA_TYPE get() = java.lang.Long::class.java
 
 // increase clarity
 operator fun <A, B> Tuple2<A, B>.component1(): A = this.t1

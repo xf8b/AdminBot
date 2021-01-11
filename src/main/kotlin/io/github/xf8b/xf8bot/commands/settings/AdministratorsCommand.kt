@@ -155,7 +155,6 @@ class AdministratorsCommand : AbstractCommand(
                         .flatMap { roleId: Snowflake ->
                             event.xf8bot.botDatabase
                                 .execute(FindAdministratorRoleAction(guildId, roleId))
-                                .toMono()
                                 .filter { it.isNotEmpty() }
                                 .filterWhen { it[0].updatedRows }
                                 .flatMap {
