@@ -47,78 +47,77 @@ class WarnsCommand : AbstractCommand(
     companion object {
         private val MEMBER = StringArgument(
             name = "member",
-            index = Range.atLeast(1)
+            index = Range.atLeast(1),
+            required = false
         )
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
-        InputParsing.parseUserId(event.guild, event[MEMBER]!!)
+        InputParsing.parseUserId(event.guild, event[MEMBER] ?: event.author.get().id.asString())
             .map(Long::toSnowflake)
             .switchIfEmpty(
                 event.channel
                     .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
-                .then() // yes i know, very hacky
-                .cast())
+                    .then() // yes i know, very hacky
+                    .cast())
             .flatMap { userId ->
                 event.guild.flatMap { guild ->
-                    guild.getMemberById(userId)
-                        .onErrorResume(Checks.isClientExceptionWithCode(10007)) {
-                            event.channel
-                                .flatMap { it.createMessage("The member is not in the guild!") }
-                                .then() // yes i know, very hacky
-                                .cast()
-                        } // unknown member
+                    guild.getMemberById(userId).onErrorResume(Checks.isClientExceptionWithCode(10007)) {
+                        event.channel
+                            .flatMap { it.createMessage("The member is not in the guild!") }
+                            .then() // yes i know, very hacky
+                            .cast()
+                    } // unknown member
                 }
             }
             .flatMap { member ->
-                event.guild
-                    .flatMap {
-                        val warnsMono = event.xf8bot.botDatabase
-                            .execute(FindWarnsAction(event.guildId.get(), member.id))
-                            .flatMapMany { it.toFlux() }
-                            .flatMap { it.map { row, _ -> row } }
-                            .map { row ->
-                                Warn(
-                                    row["guildId", Long::class.javaObjectType]!!.toSnowflake(),
-                                    row["memberId", Long::class.javaObjectType]!!.toSnowflake(),
-                                    row["warnerId", Long::class.javaObjectType]!!.toSnowflake(),
-                                    row["reason", String::class.java]!!,
-                                    row["warnId", UUID::class.java]!!
-                                )
+                event.guild.flatMap {
+                    val warnsMono = event.xf8bot.botDatabase
+                        .execute(FindWarnsAction(event.guildId.get(), member.id))
+                        .flatMapMany { it.toFlux() }
+                        .flatMap { it.map { row, _ -> row } }
+                        .map { row ->
+                            Warn(
+                                row["guildId", Long::class.javaObjectType]!!.toSnowflake(),
+                                row["memberId", Long::class.javaObjectType]!!.toSnowflake(),
+                                row["warnerId", Long::class.javaObjectType]!!.toSnowflake(),
+                                row["reason", String::class.java]!!,
+                                row["warnId", UUID::class.java]!!
+                            )
+                        }
+                        .flatMap {
+                            mono {
+                                it.getWarnerMember(event.client)
+                                    .map(Member::getNicknameMention)
+                                    .block()!! to it.reason and it.warnId
                             }
-                            .flatMap {
-                                mono {
-                                    it.getWarnerMember(event.client)
-                                        .map(Member::getNicknameMention)
-                                        .block()!! to it.reason and it.warnId
-                                }
-                            }
-                            .collectList()
+                        }
+                        .collectList()
 
-                        warnsMono.flatMap sendWarns@{ warns ->
-                            if (warns.isNotEmpty()) {
-                                event.channel.flatMap {
-                                    it.createEmbedDsl {
-                                        title("Warnings For `${member.username}`")
+                    warnsMono.flatMap sendWarns@{ warns ->
+                        if (warns.isNotEmpty()) {
+                            event.channel.flatMap {
+                                it.createEmbedDsl {
+                                    title("Warnings For `${member.username}`")
 
-                                        warns.forEach { (warner, reason, warnId) ->
-                                            field(
-                                                "`$reason`",
-                                                """
+                                    warns.forEach { (warner, reason, warnId) ->
+                                        field(
+                                            "`$reason`",
+                                            """
                                                 Warn ID: $warnId
                                                 Member Who Warned/Warner: $warner
                                                 """.trimIndent(),
-                                                inline = true
-                                            )
-                                        }
-
-                                        color(Color.BLUE)
+                                            inline = true
+                                        )
                                     }
+
+                                    color(Color.BLUE)
                                 }
-                            } else {
-                                event.channel.flatMap { it.createMessage("The member has no warns.") }
                             }
+                        } else {
+                            event.channel.flatMap { it.createMessage("The member has no warns.") }
                         }
                     }
+                }
             }.then()
 }

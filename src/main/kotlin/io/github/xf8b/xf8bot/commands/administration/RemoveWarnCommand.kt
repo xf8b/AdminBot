@@ -88,7 +88,7 @@ class RemoveWarnCommand : AbstractCommand(
                 .then()
                 .cast())
             .flatMap {
-                if (reason == null || reason.equals("all", ignoreCase = true)) {
+                if (reason != null && reason.equals("all", ignoreCase = true)) {
                     memberIdMono.switchIfEmpty(event.channel
                         .flatMap { it.createMessage("Cannot remove all warns without a user!") }
                         .then()
