@@ -24,26 +24,26 @@ import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
-import net.jodah.typetools.TypeResolver
+import io.github.xf8b.xf8bot.util.resolveRawArgument
 
-class ArgumentCommandParser : CommandParser<Argument<*>> {
+class ArgumentCommandInputParser : CommandInputParser<Argument<*>> {
     /**
-     * Parses [toParse] for flags from [command] and returns a [Result] containing a map of [Argument]s to their values.
+     * Parses [input] for flags from [command] and returns a [Result] containing a map of [Argument]s to their values.
      * You must cast the value.
      *
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      */
-    override fun parse(command: AbstractCommand, toParse: String): Result<Map<Argument<*>, Any>> {
+    override fun parse(command: AbstractCommand, input: String): Result<Map<Argument<*>, Any>> {
         val argumentMap: MutableMap<Argument<*>, Any> = HashMap()
         val missingArguments: MutableList<Argument<*>> = ArrayList()
         val invalidValues: MutableMap<Argument<*>, String> = HashMap()
-        val toParseSplit = removeFlags(command.flags, toParse.split(" "))
+        val cleanedInput = input.split(" ").toMutableList().apply { removeFlags(command.flags) }
 
         for (argument in command.arguments) {
             try {
                 val collectedValue = if (!argument.index.hasUpperBound()) {
-                    val sublist = toParseSplit.subList(argument.index.lowerEndpoint(), toParseSplit.size)
-                        .filter { it.isNotBlank() }
+                    val sublist = cleanedInput.subList(argument.index.lowerEndpoint(), cleanedInput.size)
+                        .filter(String::isNotBlank)
 
                     if (sublist.isEmpty() && argument.required) {
                         missingArguments.add(argument)
@@ -52,7 +52,7 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
                         sublist.joinToString(separator = " ")
                     }
                 } else {
-                    toParseSplit.subList(argument.index.lowerEndpoint(), argument.index.upperEndpoint() + 1)
+                    cleanedInput.subList(argument.index.lowerEndpoint(), argument.index.upperEndpoint() + 1)
                         .joinToString(separator = " ")
                 }
 
@@ -73,23 +73,17 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
         return when {
             // send failure when there are missing arguments
             missingArguments.isNotEmpty() -> {
-                val invalidArgumentsNames = missingArguments.joinToString { "`${it.name}`" }
+                val invalidArgumentsNames = missingArguments.joinToString { "`${it.name}`" }.trim()
 
-                Result.failure("Missing argument(s) ${invalidArgumentsNames.trim()}!")
+                Result.failure("Missing argument(s) $invalidArgumentsNames!")
             }
 
             // send failure when argument values are invalid
             invalidValues.isNotEmpty() -> {
                 val invalidValuesFormatted = invalidValues.map { (argument, invalidValue) ->
-                    val requiredType = TypeResolver.resolveRawArgument(
-                        Argument::class.java,
-                        argument.javaClass
-                    ).simpleName
-                    val errorMessage = argument.getErrorMessage(invalidValue).format(
-                        invalidValue.trim(),
-                        argument.index.toString(),
-                        requiredType
-                    )
+                    val requiredType = argument.javaClass.resolveRawArgument().simpleName
+                    val errorMessage = argument.getErrorMessage(invalidValue)
+                        .format(invalidValue.trim(), argument.index, requiredType)
 
                     "Argument: `${argument.name}`, Error message: $errorMessage"
                 }.joinToString(separator = " ")
@@ -102,35 +96,33 @@ class ArgumentCommandParser : CommandParser<Argument<*>> {
         }
     }
 
-    private fun removeFlags(flags: List<Flag<*>>, splitString: List<String>): List<String> {
-        val splitStringCopy = splitString.toMutableList()
-
+    private fun MutableList<String>.removeFlags(flags: List<Flag<*>>) {
         flagLoop@ for (flag in flags) {
             val index = when {
-                splitStringCopy.contains("--${flag.longName}") -> splitStringCopy.indexOf("--${flag.longName}")
-                splitStringCopy.contains("-${flag.shortName}") -> splitStringCopy.indexOf("-${flag.shortName}")
+                this.contains("--${flag.longName}") -> this.indexOf("--${flag.longName}")
+                this.contains("-${flag.shortName}") -> this.indexOf("-${flag.shortName}")
                 else -> continue@flagLoop
             }
 
-            splitStringCopy.removeAt(index)
+            this.removeAt(index)
 
             if (flag.requiresValue) {
-                val valueOfFlag = splitStringCopy[index]
+                try {
+                    val valueOfFlag = this[index]
 
-                if (valueOfFlag.startsWith('"')) {
-                    val toSearch = splitStringCopy.subList(index, splitStringCopy.size)
-                    val toRemove = (toSearch.takeWhile { !it.endsWith('"') } + toSearch.find { it.endsWith('"') })
-                        .filterNotNull()
+                    if (valueOfFlag.startsWith('"')) {
+                        val toSearch = this.subList(index, this.size)
+                        val toRemove = toSearch.takeWhile { !it.endsWith('"') }.toMutableList()
+                        toSearch.find { it.endsWith('"') }?.let(toRemove::add)
 
-                    for (i in 1..toRemove.size) {
-                        splitStringCopy.removeAt(index)
+                        for (i in 1..toRemove.size) this.removeAt(index)
+                    } else {
+                        this.removeAt(index)
                     }
-                } else {
-                    splitStringCopy.removeAt(index)
+                } catch (exception: IndexOutOfBoundsException) {
+                    continue@flagLoop
                 }
             }
         }
-
-        return splitStringCopy
     }
 }

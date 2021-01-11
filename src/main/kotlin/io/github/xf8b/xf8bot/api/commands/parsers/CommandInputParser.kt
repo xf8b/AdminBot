@@ -22,12 +22,12 @@ package io.github.xf8b.xf8bot.api.commands.parsers
 import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 
-fun interface CommandParser<E> {
+fun interface CommandInputParser<E> {
     /**
-     * Parses [toParse] for flags from [command] and returns a [Result] containing a map of [E]s to their values.
+     * Parses [input] for flags from [command] and returns a [Result] containing a map of [E]s to their values.
      * You must cast the value.
      *
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      */
-    fun parse(command: AbstractCommand, toParse: String): Result<Map<E, Any>>
+    fun parse(command: AbstractCommand, input: String): Result<Map<E, Any>>
 }

@@ -28,8 +28,8 @@ import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
-import io.github.xf8b.xf8bot.api.commands.parsers.ArgumentCommandParser
-import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandParser
+import io.github.xf8b.xf8bot.api.commands.parsers.ArgumentCommandInputParser
+import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandInputParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
 import io.github.xf8b.xf8bot.util.*
@@ -189,8 +189,8 @@ class MessageListener(
     }
 
     companion object {
-        private val ARGUMENT_PARSER = ArgumentCommandParser()
-        private val FLAG_PARSER = FlagCommandParser()
+        private val ARGUMENT_PARSER = ArgumentCommandInputParser()
+        private val FLAG_PARSER = FlagCommandInputParser()
         private val LOGGER: Logger by LoggerDelegate()
     }
 }

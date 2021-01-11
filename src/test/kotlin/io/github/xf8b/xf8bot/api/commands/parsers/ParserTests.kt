@@ -66,10 +66,10 @@ class FakeCommand : AbstractCommand(
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = error("how")
 }
 
-class FlagCommandParserTest {
+class FlagCommandInputParserTest {
     @Test
     fun `test flag parser`() {
-        val flagParser = FlagCommandParser()
+        val flagParser = FlagCommandInputParser()
         val fakeCommand = FakeCommand()
         val result = flagParser.parse(
             fakeCommand,
@@ -92,10 +92,10 @@ class FlagCommandParserTest {
     }
 }
 
-class ArgumentCommandParserTest {
+class ArgumentCommandInputParserTest {
     @Test
     fun `test argument parser`() {
-        val argumentParser = ArgumentCommandParser()
+        val argumentParser = ArgumentCommandInputParser()
         val fakeCommand = FakeCommand()
         val result = argumentParser.parse(
             fakeCommand,

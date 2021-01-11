@@ -23,27 +23,27 @@ import com.google.common.collect.ImmutableMap
 import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.api.commands.AbstractCommand
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
-import net.jodah.typetools.TypeResolver
+import io.github.xf8b.xf8bot.util.resolveRawArgument
 
-class FlagCommandParser : CommandParser<Flag<*>> {
+class FlagCommandInputParser : CommandInputParser<Flag<*>> {
     /**
-     * Parses [toParse] for flags from [command] and returns a [Result] containing a map of [Flag]s to their values.
+     * Parses [input] for flags from [command] and returns a [Result] containing a map of [Flag]s to their values.
      * You must cast the value.
      *
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      */
-    override fun parse(command: AbstractCommand, toParse: String): Result<Map<Flag<*>, Any>> {
-        val flagMap: MutableMap<Flag<*>, Any> = HashMap()
-        val missingFlags: MutableList<Flag<*>> = ArrayList()
-        val invalidValues: MutableMap<Flag<*>, String> = HashMap()
+    override fun parse(command: AbstractCommand, input: String): Result<Map<Flag<*>, Any>> {
+        val flagMap = mutableMapOf<Flag<*>, Any>()
+        val missingFlags = mutableListOf<Flag<*>>()
+        val invalidValues = mutableMapOf<Flag<*>, String>()
 
         // TODO make new parser, maybe using String#split? not sure how to do it though
 
         for (flag in command.flags) {
-            val index = toParse.indexOf("--${flag.longName}")
+            val index = input.indexOf("--${flag.longName}")
                 .takeUnless((-1)::equals)
                 ?.let { it + "--${flag.longName}".length }
-                ?: toParse.indexOf("-${flag.shortName}")
+                ?: input.indexOf("-${flag.shortName}")
                     .takeUnless((-1)::equals)
                     ?.let { it + "-${flag.shortName}".length }
 
@@ -55,9 +55,10 @@ class FlagCommandParser : CommandParser<Flag<*>> {
                 var amountOfQuotesSeen = 0
                 var farEnough = false
                 var collectedValue = ""
+
                 parseValue@ while (true) {
                     try {
-                        when (val char = toParse[i]) {
+                        when (val char = input[i]) {
                             ' ', '=' -> {
                                 if (farEnough) {
                                     collectedValue += char
@@ -105,11 +106,8 @@ class FlagCommandParser : CommandParser<Flag<*>> {
                         collectedValue = collectedValue.substring(1, collectedValue.length - 1)
                     }
 
-                    if (flag.isValidValue(collectedValue)) {
-                        flagMap[flag] = flag.parse(collectedValue)
-                    } else {
-                        invalidValues[flag] = collectedValue
-                    }
+                    if (flag.isValidValue(collectedValue)) flagMap[flag] = flag.parse(collectedValue)
+                    else invalidValues[flag] = collectedValue
                 } else {
                     if (flag.requiresValue) missingFlags.add(flag)
                     else flagMap[flag] = flag.defaultValue
@@ -126,13 +124,13 @@ class FlagCommandParser : CommandParser<Flag<*>> {
                     "`${it.shortName}`/`${it.longName}`"
                 }
 
-                Result.failure("Missing flag(s) ${invalidFlagsNames}!")
+                Result.failure("Missing flag(s) $invalidFlagsNames!")
             }
 
             // send failure when flag values are invalid
             invalidValues.isNotEmpty() -> {
                 val invalidValuesFormatted = invalidValues.map { (flag, value) ->
-                    val requiredType = TypeResolver.resolveRawArgument(Flag::class.java, flag.javaClass).simpleName
+                    val requiredType = flag.javaClass.resolveRawArgument().simpleName
                     val errorMessage = flag.getErrorMessage(value).format(value.trim(), requiredType)
 
                     "Flag: `${flag.shortName}`/`${flag.longName}`, Error message: $errorMessage"

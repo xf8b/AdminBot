@@ -25,6 +25,7 @@ import discord4j.core.`object`.entity.User
 import discord4j.rest.util.Permission
 import discord4j.rest.util.PermissionSet
 import io.r2dbc.spi.Result
+import net.jodah.typetools.TypeResolver
 import org.reflections.Reflections
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
@@ -75,6 +76,9 @@ inline fun <reified T> Iterable<*>.cast() = this.map { element -> element as T }
 inline fun <reified T> Array<*>.cast() = this.map { element -> element as T }.toTypedArray()
 
 val Long.Companion.JAVA_TYPE get() = java.lang.Long::class.java
+
+inline fun <reified T> Class<out T>.resolveRawArgument(): Class<*> =
+    TypeResolver.resolveRawArgument(T::class.java, this)
 
 // increase clarity
 operator fun <A, B> Tuple2<A, B>.component1(): A = this.t1
