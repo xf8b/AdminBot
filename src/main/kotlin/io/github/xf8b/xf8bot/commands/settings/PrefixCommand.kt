@@ -35,14 +35,6 @@ class PrefixCommand : AbstractCommand(
     arguments = ImmutableList.of(NEW_PREFIX),
     administratorLevelRequired = 4
 ) {
-    companion object {
-        private val NEW_PREFIX = StringArgument(
-            name = "prefix",
-            index = Range.atLeast(1),
-            required = false
-        )
-    }
-
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.prefix.flatMap { previousPrefix ->
         val guildId = event.guildId.orElseThrow(::UnexpectedException)
         val newPrefix = event[NEW_PREFIX]
@@ -62,5 +54,13 @@ class PrefixCommand : AbstractCommand(
                 .set(guildId, newPrefix)
                 .then(event.channel.flatMap { it.createMessage("Successfully set prefix from $previousPrefix to $newPrefix.") })
         }.then()
+    }
+
+    companion object {
+        private val NEW_PREFIX = StringArgument(
+            name = "prefix",
+            index = Range.atLeast(1),
+            required = false
+        )
     }
 }

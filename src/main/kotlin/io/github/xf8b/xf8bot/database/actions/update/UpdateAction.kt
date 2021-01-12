@@ -27,30 +27,39 @@ import reactor.kotlin.core.publisher.toMono
 
 open class UpdateAction(
     override val table: String,
-    private val setFields: Map<String, *>,
-    private val criteria: Map<String, *>
+    private val setFields: Map<String, Any>,
+    private val criteria: Map<String, Any>
 ) : DatabaseAction<Void> {
-    private fun update(connection: Connection, fields: Map<String, *>, updateCriteria: Map<String, *>): Mono<Void> {
+    private fun internalInvoke(
+        connection: Connection,
+        fields: Map<String, Any>,
+        updateCriteria: Map<String, Any>
+    ): Mono<Void> {
         var sql = "UPDATE $table SET "
-        val indexedParametersForSet = mutableListOf<String>()
-        val indexedParametersForCriteria = mutableListOf<String>()
+        val setFieldsIndexedParameters = mutableListOf<String>()
+        val criteriaIndexedParameters = mutableListOf<String>()
+        val fieldsAndCriteria = fields + criteria
 
         for (i in 1..fields.size) {
-            indexedParametersForSet.add("${fields.keys.toList()[i - 1]} = $$i")
+            setFieldsIndexedParameters += "${fields.keys.toList()[i - 1]} = $$i"
         }
 
-        for (i in fields.size until (updateCriteria.size + fields.size)) {
-            indexedParametersForCriteria.add("${updateCriteria.keys.toList()[i - 1]} = $$i")
+        for (i in fields.size + 1..fieldsAndCriteria.size) {
+            criteriaIndexedParameters += "${updateCriteria.keys.toList()[i - (1 + fields.size)]} = $$i"
         }
 
-        sql += indexedParametersForSet.joinToString()
+        sql += setFieldsIndexedParameters.joinToString()
         sql += " WHERE "
-        sql += indexedParametersForCriteria.joinToString(separator = " AND ")
+        sql += criteriaIndexedParameters.joinToString(separator = " AND ")
 
         return connection.createStatement(sql)
             .apply {
-                for (i in 1 until (indexedParametersForSet + indexedParametersForCriteria).size) {
-                    bind("$$i", updateCriteria.values.toList()[i - 1]!!)
+                for (i in 1..fields.size) {
+                    bind("$$i", fields.values.toList()[i - 1])
+                }
+
+                for (i in fields.size + 1..fieldsAndCriteria.size) {
+                    bind("$$i", updateCriteria.values.toList()[i - (1 + fields.size)])
                 }
             }
             .execute()
@@ -59,7 +68,7 @@ open class UpdateAction(
             .then()
     }
 
-    override fun invoke(connection: Connection): Mono<Void> = update(connection, setFields, criteria)
+    override fun invoke(connection: Connection): Mono<Void> = internalInvoke(connection, setFields, criteria)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {
