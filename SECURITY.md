@@ -14,8 +14,9 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.0-beta*x*   | :white_check_mark: |
-| 1.0.0-alpha*x*   | :x:                |
+| 0.2.*x* | :white_check_mark: |
+| 1.0.0-beta*x*   | :x: |
+| 1.0.0-alpha*x*   | :x: |
 
 Please report security vulnerabilities for versions which are semi-supported, marked as a :warning:.
 
