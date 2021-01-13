@@ -30,34 +30,32 @@ import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 
-object PermissionUtil {
-    /**
-     * Returns a [Boolean] that represents if [firstMember] has a higher or same administrator level than/with [secondMember].
-     */
-    fun Member.isAdministratorLevelHigher(
-        xf8bot: Xf8bot,
-        guild: Guild,
-        other: Member
-    ): Mono<Boolean> = Mono.zip(
-        { it[0] as Int >= it[1] as Int },
-        this.getAdministratorLevel(xf8bot, guild),
-        other.getAdministratorLevel(xf8bot, guild)
-    )
+/**
+ * Returns a [Boolean] that represents if [firstMember] has a higher or same administrator level than/with [secondMember].
+ */
+fun Member.isAdministratorLevelHigher(
+    xf8bot: Xf8bot,
+    guild: Guild,
+    other: Member
+): Mono<Boolean> = Mono.zip(
+    { it[0] as Int >= it[1] as Int },
+    this.getAdministratorLevel(xf8bot, guild),
+    other.getAdministratorLevel(xf8bot, guild)
+)
 
-    fun Member.canUse(xf8bot: Xf8bot, guild: Guild, command: Command): Mono<Boolean> =
-        this.getAdministratorLevel(xf8bot, guild).map {
-            it >= command.administratorLevelRequired
-        }
-
-    fun Member.getAdministratorLevel(xf8bot: Xf8bot, guild: Guild): Mono<Int> {
-        if (this.id == guild.ownerId) return 4.toMono()
-
-        return this.roles.map(Role::getId)
-            .flatMap { xf8bot.botDatabase.execute(FindAdministratorRoleAction(guild.id, it)) }
-            .flatMap { it.toFlux() }
-            .flatMap { it.map { row, _ -> row["level", Integer::class.java] } }
-            .sort()
-            .cast<Int>()
-            .last(0)
+fun Member.canUse(xf8bot: Xf8bot, guild: Guild, command: Command): Mono<Boolean> =
+    this.getAdministratorLevel(xf8bot, guild).map {
+        it >= command.administratorLevelRequired
     }
+
+fun Member.getAdministratorLevel(xf8bot: Xf8bot, guild: Guild): Mono<Int> {
+    if (this.id == guild.ownerId) return 4.toMono()
+
+    return this.roles.map(Role::getId)
+        .flatMap { xf8bot.botDatabase.execute(FindAdministratorRoleAction(guild.id, it)) }
+        .flatMap { it.toFlux() }
+        .flatMap { it.map { row, _ -> row["level", Integer::class.java] } }
+        .sort()
+        .cast<Int>()
+        .last(0)
 }

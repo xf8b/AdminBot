@@ -40,7 +40,6 @@ import io.github.xf8b.xf8bot.database.actions.find.FindAdministratorRoleAction
 import io.github.xf8b.xf8bot.database.actions.find.GetGuildAdministratorRolesAction
 import io.github.xf8b.xf8bot.util.*
 import io.github.xf8b.xf8bot.util.InputParsing.parseRoleId
-import io.github.xf8b.xf8bot.util.PermissionUtil.canUse
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
