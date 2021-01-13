@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.leveling
 
 import discord4j.rest.util.Permission
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.database.actions.find.GetXpAction
 import io.github.xf8b.xf8bot.util.LevelsCalculator
@@ -32,7 +32,7 @@ import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
 
 // FIXME: not sending an embed
-class LevelCommand : AbstractCommand(
+class LevelCommand : Command(
     name = "\${prefix}level",
     description = "Shows your current level, XP and XP needed to advance.",
     commandType = CommandType.LEVELING,

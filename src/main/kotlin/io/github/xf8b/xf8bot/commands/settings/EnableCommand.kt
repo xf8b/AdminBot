@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.Range
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveDisabledCommandAction
@@ -32,7 +32,7 @@ import reactor.kotlin.core.publisher.toMono
 import reactor.kotlin.extra.bool.logicalAnd
 
 // TODO: add embed for all the disabled commands
-class EnableCommand : AbstractCommand(
+class EnableCommand : Command(
     name = "\${prefix}enable",
     description = "Enables the command specified. Requires level 4.",
     commandType = CommandType.SETTINGS,

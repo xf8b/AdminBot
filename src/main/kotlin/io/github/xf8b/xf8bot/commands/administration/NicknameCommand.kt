@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.administration
 import com.google.common.collect.ImmutableList
 import discord4j.common.util.Snowflake
 import discord4j.rest.util.Permission
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.Checks
@@ -32,7 +32,7 @@ import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 
-class NicknameCommand : AbstractCommand(
+class NicknameCommand : Command(
     name = "\${prefix}nickname",
     description = "Sets the nickname of the specified member, or resets it if none was provided.",
     commandType = CommandType.ADMINISTRATION,

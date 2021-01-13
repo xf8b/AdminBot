@@ -24,7 +24,7 @@ import discord4j.core.`object`.entity.Member
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.tuples.and
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.data.Warn
@@ -36,7 +36,7 @@ import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
 import java.util.*
 
-class WarnsCommand : AbstractCommand(
+class WarnsCommand : Command(
     name = "\${prefix}warns",
     description = "Gets the warns for the specified member.",
     commandType = CommandType.INFO,

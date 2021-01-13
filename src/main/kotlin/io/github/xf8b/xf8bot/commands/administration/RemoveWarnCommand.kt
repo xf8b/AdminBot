@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.administration
 import com.google.common.collect.ImmutableList
 import discord4j.common.util.Snowflake
 import io.github.xf8b.utils.tuples.and
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveWarnAction
@@ -36,7 +36,7 @@ import reactor.kotlin.core.publisher.toMono
 import reactor.util.function.Tuples
 import java.util.*
 
-class RemoveWarnCommand : AbstractCommand(
+class RemoveWarnCommand : Command(
     name = "\${prefix}removewarn",
     description = """
     Removes the specified member's warns with the warnId and reason provided.

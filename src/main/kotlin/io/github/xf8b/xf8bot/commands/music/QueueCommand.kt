@@ -20,13 +20,13 @@
 package io.github.xf8b.xf8bot.commands.music
 
 import discord4j.rest.util.Color
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import io.github.xf8b.xf8bot.util.createEmbedDsl
 import reactor.core.publisher.Mono
 
-class QueueCommand : AbstractCommand(
+class QueueCommand : Command(
     name = "\${prefix}queue",
     description = "Gets the music queue.",
     commandType = CommandType.MUSIC

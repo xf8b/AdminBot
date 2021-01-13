@@ -20,14 +20,14 @@
 package io.github.xf8b.xf8bot.commands.`fun`
 
 import com.google.common.collect.Range
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
 import java.util.concurrent.ThreadLocalRandom
 
-class SlapCommand : AbstractCommand(
+class SlapCommand : Command(
     name = "\${prefix}slap",
     description = """
     Slaps the person.

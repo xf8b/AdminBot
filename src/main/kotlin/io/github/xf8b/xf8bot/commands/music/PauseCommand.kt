@@ -19,12 +19,12 @@
 
 package io.github.xf8b.xf8bot.commands.music
 
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 
-class PauseCommand : AbstractCommand(
+class PauseCommand : Command(
     name = "\${prefix}pause",
     description = "Pauses the current audio playing.",
     commandType = CommandType.MUSIC

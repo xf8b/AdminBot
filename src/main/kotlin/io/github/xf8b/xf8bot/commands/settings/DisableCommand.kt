@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.commands.settings
 
 import com.google.common.collect.Range
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.database.actions.add.AddDisabledCommandAction
@@ -29,7 +29,7 @@ import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.updatedRows
 import reactor.core.publisher.Mono
 
-class DisableCommand : AbstractCommand(
+class DisableCommand : Command(
     name = "\${prefix}disable",
     description = "Disables the command specified. Requires level 4.",
     commandType = CommandType.SETTINGS,

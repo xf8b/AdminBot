@@ -20,9 +20,9 @@
 package io.github.xf8b.xf8bot.database.actions.add
 
 import discord4j.common.util.Snowflake
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 
-class AddDisabledCommandAction(guildId: Snowflake, command: AbstractCommand) : InsertAction(
+class AddDisabledCommandAction(guildId: Snowflake, command: Command) : InsertAction(
     table = "disabledCommands",
     toInsert = listOf(guildId.asLong(), command.rawName)
 )

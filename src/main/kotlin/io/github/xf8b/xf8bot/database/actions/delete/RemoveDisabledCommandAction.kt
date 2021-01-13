@@ -20,9 +20,9 @@
 package io.github.xf8b.xf8bot.database.actions.delete
 
 import discord4j.common.util.Snowflake
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 
-class RemoveDisabledCommandAction(guildId: Snowflake, command: AbstractCommand) : DeleteAction(
+class RemoveDisabledCommandAction(guildId: Snowflake, command: Command) : DeleteAction(
     table = "disabledCommands",
     criteria = mapOf("guildId" to guildId.asLong(), "command" to command.rawName)
 )

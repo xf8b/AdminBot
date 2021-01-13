@@ -24,15 +24,14 @@ import com.google.common.collect.Range
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
 import io.github.xf8b.utils.exceptions.UnexpectedException
-import io.github.xf8b.utils.optional.toNullable
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 
-class VolumeCommand : AbstractCommand(
+class VolumeCommand : Command(
     name = "\${prefix}volume",
     description = "Changes the volume of the music in the current VC.",
     commandType = CommandType.MUSIC,

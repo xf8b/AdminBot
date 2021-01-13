@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
@@ -31,7 +31,7 @@ import io.github.xf8b.xf8bot.util.toMono
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 
-class PlayCommand : AbstractCommand(
+class PlayCommand : Command(
     name = "\${prefix}play",
     description = "Plays the specified music in the current VC.",
     commandType = CommandType.MUSIC,

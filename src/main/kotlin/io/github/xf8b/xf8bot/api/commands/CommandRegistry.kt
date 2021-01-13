@@ -19,7 +19,7 @@
 
 package io.github.xf8b.xf8bot.api.commands
 
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand.CommandType
+import io.github.xf8b.xf8bot.api.commands.Command.CommandType
 import java.util.*
 
 /**
@@ -27,13 +27,13 @@ import java.util.*
  *
  * @author xf8b
  */
-class CommandRegistry : Registry<AbstractCommand>() {
+class CommandRegistry : Registry<Command>() {
     /**
-     * Registers the passed in [AbstractCommand].
+     * Registers the passed in [Command].
      *
-     * @param t the [AbstractCommand] to be registered
+     * @param t the [Command] to be registered
      */
-    override fun register(t: AbstractCommand) {
+    override fun register(t: Command) {
         if (registered.any { it.name == t.name }) {
             throw IllegalArgumentException("Cannot register two commands with the same name!")
         } else {
@@ -41,7 +41,7 @@ class CommandRegistry : Registry<AbstractCommand>() {
         }
     }
 
-    fun getCommandsWithCommandType(commandType: CommandType): List<AbstractCommand> = LinkedList(registered.filter {
+    fun getCommandsWithCommandType(commandType: CommandType): List<Command> = LinkedList(registered.filter {
         it.commandType == commandType
     })
 }

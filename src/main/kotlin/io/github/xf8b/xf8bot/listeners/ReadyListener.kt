@@ -24,7 +24,6 @@ import discord4j.core.event.ReactiveEventAdapter
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import io.github.xf8b.utils.semver.SemanticVersion
 import io.github.xf8b.xf8bot.util.LoggerDelegate
-import org.slf4j.Logger
 import reactor.core.publisher.Mono
 
 class ReadyListener(
@@ -37,12 +36,16 @@ class ReadyListener(
         LOGGER.info("Logged in as ${event.self.tag}.")
         LOGGER.info("Logged into ${event.guilds.size} guilds.")
         LOGGER.info("Total shards: ${event.shardInfo.count}")
-        LOGGER.info("Bot arguments: ")
-        LOGGER.info("Activity: $botActivity")
-        LOGGER.info("Bot administrators: ${botAdmins.map(Snowflake::asString)}")
+        LOGGER.info(
+            """
+            Bot arguments:
+            Activity: $botActivity
+            Bot administrators: ${botAdmins.map(Snowflake::asString)}
+            """.trimIndent()
+        )
     }
 
     companion object {
-        private val LOGGER: Logger by LoggerDelegate()
+        private val LOGGER by LoggerDelegate()
     }
 }

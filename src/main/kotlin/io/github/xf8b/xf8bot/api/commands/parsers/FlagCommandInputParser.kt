@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.api.commands.parsers
 
 import com.google.common.collect.ImmutableMap
 import io.github.xf8b.utils.optional.Result
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.util.resolveRawArgument
 
@@ -32,7 +32,7 @@ class FlagCommandInputParser : CommandInputParser<Flag<*>> {
      *
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      */
-    override fun parse(command: AbstractCommand, input: String): Result<Map<Flag<*>, Any>> {
+    override fun parse(command: Command, input: String): Result<Map<Flag<*>, Any>> {
         val flagMap = mutableMapOf<Flag<*>, Any>()
         val missingFlags = mutableListOf<Flag<*>>()
         val invalidValues = mutableMapOf<Flag<*>, String>()

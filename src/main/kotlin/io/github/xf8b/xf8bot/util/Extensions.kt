@@ -33,6 +33,7 @@ import reactor.util.function.*
 import java.time.Instant
 import java.util.*
 import java.util.function.Function
+import javax.script.AbstractScriptEngine
 
 // extension fields
 val User.isNotBot get() = !isBot
@@ -46,8 +47,11 @@ fun Long.toSnowflake(): Snowflake = Snowflake.of(this)
 fun Instant.toSnowflake(): Snowflake = Snowflake.of(this)
 
 // to mono
-@JvmName("optionalToMono")
 fun <T> Optional<T>.toMono(): Mono<T> = Mono.justOrEmpty(this)
+
+fun (() -> Unit).toMono(): Mono<Void> = Mono.fromRunnable(this)
+
+fun Runnable.toMono(): Mono<Void> = Mono.fromRunnable(this)
 
 // to collection
 fun Permission.toSingletonPermissionSet(): PermissionSet = PermissionSet.of(this)
@@ -89,3 +93,4 @@ operator fun <A, B, C, D, E> Tuple5<A, B, C, D, E>.component5(): E = this.t5
 operator fun <A, B, C, D, E, F> Tuple6<A, B, C, D, E, F>.component6(): F = this.t6
 operator fun <A, B, C, D, E, F, G> Tuple7<A, B, C, D, E, F, G>.component7(): G = this.t7
 operator fun <A, B, C, D, E, F, G, H> Tuple8<A, B, C, D, E, F, G, H>.component8(): H = this.t8
+operator fun AbstractScriptEngine.set(key: String, value: Any?) = this.put(key, value)

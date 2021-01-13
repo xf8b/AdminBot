@@ -27,7 +27,7 @@ import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.utils.sorting.sortByValue
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
@@ -47,7 +47,7 @@ import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 import java.util.*
 
-class AdministratorsCommand : AbstractCommand(
+class AdministratorsCommand : Command(
     name = "\${prefix}administrators",
     description = """
     Adds to, removes from, or gets the list of administrator roles.

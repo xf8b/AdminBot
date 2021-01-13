@@ -20,14 +20,14 @@
 package io.github.xf8b.xf8bot.commands.other
 
 import com.google.common.collect.Range
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
 
-class SayCommand : AbstractCommand(
+class SayCommand : Command(
     name = "\${prefix}say",
     description = "Sends the passed in content to the current channel.",
     commandType = CommandType.OTHER,

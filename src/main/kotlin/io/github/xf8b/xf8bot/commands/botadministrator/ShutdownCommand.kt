@@ -20,13 +20,13 @@
 package io.github.xf8b.xf8bot.commands.botadministrator
 
 import io.github.xf8b.utils.tuples.and
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.util.toImmutableList
 import reactor.core.publisher.Mono
 import kotlin.system.exitProcess
 
-class ShutdownCommand : AbstractCommand(
+class ShutdownCommand : Command(
     name = "\${prefix}shutdown",
     description = "Shuts down the bot. Bot administrators only!",
     commandType = CommandType.BOT_ADMINISTRATOR,

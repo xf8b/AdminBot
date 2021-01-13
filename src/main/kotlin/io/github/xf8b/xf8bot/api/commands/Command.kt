@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.util.*
 
-abstract class AbstractCommand(
+abstract class Command(
     /** What triggers this command */
     val name: String,
     /** The description of this command, shown on the help page */
@@ -98,7 +98,7 @@ abstract class AbstractCommand(
     @Suppress("DEPRECATION")
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is AbstractCommand) return false
+        if (other !is Command) return false
 
         if (name != other.name) return false
         if (description != other.description) return false

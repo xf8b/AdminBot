@@ -36,13 +36,14 @@ import discord4j.gateway.intent.Intent
 import discord4j.gateway.intent.IntentSet
 import discord4j.rest.util.Color
 import io.github.xf8b.utils.semver.SemanticVersion
+import io.github.xf8b.xf8bot.api.commands.Bot
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.findAndRegister
 import io.github.xf8b.xf8bot.data.PrefixCache
 import io.github.xf8b.xf8bot.database.BotDatabase
+import io.github.xf8b.xf8bot.listeners.DeletionListener
 import io.github.xf8b.xf8bot.listeners.MessageListener
 import io.github.xf8b.xf8bot.listeners.ReadyListener
-import io.github.xf8b.xf8bot.listeners.RoleDeleteListener
 import io.github.xf8b.xf8bot.settings.BotConfiguration
 import io.github.xf8b.xf8bot.util.*
 import io.r2dbc.pool.ConnectionPool
@@ -63,7 +64,7 @@ import kotlin.system.exitProcess
 // TODO: add spam protection
 // TODO: leveling system
 // TODO: create webhook for bans, warns, etc?
-class Xf8bot private constructor(private val botConfiguration: BotConfiguration) {
+class Xf8bot private constructor(private val botConfiguration: BotConfiguration) : Bot {
     val commandRegistry = CommandRegistry()
     val version = Scanner(resource("version.txt") ?: error("The version file does not exist!"))
         .use { SemanticVersion(it.nextLine()) }
@@ -128,7 +129,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
 
     companion object {
         const val DEFAULT_PREFIX = ">"
-        private val LOGGER: Logger by LoggerDelegate()
+        private val LOGGER by LoggerDelegate()
 
         @JvmStatic
         fun main(vararg args: String) {
@@ -147,7 +148,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         }
     }
 
-    private fun start(): Mono<Void> {
+    override fun start(): Mono<Void> {
         Runtime.getRuntime().addShutdownHook(Thread {
             client.logout().block()
             LOGGER.info("Shutting down!")
@@ -159,33 +160,16 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
             botConfiguration.botAdministrators,
             version
         )
-        val roleDeleteListener = RoleDeleteListener(botDatabase)
+        val deletionListener = DeletionListener(botDatabase)
 
-        val readyPublisher = client.on(readyListener)
-        val messageCreateEventPublisher = client.on(messageListener)
-        val roleDeletePublisher = client.on(roleDeleteListener)
         val webhookPublisher = client.self.flatMap { self ->
-            val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
-            val discordAsync = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
-                .getAppender("ASYNC_DISCORD") as AsyncAppender
-            val discordAppender = discordAsync.getAppender("DISCORD") as DiscordAppender
-            discordAppender.username = self.username
-            discordAppender.avatarUrl = self.avatarUrl
-            val webhookUrl = botConfiguration.logDumpWebhook
-            discordAppender.addFilter(FunctionalFilter {
-                if (webhookUrl.trim().isBlank()) {
-                    FilterReply.DENY
-                } else {
-                    FilterReply.NEUTRAL
-                }
-            })
+            setupLogging(self.username, self.avatarUrl)
 
-            if (webhookUrl.isNotBlank()) {
-                discordAppender.webhookUri = webhookUrl
-                val webhookIdAndToken = InputParsing.parseWebhookUrl(webhookUrl)
+            if (botConfiguration.logDumpWebhook.isNotBlank()) {
+                val (webhookId, token) = InputParsing.parseWebhookUrl(botConfiguration.logDumpWebhook)
 
-                client.getWebhookByIdWithToken(webhookIdAndToken.first, webhookIdAndToken.second).flatMap {
-                    it.executeDsl {
+                client.getWebhookByIdWithToken(webhookId, token).flatMap { webhook ->
+                    webhook.executeDsl {
                         username(self.username)
                         avatarUrl(self.avatarUrl)
 
@@ -202,15 +186,35 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
                 Mono.empty()
             }
         }
-        val disconnectPublisher = client.onDisconnect().doOnSuccess { LOGGER.info("Successfully disconnected!") }
+        val onDisconnect = client.onDisconnect().doOnSuccess { LOGGER.info("Successfully disconnected!") }
 
         return Mono.`when`(
-            readyPublisher,
-            messageCreateEventPublisher,
-            roleDeletePublisher,
+            client.on(readyListener),
+            client.on(messageListener),
+            client.on(deletionListener),
             webhookPublisher,
-            disconnectPublisher
+            onDisconnect
         )
+    }
+
+    private fun setupLogging(username: String, avatarUrl: String) {
+        val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
+        val asyncDiscord = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
+            .getAppender("ASYNC_DISCORD") as AsyncAppender
+        val discordAppender = asyncDiscord.getAppender("DISCORD") as DiscordAppender
+        discordAppender.apply {
+            this.username = username
+            this.avatarUrl = avatarUrl
+
+            if (botConfiguration.logDumpWebhook.isNotBlank()) {
+                this.webhookUri = botConfiguration.logDumpWebhook
+            }
+
+            discordAppender.addFilter(FunctionalFilter {
+                if (botConfiguration.logDumpWebhook.isBlank()) FilterReply.DENY
+                else FilterReply.NEUTRAL
+            })
+        }
     }
 
     fun isBotAdministrator(id: Snowflake) = botConfiguration.botAdministrators.contains(id)

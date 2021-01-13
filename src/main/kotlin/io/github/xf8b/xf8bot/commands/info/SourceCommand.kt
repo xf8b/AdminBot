@@ -20,12 +20,12 @@
 package io.github.xf8b.xf8bot.commands.info
 
 import io.github.xf8b.utils.tuples.and
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.util.toImmutableList
 import reactor.core.publisher.Mono
 
-class SourceCommand : AbstractCommand(
+class SourceCommand : Command(
     name = "\${prefix}source",
     description = "The source code of xf8bot",
     commandType = CommandType.INFO,

@@ -20,7 +20,7 @@
 package io.github.xf8b.xf8bot.api.commands.parsers
 
 import io.github.xf8b.utils.optional.Result
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 
 fun interface CommandInputParser<E> {
     /**
@@ -29,5 +29,5 @@ fun interface CommandInputParser<E> {
      *
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      */
-    fun parse(command: AbstractCommand, input: String): Result<Map<E, Any>>
+    fun parse(command: Command, input: String): Result<Map<E, Any>>
 }

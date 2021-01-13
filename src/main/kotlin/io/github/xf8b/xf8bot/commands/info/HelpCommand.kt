@@ -24,7 +24,7 @@ import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
@@ -38,7 +38,7 @@ import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 
 // TODO: make paginated embed system so this can go back to using reactions for pages
-class HelpCommand : AbstractCommand(
+class HelpCommand : Command(
     name = "\${prefix}help",
     description = """
     If a command was specified, this shows the command's description, usage, aliases, and actions.
@@ -193,7 +193,7 @@ class HelpCommand : AbstractCommand(
 
     private fun generateCommandEmbed(
         messageChannel: MessageChannel,
-        command: AbstractCommand,
+        command: Command,
         usage: String,
         aliases: List<String>
     ): Mono<Message> = messageChannel.createEmbedDsl {

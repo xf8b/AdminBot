@@ -21,13 +21,13 @@ package io.github.xf8b.xf8bot.commands.music
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 
-class SkipCommand : AbstractCommand(
+class SkipCommand : Command(
     name = "\${prefix}skip",
     description = "Skips the current music playing.",
     commandType = CommandType.MUSIC,

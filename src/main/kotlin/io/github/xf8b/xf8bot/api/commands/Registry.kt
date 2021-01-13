@@ -37,30 +37,29 @@ open class Registry<T : Any> : AbstractList<T>() {
     open fun register(t: T) {
         if (registered.find { it == t } != null) {
             throw IllegalArgumentException("Cannot register same thing twice!")
+        } else {
+            registered += t
         }
-
-        registered.add(t)
     }
 
     override fun get(index: Int): T = registered[index]
 
     override fun iterator(): MutableIterator<T> = registered.iterator()
 
-    inline fun <reified E : T> findRegisteredWithType(): E = E::class.java.cast(registered.stream()
-        .filter { it.javaClass == E::class.java }
-        .findFirst()
-        .orElseThrow { IllegalArgumentException("No registered object matches the class inputted!") })
+    inline fun <reified E : T> findRegisteredWithType(): E = E::class.java
+        .cast(registered.find { it.javaClass == E::class.java }
+            ?: throw IllegalArgumentException("No registered object matches the class inputted!"))
 }
 
 inline fun <reified T : Any> Registry<T>.findAndRegister(packagePrefix: String) {
     val reflections = Reflections(packagePrefix, SubTypesScanner())
     val logger: Logger = logger<Registry<T>>()
 
-    reflections.getSubTypesOf<T>().forEach {
+    for (klass in reflections.getSubTypesOf<T>()) {
         try {
-            register(it.getConstructor().newInstance())
-        } catch (exception: Exception) {
-            logger.error("An error happened while trying to register $it!", exception)
+            register(klass.getConstructor().newInstance())
+        } catch (throwable: Throwable) {
+            logger.error("An error happened while trying to register $klass!", throwable)
         }
     }
 }

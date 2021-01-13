@@ -19,12 +19,12 @@
 
 package io.github.xf8b.xf8bot.commands.music
 
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 
-class ClearQueueCommand : AbstractCommand(
+class ClearQueueCommand : Command(
     name = "\${prefix}clearqueue",
     description = "Clears the queue of songs to play",
     commandType = CommandType.MUSIC

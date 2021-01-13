@@ -25,8 +25,8 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.rest.http.client.ClientException
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.Xf8bot
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand.ExecutionChecks
+import io.github.xf8b.xf8bot.api.commands.Command
+import io.github.xf8b.xf8bot.api.commands.Command.ExecutionChecks
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Mono
@@ -113,7 +113,7 @@ object Checks {
             }
 
     fun doesBotHavePermissionsRequired(
-        command: AbstractCommand,
+        command: Command,
         bot: Publisher<Member>,
         channel: Publisher<MessageChannel>
     ): Mono<Boolean> =
@@ -133,7 +133,7 @@ object Checks {
                 }
         }
 
-    fun doesMemberHaveCorrectAdministratorLevel(command: AbstractCommand, event: CommandFiredEvent): Mono<Boolean> =
+    fun doesMemberHaveCorrectAdministratorLevel(command: Command, event: CommandFiredEvent): Mono<Boolean> =
         if (ExecutionChecks.IS_ADMINISTRATOR in command.disabledChecks) {
             true.toMono()
         } else {
@@ -151,7 +151,7 @@ object Checks {
         }
 
     fun canMemberUseBotAdministratorOnlyCommand(
-        command: AbstractCommand,
+        command: Command,
         xf8bot: Xf8bot,
         member: Member,
         channel: Publisher<MessageChannel>
@@ -165,7 +165,7 @@ object Checks {
         else -> true.toMono()
     }
 
-    fun isThereEnoughArguments(command: AbstractCommand, event: CommandFiredEvent): Mono<Boolean> = when {
+    fun isThereEnoughArguments(command: Command, event: CommandFiredEvent): Mono<Boolean> = when {
         ExecutionChecks.SURPASSES_MINIMUM_AMOUNT_OF_ARGUMENTS in command.disabledChecks -> true.toMono()
 
         event.message.content.split(" ").drop(1).size < command.minimumAmountOfArgs -> {

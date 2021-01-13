@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
 import discord4j.rest.util.Color
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
 
-class WarnCommand : AbstractCommand(
+class WarnCommand : Command(
     name = "\${prefix}warn",
     description = "Warns the specified member with the specified reason, or `No warn reason was provided` if there was none.",
     commandType = CommandType.ADMINISTRATION,

@@ -25,7 +25,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.http.client.ClientException
 import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.Xf8bot
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.parsers.ArgumentCommandInputParser
@@ -33,7 +33,6 @@ import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandInputParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
 import io.github.xf8b.xf8bot.util.*
-import org.slf4j.Logger
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorResume
 import reactor.kotlin.core.publisher.toFlux
@@ -88,7 +87,7 @@ class MessageListener(
         // )
     }
 
-    private fun findCommand(commandRequested: String, guildId: String): Mono<AbstractCommand> =
+    private fun findCommand(commandRequested: String, guildId: String): Mono<Command> =
         commandRegistry.toFlux()
             .filterWhen { command ->
                 command.getNameWithPrefix(xf8bot, guildId)
@@ -131,7 +130,7 @@ class MessageListener(
         .then()
      */
 
-    private fun onCommandFired(event: MessageCreateEvent, command: AbstractCommand, content: String): Mono<Void> {
+    private fun onCommandFired(event: MessageCreateEvent, command: Command, content: String): Mono<Void> {
         val flagParseResult = FLAG_PARSER.parse(command, content)
         val argumentParseResult = ARGUMENT_PARSER.parse(command, content)
 
@@ -191,6 +190,6 @@ class MessageListener(
     companion object {
         private val ARGUMENT_PARSER = ArgumentCommandInputParser()
         private val FLAG_PARSER = FlagCommandInputParser()
-        private val LOGGER: Logger by LoggerDelegate()
+        private val LOGGER by LoggerDelegate()
     }
 }

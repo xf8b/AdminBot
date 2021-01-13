@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.commands.other
 
 import com.google.common.collect.ImmutableList
 import discord4j.rest.util.Color
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
@@ -31,7 +31,7 @@ import java.net.MalformedURLException
 import java.time.Instant
 import java.time.format.DateTimeParseException
 
-class EmbedCommand : AbstractCommand(
+class EmbedCommand : Command(
     name = "\${prefix}embed",
     description = """
     Creates an embed in the current channel.

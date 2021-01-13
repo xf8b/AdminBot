@@ -21,14 +21,14 @@ package io.github.xf8b.xf8bot.commands.info
 
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 
-class InfoCommand : AbstractCommand(
+class InfoCommand : Command(
     name = "\${prefix}information",
     description = "Shows some information about me.",
     commandType = CommandType.INFO,

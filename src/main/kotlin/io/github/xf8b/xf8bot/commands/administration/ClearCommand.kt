@@ -25,7 +25,7 @@ import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.exceptions.UnexpectedException
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
@@ -40,7 +40,7 @@ import reactor.kotlin.extra.bool.logicalAnd
 import java.time.Duration
 import java.time.Instant
 
-class ClearCommand : AbstractCommand(
+class ClearCommand : Command(
     name = "\${prefix}clear",
     description = "Clears the specified amount of messages. The amount of messages to be cleared cannot exceed 500 or be below 2.",
     commandType = CommandType.ADMINISTRATION,

@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.info
 import com.google.common.collect.Range
 import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.*
@@ -33,7 +33,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.*
 
-class MemberInfoCommand : AbstractCommand(
+class MemberInfoCommand : Command(
     name = "\${prefix}memberinfo",
     description = "Shows information about the member.",
     commandType = CommandType.INFO,

@@ -24,7 +24,7 @@ import discord4j.common.util.Snowflake
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.utils.exceptions.UnexpectedException
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
@@ -33,7 +33,7 @@ import io.github.xf8b.xf8bot.util.*
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 
-class BanCommand : AbstractCommand(
+class BanCommand : Command(
     name = "\${prefix}ban",
     description = "Bans the specified member with the specified reason, or `No ban reason was provided` if there was none.",
     commandType = CommandType.ADMINISTRATION,

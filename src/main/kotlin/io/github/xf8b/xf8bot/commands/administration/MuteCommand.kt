@@ -21,14 +21,14 @@ package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
 import discord4j.rest.util.Permission
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.api.commands.flags.TimeFlag
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 
-class MuteCommand : AbstractCommand(
+class MuteCommand : Command(
     name = "\${prefix}mute",
     description = """
     Mutes the specified member for the specified amount of time. 

@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.api.commands.parsers
 
 import com.google.common.collect.Range
 import io.github.xf8b.utils.tuples.and
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
 
-class FakeCommand : AbstractCommand(
+class FakeCommand : Command(
     name = "fake command",
     description = "fake command",
     commandType = CommandType.OTHER,

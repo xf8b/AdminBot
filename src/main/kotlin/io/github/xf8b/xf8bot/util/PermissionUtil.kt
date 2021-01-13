@@ -23,7 +23,7 @@ import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Role
 import io.github.xf8b.xf8bot.Xf8bot
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.database.actions.find.FindAdministratorRoleAction
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
@@ -49,7 +49,7 @@ object PermissionUtil {
         xf8bot: Xf8bot,
         guild: Guild,
         member: Member,
-        command: AbstractCommand
+        command: Command
     ): Mono<Boolean> = getAdministratorLevel(xf8bot, guild, member).map { it >= command.administratorLevelRequired }
 
     fun getAdministratorLevel(xf8bot: Xf8bot, guild: Guild, member: Member): Mono<Int> {

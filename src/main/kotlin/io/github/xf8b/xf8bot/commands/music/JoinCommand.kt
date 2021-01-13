@@ -21,14 +21,14 @@ package io.github.xf8b.xf8bot.commands.music
 
 import discord4j.core.`object`.VoiceState
 import discord4j.core.`object`.entity.Member
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import reactor.core.publisher.Mono
 import reactor.util.retry.Retry
 import java.time.Duration
 
-class JoinCommand : AbstractCommand(
+class JoinCommand : Command(
     name = "\${prefix}join",
     description = "Joins your current VC.",
     commandType = CommandType.MUSIC

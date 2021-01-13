@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.commands.botadministrator
 
 import com.sun.management.OperatingSystemMXBean
 import discord4j.rest.util.Color
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
@@ -30,7 +30,7 @@ import reactor.core.publisher.Mono
 import java.lang.management.ManagementFactory
 import java.lang.management.MemoryUsage
 
-class HostInformationCommand : AbstractCommand(
+class HostInformationCommand : Command(
     name = "\${prefix}hostinformation",
     description = "Gets information about the host.",
     commandType = CommandType.BOT_ADMINISTRATOR,

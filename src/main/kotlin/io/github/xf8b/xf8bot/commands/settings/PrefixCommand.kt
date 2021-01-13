@@ -23,12 +23,12 @@ import com.google.common.collect.ImmutableList
 import com.google.common.collect.Range
 import io.github.xf8b.utils.exceptions.UnexpectedException
 import io.github.xf8b.xf8bot.Xf8bot
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import reactor.core.publisher.Mono
 
-class PrefixCommand : AbstractCommand(
+class PrefixCommand : Command(
     name = "\${prefix}prefix",
     description = "Sets the prefix to the specified prefix.",
     commandType = CommandType.SETTINGS,

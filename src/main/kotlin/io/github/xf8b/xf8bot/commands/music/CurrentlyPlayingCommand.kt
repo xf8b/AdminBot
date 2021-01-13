@@ -21,14 +21,14 @@ package io.github.xf8b.xf8bot.commands.music
 
 import discord4j.rest.util.Color
 import io.github.xf8b.utils.tuples.and
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
 import io.github.xf8b.xf8bot.util.toImmutableList
 import org.apache.commons.lang3.time.DurationFormatUtils
 import reactor.core.publisher.Mono
 
-class CurrentlyPlayingCommand : AbstractCommand(
+class CurrentlyPlayingCommand : Command(
     name = "\${prefix}currentlyplaying",
     description = "Gets the currently playing music.",
     commandType = CommandType.MUSIC,

@@ -21,14 +21,14 @@ package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.Range
 import discord4j.rest.util.Permission
-import io.github.xf8b.xf8bot.api.commands.AbstractCommand
+import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 
-class UnbanCommand : AbstractCommand(
+class UnbanCommand : Command(
     name = "\${prefix}unban",
     description = "Unbans the specified member.",
     commandType = CommandType.ADMINISTRATION,
