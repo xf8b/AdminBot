@@ -23,7 +23,6 @@ import com.google.common.collect.Range
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
-import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.toSingletonImmutableList
 import reactor.core.publisher.Mono
 
@@ -34,15 +33,8 @@ class SayCommand : Command(
     arguments = CONTENT.toSingletonImmutableList()
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.channel
-        .flatMap {
-            it.createEmbedDsl {
-                val author = event.author.get()
-
-                author(author.tag, url = null, author.avatarUrl)
-                description(event[CONTENT]!!)
-            }
-        }
-        .then(event.message.delete())
+        .flatMap { it.createMessage(event[CONTENT]!!) }
+        .thenEmpty(event.message.delete())
 
     companion object {
         private val CONTENT = StringArgument(

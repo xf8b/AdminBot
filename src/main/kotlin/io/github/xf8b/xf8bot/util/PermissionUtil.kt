@@ -34,33 +34,28 @@ object PermissionUtil {
     /**
      * Returns a [Boolean] that represents if [firstMember] has a higher or same administrator level than/with [secondMember].
      */
-    fun isMemberHigherOrEqual(
+    fun Member.isAdministratorLevelHigher(
         xf8bot: Xf8bot,
         guild: Guild,
-        firstMember: Member,
-        secondMember: Member
+        other: Member
     ): Mono<Boolean> = Mono.zip(
         { it[0] as Int >= it[1] as Int },
-        getAdministratorLevel(xf8bot, guild, firstMember),
-        getAdministratorLevel(xf8bot, guild, secondMember)
+        this.getAdministratorLevel(xf8bot, guild),
+        other.getAdministratorLevel(xf8bot, guild)
     )
 
-    fun canMemberUseCommand(
-        xf8bot: Xf8bot,
-        guild: Guild,
-        member: Member,
-        command: Command
-    ): Mono<Boolean> = getAdministratorLevel(xf8bot, guild, member).map { it >= command.administratorLevelRequired }
+    fun Member.canUse(xf8bot: Xf8bot, guild: Guild, command: Command): Mono<Boolean> =
+        this.getAdministratorLevel(xf8bot, guild).map {
+            it >= command.administratorLevelRequired
+        }
 
-    fun getAdministratorLevel(xf8bot: Xf8bot, guild: Guild, member: Member): Mono<Int> {
-        if (member.id == guild.ownerId) return 4.toMono()
+    fun Member.getAdministratorLevel(xf8bot: Xf8bot, guild: Guild): Mono<Int> {
+        if (this.id == guild.ownerId) return 4.toMono()
 
-        return member.roles
-            .map(Role::getId)
+        return this.roles.map(Role::getId)
             .flatMap { xf8bot.botDatabase.execute(FindAdministratorRoleAction(guild.id, it)) }
             .flatMap { it.toFlux() }
-            .flatMap { it.map { row, _ -> row } }
-            .map { it["level", Integer::class.java] }
+            .flatMap { it.map { row, _ -> row["level", Integer::class.java] } }
             .sort()
             .cast<Int>()
             .last(0)

@@ -26,6 +26,7 @@ import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.PermissionUtil.getAdministratorLevel
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import java.time.ZoneOffset
@@ -73,7 +74,7 @@ class MemberInfoCommand : Command(
                         val otherInfo = Mono.zip(
                             member.color,
                             event.guild.map { member.id == it.ownerId },
-                            event.guild.flatMap { PermissionUtil.getAdministratorLevel(event.xf8bot, it, member) },
+                            event.guild.flatMap { member.getAdministratorLevel(event.xf8bot, it) },
                             OrderUtil.orderRoles(member.roles)
                                 .map { it.mention }
                                 .collectList()

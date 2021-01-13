@@ -34,6 +34,7 @@ import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
 import discord4j.gateway.intent.Intent
 import discord4j.gateway.intent.IntentSet
+import discord4j.rest.util.AllowedMentions
 import discord4j.rest.util.Color
 import io.github.xf8b.utils.semver.SemanticVersion
 import io.github.xf8b.xf8bot.api.commands.Bot
@@ -98,7 +99,9 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         ),
         // if (botConfiguration.encryptionEnabled) keySetHandle else null
     )
-    val client = DiscordClient.create(botConfiguration.token)
+    val client = DiscordClient.builder(botConfiguration.token)
+        .setDefaultAllowedMentions(AllowedMentions.suppressAll())
+        .build()
         .gateway()
         .setSharding(botConfiguration.shardingStrategy)
         .setInitialStatus { shardInfo ->
@@ -153,7 +156,8 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
             client.logout().block()
             LOGGER.info("Shutting down!")
         })
-        commandRegistry.findAndRegister("io.github.xf8b.xf8bot.commands")
+
+        commandRegistry.findAndRegister(packagePrefix = "io.github.xf8b.xf8bot.commands")
         val messageListener = MessageListener(this, commandRegistry)
         val readyListener = ReadyListener(
             botConfiguration.activity,
@@ -202,6 +206,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         val asyncDiscord = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
             .getAppender("ASYNC_DISCORD") as AsyncAppender
         val discordAppender = asyncDiscord.getAppender("DISCORD") as DiscordAppender
+
         discordAppender.apply {
             this.username = username
             this.avatarUrl = avatarUrl

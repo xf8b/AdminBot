@@ -32,7 +32,11 @@ import io.github.xf8b.xf8bot.api.commands.parsers.ArgumentCommandInputParser
 import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandInputParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
-import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.Checks
+import io.github.xf8b.xf8bot.util.LoggerDelegate
+import io.github.xf8b.xf8bot.util.PermissionUtil.getAdministratorLevel
+import io.github.xf8b.xf8bot.util.toSnowflake
+import io.github.xf8b.xf8bot.util.updatedRows
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorResume
 import reactor.kotlin.core.publisher.toFlux
@@ -70,13 +74,13 @@ class MessageListener(
                 .filterWhen { it[0].updatedRows }
                 .flatMap {
                     event.guild
-                        .flatMap { PermissionUtil.getAdministratorLevel(xf8bot, it, event.member.get()) }
+                        .flatMap { event.member.get().getAdministratorLevel(xf8bot, it) }
                         .map { it >= 4 }
                 }
                 .defaultIfEmpty(true)
                 .flatMap { allowedToRun ->
                     if (allowedToRun) {
-                        onCommandFired(event, command, content)
+                        event.message.channel.flatMap { it.type().then(onCommandFired(event, command, content)) }
                     } else {
                         event.message.channel
                             .flatMap { it.createMessage("Sorry, but this command has been disabled by an administrator.") }

@@ -40,7 +40,7 @@ import io.github.xf8b.xf8bot.database.actions.find.FindAdministratorRoleAction
 import io.github.xf8b.xf8bot.database.actions.find.GetGuildAdministratorRolesAction
 import io.github.xf8b.xf8bot.util.*
 import io.github.xf8b.xf8bot.util.InputParsing.parseRoleId
-import io.github.xf8b.xf8bot.util.PermissionUtil.canMemberUseCommand
+import io.github.xf8b.xf8bot.util.PermissionUtil.canUse
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toFlux
@@ -78,7 +78,7 @@ class AdministratorsCommand : Command(
         val action = event[ACTION]!!
 
         return event.guild.flatMap { guild ->
-            val isAdministrator = canMemberUseCommand(event.xf8bot, guild, member, this)
+            val isAdministrator = member.canUse(event.xf8bot, guild, command = this)
 
             return@flatMap when (action.toLowerCase(Locale.ROOT)) {
                 "add", "addrole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
