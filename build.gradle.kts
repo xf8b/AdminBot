@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile as CompileKotlin
 plugins {
     idea
     java
-    kotlin("jvm") version "1.4.30-M1"
+    kotlin("jvm") version "1.5.255-SNAPSHOT"
     application
     id("com.github.johnrengelman.shadow") version "6.1.0"
     id("net.minecrell.licenser") version "0.4.1"
