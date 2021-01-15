@@ -59,9 +59,12 @@ class MessageListener(
 
         val message = event.message
         val guildId = event.guildId.get().asString()
-        val contentMono = xf8bot.prefixCache.get(guildId.toSnowflake()).map { prefix ->
-            message.content.removePrefix(prefix).trim()
-        }
+        val contentMono = xf8bot.prefixCache
+            .get(guildId.toSnowflake())
+            .map { prefix ->
+                if (message.content.startsWith(prefix)) message.content.removePrefix(prefix).trim()
+                else ""
+            }
 
         // FIXME: fix levels
 
