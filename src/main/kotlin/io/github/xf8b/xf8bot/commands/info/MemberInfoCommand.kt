@@ -131,7 +131,7 @@ class MemberInfoCommand : Command(
     companion object {
         private val MEMBER: StringArgument = StringArgument(
             name = "member",
-            index = Range.atLeast(1),
+            index = Range.atLeast(0),
             required = false
         )
         private val FORMATTER = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL)

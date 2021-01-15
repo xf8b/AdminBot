@@ -39,7 +39,7 @@ class SayCommand : Command(
     companion object {
         private val CONTENT = StringArgument(
             name = "content",
-            index = Range.atLeast(1)
+            index = Range.atLeast(0)
         )
     }
 }

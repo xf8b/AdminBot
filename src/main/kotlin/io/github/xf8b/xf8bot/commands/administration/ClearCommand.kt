@@ -51,7 +51,7 @@ class ClearCommand : Command(
 ) {
     companion object {
         private val AMOUNT = IntegerArgument(
-            index = Range.singleton(1),
+            index = Range.singleton(0),
             name = "amount",
             validityPredicate = {
                 try {

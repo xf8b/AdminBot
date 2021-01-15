@@ -30,12 +30,14 @@ import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.createEmbedDsl
+import io.github.xf8b.xf8bot.util.isAlpha
 import io.github.xf8b.xf8bot.util.toImmutableList
 import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
 import org.apache.commons.text.WordUtils
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
+import java.util.*
 
 // TODO: make paginated embed system so this can go back to using reactions for pages
 class HelpCommand : Command(
@@ -54,34 +56,32 @@ class HelpCommand : Command(
         val commandOrSection = event[SECTION_OR_COMMAND]
 
         if (commandOrSection == null) {
-            return event.prefix.flatMap { prefix ->
-                event.channel.flatMap {
-                    it.createEmbedDsl {
-                        title("Help Page")
-                        color(Color.BLUE)
+            return event.prefix
+                .map { prefix -> if (prefix.isAlpha()) "$prefix " else prefix }
+                .flatMap { prefix ->
+                    event.channel.flatMap {
+                        it.createEmbedDsl {
+                            title("Help Page")
+                            color(Color.BLUE)
 
-                        for (commandType in CommandType.values()) {
-                            val commandTypeName = WordUtils.capitalizeFully(
-                                commandType.name
-                                    .toLowerCase()
+                            for (commandType in CommandType.values()) {
+                                val commandTypeName = commandType.name
+                                    .toLowerCase(Locale.ROOT)
                                     .replace("_", " ")
-                            )
-                            field(
-                                "`$commandTypeName`",
-                                """
-                                ${commandType.description}
-                                To go to this section, use `${prefix}help ${
-                                    commandType.name
-                                        .toLowerCase()
-                                        .replace(" ", "_")
-                                }`
-                                """.trimIndent(),
-                                inline = false
-                            )
+
+                                field(
+                                    "`${WordUtils.capitalizeFully(commandTypeName)}`",
+                                    """
+                                    ${commandType.description}
+                                    To go to this section, use `${prefix}help $commandTypeName`
+                                    """.trimIndent(),
+                                    inline = false
+                                )
+                            }
                         }
                     }
                 }
-            }.then()
+                .then()
         } else {
             for (commandType in CommandType.values()) {
                 if (commandOrSection.equals(commandType.name, ignoreCase = true)) {
@@ -94,19 +94,22 @@ class HelpCommand : Command(
                             .flatMap { it.createMessage("No page with the index $pageNumber exists!") }
                             .then()
                     }
-                    return event.prefix.flatMap { prefix ->
-                        event.channel.flatMap {
-                            generateCommandTypeEmbed(
-                                event,
-                                event.xf8bot.commandRegistry,
-                                it,
-                                commandType,
-                                guildId,
-                                pageNumber,
-                                prefix
-                            )
-                        }
-                    }.then()
+
+                    return event.prefix
+                        .map { prefix -> if (prefix.isAlpha()) "$prefix " else prefix }
+                        .flatMap { prefix ->
+                            event.channel.flatMap { channel ->
+                                generateCommandTypeEmbed(
+                                    event,
+                                    event.xf8bot.commandRegistry,
+                                    channel,
+                                    commandType,
+                                    guildId,
+                                    pageNumber,
+                                    prefix
+                                )
+                            }
+                        }.then()
                 }
             }
 
@@ -170,7 +173,7 @@ class HelpCommand : Command(
                     description(
                         """
                         More detailed command information is not listed on this page. To see it, use `${prefix}help <command>`.
-                        To go to a different page, use `${prefix}help <section> <page>`.
+                        To go to a different page, use `${if (prefix.isAlpha()) "$prefix " else prefix}help <section> <page>`.
                         """.trimIndent(),
                     )
 
@@ -238,12 +241,12 @@ class HelpCommand : Command(
     companion object {
         private val SECTION_OR_COMMAND = StringArgument(
             name = "section or command",
-            index = Range.singleton(1),
+            index = Range.singleton(0),
             required = false
         )
         private val PAGE = IntegerArgument(
             name = "page",
-            index = Range.singleton(2),
+            index = Range.singleton(1),
             required = false
         )
     }

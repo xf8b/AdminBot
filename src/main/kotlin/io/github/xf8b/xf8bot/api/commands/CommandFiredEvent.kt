@@ -42,7 +42,7 @@ class CommandFiredEvent(
     event.guildId.toNullable()?.asLong(),
     event.member.toNullable()
 ) {
-    val prefix: Mono<String> get() = guildId.toMono().flatMap { xf8bot.prefixCache.get(it) }
+    val prefix: Mono<String> get() = guildId.toMono().flatMap(xf8bot.prefixCache::get)
     val channel: Mono<MessageChannel> get() = message.channel
     val author: Optional<User> get() = message.author
 

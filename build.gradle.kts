@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile as CompileKotlin
 plugins {
     idea
     java
-    kotlin("jvm") version "1.4.30-M1"
+    kotlin("jvm") version "1.4.21"
     application
     id("com.github.johnrengelman.shadow") version "6.1.0"
     id("net.minecrell.licenser") version "0.4.1"
@@ -24,7 +24,6 @@ repositories {
     // for discord4j 3.2.0
     maven("https://repo.spring.io/milestone") { name = "Spring" }
     maven("https://repo.repsy.io/mvn/progamer28415/main") { name = "Repsy" }
-    maven("https://dl.bintray.com/kotlin/kotlin-eap") { name = "Kotlin Bintray" }
 }
 
 dependencies {

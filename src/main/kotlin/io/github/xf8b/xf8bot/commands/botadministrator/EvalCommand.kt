@@ -65,7 +65,7 @@ class EvalCommand : Command(
 
         private val CODE = StringArgument(
             name = "code",
-            index = Range.atLeast(1)
+            index = Range.atLeast(0)
         )
     }
 }

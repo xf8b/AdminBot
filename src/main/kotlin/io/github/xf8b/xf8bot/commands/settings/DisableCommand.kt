@@ -67,7 +67,7 @@ class DisableCommand : Command(
     companion object {
         private val COMMAND = StringArgument(
             name = "command to disable",
-            index = Range.singleton(1)
+            index = Range.singleton(0)
         )
     }
 }

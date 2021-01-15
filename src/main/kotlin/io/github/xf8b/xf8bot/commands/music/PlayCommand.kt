@@ -40,7 +40,7 @@ class PlayCommand : Command(
     companion object {
         private val YOUTUBE_VIDEO_NAME_OR_LINK = StringArgument(
             name = "youtube video name or link",
-            index = Range.atLeast(1)
+            index = Range.atLeast(0)
         )
         private const val YOUTUBE_URL_REGEX = "https://(www\\.)?youtube\\.com/watch\\?v=.+"
         private const val YOUTU_BE_URL_REGEX = "https://(www\\.)?youtu\\.be/watch\\?v=.+"

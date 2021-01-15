@@ -25,6 +25,7 @@ import discord4j.rest.util.PermissionSet
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
+import io.github.xf8b.xf8bot.util.isAlpha
 import io.github.xf8b.xf8bot.util.toSnowflake
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -73,7 +74,8 @@ abstract class Command(
         BOT_HAS_REQUIRED_PERMISSIONS
     }
 
-    val rawName get() = name.replace("\${prefix}", "")
+    val rawName get() = name.removePrefix("\${prefix}")
+    val rawAliases get() = aliases.map { alias -> alias.removePrefix("\${prefix}") }
     val usage = generateUsage(name, flags, arguments)
     val minimumAmountOfArgs = arguments.filter { it.required }.size
 
@@ -81,19 +83,20 @@ abstract class Command(
 
     fun getNameWithPrefix(xf8bot: Xf8bot, guildId: String): Mono<String> = xf8bot.prefixCache
         .get(guildId.toSnowflake())
+        .map { prefix -> if (prefix.isAlpha()) "$prefix " else prefix }
         .map { prefix -> name.replace("\${prefix}", prefix) }
 
     @Suppress("DEPRECATION") // usage is deprecated for setting, not getting
     fun getUsageWithPrefix(xf8bot: Xf8bot, guildId: String): Mono<String> = xf8bot.prefixCache
         .get(guildId.toSnowflake())
+        .map { prefix -> if (prefix.isAlpha()) "$prefix " else prefix }
         .map { prefix -> usage.replace("\${prefix}", prefix) }
 
-    fun getAliasesWithPrefixes(xf8bot: Xf8bot, guildId: String): Flux<String> = aliases.toFlux()
-        .flatMap {
-            xf8bot.prefixCache
-                .get(guildId.toSnowflake())
-                .map { prefix -> it.replace("\${prefix}", prefix) }
-        }
+    fun getAliasesWithPrefixes(xf8bot: Xf8bot, guildId: String): Flux<String> = aliases.toFlux().flatMap { alias ->
+        xf8bot.prefixCache.get(guildId.toSnowflake())
+            .map { prefix -> if (prefix.isAlpha()) "$prefix " else prefix }
+            .map { prefix -> alias.replace("\${prefix}", prefix) }
+    }
 
     @Suppress("DEPRECATION")
     override fun equals(other: Any?): Boolean {

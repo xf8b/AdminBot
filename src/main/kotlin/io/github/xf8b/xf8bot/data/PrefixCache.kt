@@ -27,6 +27,7 @@ import io.github.xf8b.xf8bot.database.actions.add.AddPrefixAction
 import io.github.xf8b.xf8bot.database.actions.find.FindPrefixAction
 import io.github.xf8b.xf8bot.database.actions.update.UpdatePrefixAction
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import reactor.kotlin.core.publisher.toMono
 import java.time.Duration
 
@@ -46,5 +47,5 @@ class PrefixCache(private val botDatabase: BotDatabase) : ReactiveMutableCache<S
     override fun get(key: Snowflake): Mono<String> = cache.get(key)!!
 
     override fun set(key: Snowflake, value: String): Mono<Void> = botDatabase.execute(UpdatePrefixAction(key, value))
-        .then(Mono.fromRunnable { cache.invalidate(key) })
+        .then(Mono.fromRunnable<Void> { cache.invalidate(key) }.subscribeOn(Schedulers.boundedElastic()))
 }

@@ -131,7 +131,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         .also(AudioSourceManagers::registerRemoteSources)
 
     companion object {
-        const val DEFAULT_PREFIX = ">"
+        const val DEFAULT_PREFIX = "xf8bot"
         private val LOGGER by LoggerDelegate()
 
         @JvmStatic

@@ -59,7 +59,7 @@ class FakeCommand : Command(
         )
         val STRING_ARGUMENT = StringArgument(
             name = "string arg",
-            index = Range.atLeast(1)
+            index = Range.atLeast(0)
         )
     }
 

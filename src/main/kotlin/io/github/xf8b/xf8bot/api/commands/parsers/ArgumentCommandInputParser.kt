@@ -34,9 +34,9 @@ class ArgumentCommandInputParser : CommandInputParser<Argument<*>> {
      * You should check if the result type is [Result.ResultType.SUCCESS] before getting the [Map].
      */
     override fun parse(command: Command, input: String): Result<Map<Argument<*>, Any>> {
-        val argumentMap: MutableMap<Argument<*>, Any> = HashMap()
-        val missingArguments: MutableList<Argument<*>> = ArrayList()
-        val invalidValues: MutableMap<Argument<*>, String> = HashMap()
+        val argumentMap = mutableMapOf<Argument<*>, Any>()
+        val missingArguments = mutableListOf<Argument<*>>()
+        val invalidValues = mutableMapOf<Argument<*>, String>()
         val cleanedInput = input.split(" ").toMutableList().apply { removeFlags(command.flags) }
 
         for (argument in command.arguments) {

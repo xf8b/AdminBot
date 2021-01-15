@@ -37,7 +37,7 @@ class SkipCommand : Command(
     companion object {
         private val AMOUNT_TO_SKIP = IntegerArgument(
             name = "amount to skip",
-            index = Range.singleton(1),
+            index = Range.singleton(0),
             required = false
         )
     }

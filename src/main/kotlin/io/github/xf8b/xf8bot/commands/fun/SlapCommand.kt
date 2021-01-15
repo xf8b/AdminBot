@@ -59,7 +59,7 @@ class SlapCommand : Command(
     companion object {
         private val PERSON = StringArgument(
             name = "person",
-            index = Range.atLeast(1)
+            index = Range.atLeast(0)
         )
 
         val ITEMS = arrayOf(

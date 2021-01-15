@@ -212,7 +212,7 @@ class AdministratorsCommand : Command(
     companion object {
         private val ACTION = StringArgument(
             name = "action",
-            index = Range.singleton(1),
+            index = Range.singleton(0),
             validityPredicate = { value ->
                 when (value.toLowerCase(Locale.ROOT)) {
                     "add", "addrole",

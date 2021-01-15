@@ -20,6 +20,7 @@
 package io.github.xf8b.xf8bot.listeners
 
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.ReactiveEventAdapter
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.http.client.ClientException
@@ -33,10 +34,10 @@ import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandInputParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
 import io.github.xf8b.xf8bot.util.*
+import io.r2dbc.spi.Result
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorResume
 import reactor.kotlin.core.publisher.toFlux
-import reactor.kotlin.extra.bool.logicalOr
 
 class MessageListener(
     private val xf8bot: Xf8bot,
@@ -50,52 +51,53 @@ class MessageListener(
             return Mono.empty()
         }
 
-        val message = event.message
-        val content = message.content.trim()
-        val guildId = event.guildId.get().asString()
+        if (event.message.content matches "<@!?${event.client.selfId.asString()}> help".toRegex()) {
+            val infoCommand = commandRegistry.findRegisteredWithType<InfoCommand>()
 
-        if (content matches "<@!?${event.client.selfId.asString()}> help".toRegex()) {
-            val infoCommand: InfoCommand = commandRegistry.findRegisteredWithType()
-            return onCommandFired(event, infoCommand, content)
+            return onCommandFired(event, infoCommand, "")
         }
 
-        val commandRequested = content.trim().split(" ").toTypedArray()[0]
-        val foundCommand = findCommand(commandRequested, guildId)
+        val message = event.message
+        val guildId = event.guildId.get().asString()
+        val contentMono = xf8bot.prefixCache.get(guildId.toSnowflake()).map { prefix ->
+            message.content.removePrefix(prefix).trim()
+        }
 
         // FIXME: fix levels
 
-        return /*handleLevels(event).thenEmpty(*/ foundCommand.flatMap { command ->
-            xf8bot.botDatabase.execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
-                .filter { it.isNotEmpty() }
-                .filterWhen { it[0].updatedRows }
-                .flatMap {
-                    event.guild
-                        .flatMap { event.member.get().getAdministratorLevel(xf8bot, it) }
-                        .map { it >= 4 }
-                }
-                .defaultIfEmpty(true)
-                .flatMap { allowedToRun ->
-                    if (allowedToRun) {
-                        event.message.channel.flatMap { it.type().then(onCommandFired(event, command, content)) }
-                    } else {
-                        event.message.channel
-                            .flatMap { it.createMessage("Sorry, but this command has been disabled by an administrator.") }
-                            .then()
+        return /*handleLevels(event).thenEmpty(*/ contentMono.flatMap { content ->
+            content.findCommand().flatMap { command ->
+                xf8bot.botDatabase.execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
+                    .filter(List<Result>::isNotEmpty)
+                    .filterWhen { results -> results[0].updatedRows }
+                    .flatMap {
+                        event.guild
+                            .flatMap { event.member.get().getAdministratorLevel(xf8bot, it) }
+                            .map { administratorLevel -> administratorLevel >= 4 }
                     }
-                }
+                    .defaultIfEmpty(true)
+                    .flatMap { allowedToRun ->
+                        if (allowedToRun) {
+                            event.message.channel
+                                .flatMap(MessageChannel::type)
+                                .thenEmpty(onCommandFired(event, command, content))
+                        } else {
+                            event.message.channel
+                                .flatMap { it.createMessage("Sorry, but this command has been disabled by an administrator.") }
+                                .then()
+                        }
+                    }
+            }
         }
         // )
     }
 
-    private fun findCommand(commandRequested: String, guildId: String): Mono<Command> =
-        commandRegistry.toFlux()
-            .filterWhen { command ->
-                command.getNameWithPrefix(xf8bot, guildId)
-                    .map { it.equals(commandRequested, ignoreCase = true) }
-                    .logicalOr(command.getAliasesWithPrefixes(xf8bot, guildId)
-                        .any { alias -> alias.equals(commandRequested, ignoreCase = true) })
-            }
-            .singleOrEmpty()
+    private fun String.findCommand(): Mono<Command> = commandRegistry.toFlux()
+        .filter { command ->
+            command.rawName.equals(this.split(" ")[0], ignoreCase = true)
+                    || command.rawAliases.any { alias -> alias.equals(this.split(" ")[0], ignoreCase = true) }
+        }
+        .singleOrEmpty()
 
     /*
     private fun handleLevels(event: MessageCreateEvent): Mono<Void> = xf8bot.botDatabase
@@ -131,8 +133,10 @@ class MessageListener(
      */
 
     private fun onCommandFired(event: MessageCreateEvent, command: Command, content: String): Mono<Void> {
-        val flagParseResult = FLAG_PARSER.parse(command, content)
-        val argumentParseResult = ARGUMENT_PARSER.parse(command, content)
+        val cleanedContent = content.split(" ").drop(1).joinToString(separator = " ")
+
+        val flagParseResult = FLAG_PARSER.parse(command, cleanedContent)
+        val argumentParseResult = ARGUMENT_PARSER.parse(command, cleanedContent)
 
         return if (flagParseResult.isSuccess() && argumentParseResult.isSuccess()) {
             val commandFiredEvent = CommandFiredEvent(
@@ -141,7 +145,6 @@ class MessageListener(
                 flagParseResult.result!!,
                 argumentParseResult.result!!
             )
-            val commandName = command.name.drop(1)
 
             commandFiredEvent.guild
                 .filterWhen { Checks.doesBotHavePermissionsRequired(command, it.selfMember, commandFiredEvent.channel) }
@@ -156,7 +159,7 @@ class MessageListener(
                 }
                 .filterWhen { Checks.isThereEnoughArguments(command, commandFiredEvent) }
                 .flatMap { command.onCommandFired(commandFiredEvent) }
-                .doOnError { LOGGER.error("An error happened while handling command $commandName!", it) }
+                .doOnError { LOGGER.error("An error happened while handling command ${command.rawName}!", it) }
                 .onErrorResume(ClientException::class) { exception ->
                     commandFiredEvent.channel
                         .flatMap { it.createMessage("Client exception happened while handling command: ${exception.status}: ${exception.errorResponse.get().fields}") }

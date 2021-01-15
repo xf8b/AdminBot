@@ -59,7 +59,7 @@ class PrefixCommand : Command(
     companion object {
         private val NEW_PREFIX = StringArgument(
             name = "prefix",
-            index = Range.atLeast(1),
+            index = Range.atLeast(0),
             required = false
         )
     }

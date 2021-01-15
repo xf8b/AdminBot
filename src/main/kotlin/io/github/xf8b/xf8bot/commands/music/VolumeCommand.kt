@@ -40,7 +40,7 @@ class VolumeCommand : Command(
     companion object {
         private val VOLUME = IntegerArgument(
             name = "volume",
-            index = Range.singleton(1),
+            index = Range.singleton(0),
             validityPredicate = { value ->
                 try {
                     val level = value.toInt()

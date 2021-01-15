@@ -26,6 +26,7 @@ import discord4j.rest.util.Permission
 import discord4j.rest.util.PermissionSet
 import io.r2dbc.spi.Result
 import net.jodah.typetools.TypeResolver
+import org.apache.commons.lang3.StringUtils
 import org.reflections.Reflections
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
@@ -94,3 +95,4 @@ operator fun <A, B, C, D, E, F> Tuple6<A, B, C, D, E, F>.component6(): F = this.
 operator fun <A, B, C, D, E, F, G> Tuple7<A, B, C, D, E, F, G>.component7(): G = this.t7
 operator fun <A, B, C, D, E, F, G, H> Tuple8<A, B, C, D, E, F, G, H>.component8(): H = this.t8
 operator fun AbstractScriptEngine.set(key: String, value: Any?) = this.put(key, value)
+fun String.isAlpha() = StringUtils.isAlpha(this)

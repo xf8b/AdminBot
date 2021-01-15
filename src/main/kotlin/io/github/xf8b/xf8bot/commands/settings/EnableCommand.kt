@@ -65,7 +65,7 @@ class EnableCommand : Command(
     companion object {
         private val COMMAND = StringArgument(
             name = "command to enable",
-            index = Range.singleton(1)
+            index = Range.singleton(0)
         )
     }
 }

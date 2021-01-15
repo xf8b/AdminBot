@@ -47,7 +47,7 @@ class WarnsCommand : Command(
     companion object {
         private val MEMBER = StringArgument(
             name = "member",
-            index = Range.atLeast(1),
+            index = Range.atLeast(0),
             required = false
         )
     }
