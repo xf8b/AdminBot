@@ -80,6 +80,16 @@ tasks {
         useJUnitPlatform()
     }
 
+    dependencyUpdates {
+        gradleReleaseChannel = "current"
+        outputFormatter = "html"
+
+        rejectVersionIf {
+            return@rejectVersionIf candidate.version
+                .contains("[.-]alpha|[.-]beta|[.-]rc\\d|[.-]m\\d".toRegex(RegexOption.IGNORE_CASE))
+        }
+    }
+
     processResources {
         inputs.property("version", project.version)
 

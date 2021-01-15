@@ -31,18 +31,14 @@ class IntegerFlagTest {
             shortName = "i",
             longName = "integer"
         )
-        assertFalse(integerFlag.isValidValue("beans")) {
-            """Unexpected result of true from validity predicate for input "beans""""
-        }
-        assertFalse(integerFlag.isValidValue("\"2\"")) {
-            """Unexpected result of true from validity predicate for input "2""""
-        }
-        assertTrue(integerFlag.isValidValue("2")) {
-            "Unexpected result of false from validity predicate for input 2"
-        }
-        assertTrue(integerFlag.isValidValue("-105")) {
-            "Unexpected result of false from validity predicate for input -105"
-        }
+
+        assertFalse(integerFlag.isValidValue("beans")) { """Unexpected result of true from validity predicate for input "beans"""" }
+
+        assertFalse(integerFlag.isValidValue(""""2"""")) { """Unexpected result of true from validity predicate for input "2"""" }
+
+        assertTrue(integerFlag.isValidValue("2")) { "Unexpected result of false from validity predicate for input 2" }
+
+        assertTrue(integerFlag.isValidValue("-105")) { "Unexpected result of false from validity predicate for input -105" }
     }
 }
 
@@ -53,11 +49,9 @@ class TimeFlagTest {
             shortName = "t",
             longName = "time"
         )
-        assertTrue(timeFlag.parse("2d").first == 2L) {
-            """Unexpected failure of parsing "2d""""
-        }
-        assertTrue(timeFlag.parse("2min").second == TimeUnit.MINUTES) {
-            "Unexpected failure of parsing '2min'"
-        }
+
+        assertTrue(timeFlag.parse("2d").first == 2L) { "Unexpected failure of parsing '2d'" }
+
+        assertTrue(timeFlag.parse("2min").second == TimeUnit.MINUTES) { "Unexpected failure of parsing '2min'" }
     }
 }

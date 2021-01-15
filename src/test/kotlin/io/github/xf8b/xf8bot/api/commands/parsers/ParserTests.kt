@@ -59,7 +59,7 @@ class FakeCommand : Command(
         )
         val STRING_ARGUMENT = StringArgument(
             name = "string arg",
-            index = Range.atLeast(0)
+            index = Range.atLeast(1)
         )
     }
 
@@ -75,20 +75,16 @@ class FlagCommandInputParserTest {
             fakeCommand,
             """-n 2 --string "459ad068-5355-4b2b-b080-54751138ddc2" -t 2d  --string ignored""""
         )
+
         println(result.resultType)
-        assertTrue(result.isSuccess()) {
-            "Unexpected result type ${result.resultType} - error: ${result.errorMessage}"
-        }
+
+        assertTrue(result.isSuccess()) { "Unexpected result type ${result.resultType} - error: ${result.errorMessage}" }
+
         val flagMap = result.result!!
-        assertTrue(flagMap[FakeCommand.INTEGER_FLAG] as Int == 2) {
-            "Unexpected value ${flagMap[FakeCommand.INTEGER_FLAG]}, expected 2"
-        }
-        assertTrue((flagMap[FakeCommand.TIME_FLAG] as Pair<*, *>).first == 2L) {
-            "Unexpected value ${flagMap[FakeCommand.TIME_FLAG]}, expected Pair.of(2L, TimeUnit.DAYS)"
-        }
-        assertTrue(flagMap[FakeCommand.STRING_FLAG] as String == "459ad068-5355-4b2b-b080-54751138ddc2") {
-            """Unexpected value "${flagMap[FakeCommand.STRING_FLAG]}", expected "459ad068-5355-4b2b-b080-54751138ddc2""""
-        }
+
+        assertTrue(flagMap[FakeCommand.INTEGER_FLAG] as Int == 2) { "Unexpected value ${flagMap[FakeCommand.INTEGER_FLAG]}, expected 2" }
+        assertTrue((flagMap[FakeCommand.TIME_FLAG] as Pair<*, *>).first == 2L) { "Unexpected value ${flagMap[FakeCommand.TIME_FLAG]}, expected Pair.of(2L, TimeUnit.DAYS)" }
+        assertTrue(flagMap[FakeCommand.STRING_FLAG] as String == "459ad068-5355-4b2b-b080-54751138ddc2") { """Unexpected value "${flagMap[FakeCommand.STRING_FLAG]}", expected "459ad068-5355-4b2b-b080-54751138ddc2"""" }
     }
 }
 
@@ -101,16 +97,14 @@ class ArgumentCommandInputParserTest {
             fakeCommand,
             """23 hey beans bean bean hello --string ignored"""
         )
+
         println(result.resultType)
-        assertTrue(result.isSuccess()) {
-            "Unexpected result type ${result.resultType} - error: ${result.errorMessage}"
-        }
+
+        assertTrue(result.isSuccess()) { "Unexpected result type ${result.resultType} - error: ${result.errorMessage}" }
+
         val argumentMap = result.result!!
-        assertTrue(argumentMap[FakeCommand.INTEGER_ARGUMENT] as Int == 23) {
-            "Unexpected value ${argumentMap[FakeCommand.INTEGER_ARGUMENT]}, expected 23"
-        }
-        assertTrue(argumentMap[FakeCommand.STRING_ARGUMENT] as String == "hey beans bean bean hello") {
-            """Unexpected value ${argumentMap[FakeCommand.STRING_ARGUMENT]}, expected "hey beans bean bean hello""""
-        }
+
+        assertTrue(argumentMap[FakeCommand.INTEGER_ARGUMENT] as Int == 23) { "Unexpected value ${argumentMap[FakeCommand.INTEGER_ARGUMENT]}, expected 23" }
+        assertTrue(argumentMap[FakeCommand.STRING_ARGUMENT] as String == "hey beans bean bean hello") { """Unexpected value ${argumentMap[FakeCommand.STRING_ARGUMENT]}, expected "hey beans bean bean hello"""" }
     }
 }
