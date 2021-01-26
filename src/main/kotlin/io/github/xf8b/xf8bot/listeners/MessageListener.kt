@@ -34,7 +34,9 @@ import io.github.xf8b.xf8bot.api.commands.parsers.FlagCommandInputParser
 import io.github.xf8b.xf8bot.commands.info.InfoCommand
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
 import io.github.xf8b.xf8bot.util.*
-import io.r2dbc.spi.Result
+import io.github.xf8b.xf8bot.util.extensions.getAdministratorLevel
+import io.github.xf8b.xf8bot.util.extensions.toSnowflake
+import io.github.xf8b.xf8bot.util.extensions.updatedRows
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.onErrorResume
 import reactor.kotlin.core.publisher.toFlux
@@ -71,11 +73,11 @@ class MessageListener(
         return /*handleLevels(event).thenEmpty(*/ contentMono.flatMap { content ->
             content.findCommand().flatMap { command ->
                 xf8bot.botDatabase.execute(FindDisabledCommandAction(guildId.toSnowflake(), command))
-                    .filter(List<Result>::isNotEmpty)
-                    .filterWhen { results -> results[0].updatedRows }
+                    .singleOrEmpty()
+                    .filterWhen { result -> result.updatedRows }
                     .flatMap {
-                        event.guild
-                            .flatMap { event.member.get().getAdministratorLevel(xf8bot, it) }
+                        event.member.get()
+                            .getAdministratorLevel(xf8bot)
                             .map { administratorLevel -> administratorLevel >= 4 }
                     }
                     .defaultIfEmpty(true)

@@ -17,15 +17,11 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.database.actions.add
+package io.github.xf8b.xf8bot.util.extensions
 
-import discord4j.common.util.Snowflake
-
-class AddAdministratorRoleAction(
-    guildId: Snowflake,
-    roleId: Snowflake,
-    administratorLevel: Int
-) : InsertAction(
-    table = "administratorRoles",
-    fields = listOf(guildId.asLong(), roleId.asLong(), administratorLevel)
-)
+val Byte.Companion.JAVA_WRAPPER_TYPE get() = java.lang.Byte::class.java
+val Short.Companion.JAVA_WRAPPER_TYPE get() = java.lang.Short::class.java
+val Int.Companion.JAVA_WRAPPER_TYPE get() = java.lang.Integer::class.java
+val Long.Companion.JAVA_WRAPPER_TYPE get() = java.lang.Long::class.java
+val Float.Companion.JAVA_WRAPPER_TYPE get() = java.lang.Float::class.java
+val Double.Companion.JAVA_WRAPPER_TYPE get() = java.lang.Double::class.java

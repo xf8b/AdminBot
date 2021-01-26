@@ -24,7 +24,7 @@ import io.github.xf8b.utils.optional.Result
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
-import io.github.xf8b.xf8bot.util.resolveRawArgument
+import io.github.xf8b.xf8bot.util.extensions.resolveRawArgument
 
 class ArgumentCommandInputParser : CommandInputParser<Argument<*>> {
     /**

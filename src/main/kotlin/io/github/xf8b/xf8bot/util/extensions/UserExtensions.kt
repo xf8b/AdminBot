@@ -17,15 +17,8 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.database.actions.add
+package io.github.xf8b.xf8bot.util.extensions
 
-import discord4j.common.util.Snowflake
+import discord4j.core.`object`.entity.User
 
-class AddAdministratorRoleAction(
-    guildId: Snowflake,
-    roleId: Snowflake,
-    administratorLevel: Int
-) : InsertAction(
-    table = "administratorRoles",
-    fields = listOf(guildId.asLong(), roleId.asLong(), administratorLevel)
-)
+val User.isNotBot get() = !isBot

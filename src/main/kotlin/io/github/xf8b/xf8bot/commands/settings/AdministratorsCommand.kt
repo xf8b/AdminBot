@@ -39,10 +39,10 @@ import io.github.xf8b.xf8bot.database.actions.delete.RemoveAdministratorRoleActi
 import io.github.xf8b.xf8bot.database.actions.find.FindAdministratorRoleAction
 import io.github.xf8b.xf8bot.database.actions.find.GetGuildAdministratorRolesAction
 import io.github.xf8b.xf8bot.util.*
-import io.github.xf8b.xf8bot.util.InputParsing.parseRoleId
+import io.github.xf8b.xf8bot.api.commands.InputParser.parseRoleId
+import io.github.xf8b.xf8bot.util.extensions.*
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
-import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 import java.util.*
 
@@ -77,7 +77,7 @@ class AdministratorsCommand : Command(
         val action = event[ACTION]!!
 
         return event.guild.flatMap { guild ->
-            val isAdministrator = member.canUse(event.xf8bot, guild, command = this)
+            val isAdministrator = member.canUse(event.xf8bot, command = this)
 
             return@flatMap when (action.toLowerCase(Locale.ROOT)) {
                 "add", "addrole" -> isAdministrator.filter { it }.flatMap ifAdministratorRun@{
@@ -89,7 +89,6 @@ class AdministratorsCommand : Command(
                         }.then()
                     }
                     parseRoleId(event.guild, event[ROLE]!!)
-                        .map(Long::toSnowflake)
                         .switchIfEmpty(event.channel
                             .flatMap { it.createMessage("The role does not exist!") }
                             .then()
@@ -103,11 +102,9 @@ class AdministratorsCommand : Command(
                         .flatMap { roleId: Snowflake ->
                             val level = event[ADMINISTRATOR_LEVEL]!!
 
-                            event.xf8bot.botDatabase
-                                .execute(FindAdministratorRoleAction(guildId, roleId))
-                                .toMono()
-                                .filter { it.isNotEmpty() }
-                                .filterWhen { it[0].updatedRows }
+                            event.xf8bot.botDatabase.execute(FindAdministratorRoleAction(guildId, roleId))
+                                .singleOrEmpty()
+                                .filterWhen { result -> result.updatedRows }
                                 .flatMap {
                                     event.channel.flatMap {
                                         it.createMessage("The role already has been added as an administrator role.")
@@ -140,7 +137,6 @@ class AdministratorsCommand : Command(
                     }
 
                     parseRoleId(event.guild, event[ROLE]!!)
-                        .map(Long::toSnowflake)
                         .switchIfEmpty(event.channel
                             .flatMap { it.createMessage("The role does not exist!") }
                             .then()
@@ -154,16 +150,17 @@ class AdministratorsCommand : Command(
                         .flatMap { roleId: Snowflake ->
                             event.xf8bot.botDatabase
                                 .execute(FindAdministratorRoleAction(guildId, roleId))
-                                .filter { it.isNotEmpty() }
-                                .filterWhen { it[0].updatedRows }
+                                .singleOrEmpty()
                                 .flatMap {
                                     event.xf8bot.botDatabase
                                         .execute(RemoveAdministratorRoleAction(guildId, roleId))
-                                        .then(guild.getRoleById(roleId).map(Role::getName).flatMap { roleName: String ->
-                                            event.channel.flatMap {
-                                                it.createMessage("Successfully removed $roleName from the list of administrator roles.")
-                                            }
-                                        })
+                                        .then(guild.getRoleById(roleId)
+                                            .map(Role::getName)
+                                            .flatMap { roleName: String ->
+                                                event.channel.flatMap { channel ->
+                                                    channel.createMessage("Successfully removed $roleName from the list of administrator roles.")
+                                                }
+                                            })
                                 }
                                 .switchIfEmpty(event.channel.flatMap {
                                     it.createMessage("The role has not been added as an administrator role!")
@@ -175,21 +172,20 @@ class AdministratorsCommand : Command(
 
                 "ls", "list", "listroles", "get", "getroles" -> event.xf8bot.botDatabase
                     .execute(GetGuildAdministratorRolesAction(guildId))
-                    .flatMapMany { it.toFlux() }
-                    .flatMap { it.map { row, _ -> row } }
-                    .collectMap(
-                        { it.get("roleId", java.lang.Long::class.java) },
-                        { it.get("level", java.lang.Integer::class.java) }
-                    )
+                    .flatMap { result ->
+                        result.map { row, _ ->
+                            row["roleId", Long.JAVA_WRAPPER_TYPE] as Long to row["level", Int.JAVA_WRAPPER_TYPE] as Int
+                        }
+                    }
+                    .collectMap({ pair -> pair.first }, { pair -> pair.second })
                     .filter { it.isNotEmpty() }
-                    .cast<Map<Long, Int>>()
                     .map { it.sortByValue() }
                     .flatMap { administratorRoles ->
                         val roleNames = administratorRoles.keys.joinToString(separator = "\n") { "<@&$it>" }
                         val roleLevels = administratorRoles.values.joinToString(separator = "\n") { it.toString() }
 
-                        event.channel.flatMap {
-                            it.createEmbedDsl {
+                        event.channel.flatMap { channel ->
+                            channel.createEmbedDsl {
                                 title("Administrator Roles")
 
                                 field("Role", roleNames, inline = true)
@@ -199,8 +195,8 @@ class AdministratorsCommand : Command(
                             }
                         }
                     }
-                    .switchIfEmpty(event.channel.flatMap {
-                        it.createMessage("The only administrator is the owner.")
+                    .switchIfEmpty(event.channel.flatMap { channel ->
+                        channel.createMessage("The only administrator is the owner.")
                     })
                     .then()
 

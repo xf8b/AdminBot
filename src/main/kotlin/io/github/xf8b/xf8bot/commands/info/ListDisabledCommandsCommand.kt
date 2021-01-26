@@ -26,10 +26,10 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.database.actions.find.GetGuildDisabledCommandsAction
 import io.github.xf8b.xf8bot.util.createEmbedDsl
 import io.github.xf8b.xf8bot.util.immutableListOf
-import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
-import io.github.xf8b.xf8bot.util.updatedRows
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.util.extensions.updatedRows
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toFlux
+import reactor.kotlin.core.publisher.toMono
 
 class ListDisabledCommandsCommand : Command(
     name = "\${prefix}listdisabledcommands",
@@ -40,13 +40,9 @@ class ListDisabledCommandsCommand : Command(
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.xf8bot.botDatabase
         .execute(GetGuildDisabledCommandsAction(event.guildId.get()))
-        .filter { it.isNotEmpty() }
-        .filterWhen { it[0].updatedRows }
-        .flatMapMany { results ->
-            results.toFlux().flatMap { it.map { row, _ -> row["command", String::class.java] } }
-        }
+        .filterWhen { result -> result.updatedRows }
+        .flatMap { result -> result.map { row, _ -> row["command", String::class.java]!! }.toMono() }
         .collectList()
-        .filter { it.isNotEmpty() }
         .flatMap { disabledCommands ->
             event.channel.flatMap { channel ->
                 channel.createEmbedDsl {

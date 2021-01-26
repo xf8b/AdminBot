@@ -22,7 +22,7 @@ package io.github.xf8b.xf8bot.commands.botadministrator
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
-import io.github.xf8b.xf8bot.util.toImmutableList
+import io.github.xf8b.xf8bot.util.extensions.toImmutableList
 import reactor.core.publisher.Mono
 import kotlin.system.exitProcess
 

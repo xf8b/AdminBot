@@ -24,8 +24,11 @@ import discord4j.core.util.OrderUtil
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.InputParser
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
-import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.Checks
+import io.github.xf8b.xf8bot.util.createEmbedDsl
+import io.github.xf8b.xf8bot.util.extensions.*
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import java.time.ZoneOffset
@@ -42,8 +45,7 @@ class MemberInfoCommand : Command(
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet()
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
-        InputParsing.parseUserId(event.guild, event[MEMBER] ?: event.author.get().id.asString())
-            .map(Long::toSnowflake)
+        InputParser.parseUserId(event.guild, event[MEMBER] ?: event.author.get().id.asString())
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky
@@ -73,7 +75,7 @@ class MemberInfoCommand : Command(
                         val otherInfo = Mono.zip(
                             member.color,
                             event.guild.map { member.id == it.ownerId },
-                            event.guild.flatMap { member.getAdministratorLevel(event.xf8bot, it) },
+                            member.getAdministratorLevel(event.xf8bot),
                             OrderUtil.orderRoles(member.roles)
                                 .map { it.mention }
                                 .collectList()

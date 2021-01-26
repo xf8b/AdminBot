@@ -25,7 +25,7 @@ import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.api.commands.flags.TimeFlag
-import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 
 class MuteCommand : Command(

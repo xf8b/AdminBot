@@ -21,7 +21,7 @@ package io.github.xf8b.xf8bot.api.commands.arguments
 
 import com.google.common.base.Predicates
 import com.google.common.collect.Range
-import io.github.xf8b.xf8bot.util.functionReturning
+import io.github.xf8b.xf8bot.util.extensions.functionReturning
 import java.util.function.Function
 import java.util.function.Predicate
 

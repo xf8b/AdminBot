@@ -23,5 +23,5 @@ import discord4j.common.util.Snowflake
 
 class AddPrefixAction(guildId: Snowflake, prefix: String) : InsertAction(
     table = "prefixes",
-    toInsert = listOf(guildId.asLong(), prefix)
+    fields = listOf(guildId.asLong(), prefix)
 )

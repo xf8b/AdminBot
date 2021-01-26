@@ -22,12 +22,15 @@ package io.github.xf8b.xf8bot.database
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.spi.Connection
 import io.r2dbc.spi.ValidationDepth
-import reactor.core.publisher.Mono
+import org.reactivestreams.Publisher
+import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
+import java.util.function.Function
 
+// FIXME revert back to Mono<List> instead of Flux
 class BotDatabase(private val connectionPool: ConnectionPool/*, private val keySetHandle: KeysetHandle?*/) : Database {
     init {
-        connectAndExecute<Void> { connection ->
+        connectAndExecute { connection ->
             connection.createStatement(
                 """
                 CREATE TABLE IF NOT EXISTS "administratorRoles" (
@@ -62,12 +65,12 @@ class BotDatabase(private val connectionPool: ConnectionPool/*, private val keyS
                 );
                 """.trimIndent()
             ).execute().toMono().flatMap { it.rowsUpdated.toMono() }.then()
-        }.block()
+        }.toMono().block()
     }
 
-    private fun <T> connectAndExecute(run: (Connection) -> Mono<out T>) =
-        connectionPool.create().flatMap { connection ->
-            run(connection).flatMap { result ->
+    private fun <T : Publisher<*>> connectAndExecute(run: Function<in Connection, out T>): T =
+        connectionPool.create().flatMapMany { connection ->
+            run.apply(connection).toFlux().flatMap { result ->
                 connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
                     if (connected) {
                         connection.close().toMono().thenReturn(result)
@@ -78,5 +81,5 @@ class BotDatabase(private val connectionPool: ConnectionPool/*, private val keyS
             }
         }
 
-    override fun <T> execute(action: DatabaseAction<T>): Mono<out T> = connectAndExecute(action)
+    override fun <T : Publisher<*>> execute(action: DatabaseAction<T>): T = connectAndExecute(action)
 }

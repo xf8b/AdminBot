@@ -17,12 +17,18 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.util
+package io.github.xf8b.xf8bot.util.extensions
 
-import com.beust.jcommander.IStringConverter
+import io.r2dbc.spi.Result
+import org.apache.commons.lang3.StringUtils
+import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toMono
+import java.util.function.Function
 
-typealias Converter<T> = IStringConverter<T>
+// reduce boilerplate
+fun <I, R> functionReturning(returnedValue: R): Function<I, R> = Function { returnedValue }
 
-typealias Double<A, B> = Pair<A, B>
+val Result.updatedRows: Mono<Boolean> get() = this.rowsUpdated.toMono().map { it != 0 }
 
-fun env(name: String): String? = System.getenv(name)
+// increase clarity
+fun String.isAlpha() = StringUtils.isAlpha(this)

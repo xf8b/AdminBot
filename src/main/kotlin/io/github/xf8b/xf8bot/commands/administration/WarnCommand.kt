@@ -23,12 +23,14 @@ import com.google.common.collect.ImmutableList
 import discord4j.rest.util.Color
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
-import io.github.xf8b.xf8bot.api.commands.flags.Flag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.data.Warn
 import io.github.xf8b.xf8bot.database.actions.add.AddWarningAction
-import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.Checks
 import io.github.xf8b.xf8bot.util.Checks.isClientExceptionWithCode
+import io.github.xf8b.xf8bot.api.commands.InputParser
+import io.github.xf8b.xf8bot.util.createEmbedDsl
+import io.github.xf8b.xf8bot.util.extensions.isNotBot
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
@@ -49,13 +51,7 @@ class WarnCommand : Command(
             shortName = "r",
             longName = "reason",
             validityPredicate = { it != "all" },
-            errorMessageFunction = {
-                if (it == "all") {
-                    "Sorry, but this warn reason is reserved."
-                } else {
-                    Flag.DEFAULT_INVALID_VALUE_ERROR_MESSAGE
-                }
-            },
+            errorMessageFunction = { "Sorry, but this warn reason is reserved." },
             required = false
         )
     }
@@ -64,8 +60,7 @@ class WarnCommand : Command(
         val warnerId = event.member.orElseThrow().id
         val reason = event[REASON] ?: "No warn reason was provided."
 
-        return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
-            .map { it.toSnowflake() }
+        return InputParser.parseUserId(event.guild, event[MEMBER]!!)
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky

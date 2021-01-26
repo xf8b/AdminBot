@@ -24,7 +24,7 @@ import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
-import io.github.xf8b.xf8bot.util.toImmutableList
+import io.github.xf8b.xf8bot.util.extensions.toImmutableList
 import org.apache.commons.lang3.time.DurationFormatUtils
 import reactor.core.publisher.Mono
 

@@ -27,9 +27,9 @@ import reactor.kotlin.core.publisher.toMono
 
 open class InsertAction(
     override val table: String,
-    private val toInsert: List<*>
-) : DatabaseAction<Void> {
-    private fun insert(connection: Connection, fields: List<*>): Mono<Void> {
+    private val fields: List<*>
+) : DatabaseAction<Mono<out Void>> {
+    private fun internalInsert(connection: Connection, fields: List<*>): Mono<Void> {
         var sql = """INSERT INTO "$table" VALUES ("""
         val indexedParameters = mutableListOf<String>()
 
@@ -52,13 +52,13 @@ open class InsertAction(
             .then()
     }
 
-    override fun invoke(connection: Connection): Mono<Void> = insert(connection, toInsert)
+    override fun invoke(connection: Connection): Mono<Void> = internalInsert(connection, fields)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {
         val primitive: Aead = keySetHandle.getPrimitive(Aead::class.java)
 
-        val encryptedToInsert = toInsert.map {
+        val encryptedToInsert = fields.map {
             primitive.encrypt(it.toString().toByteArray(), null).decodeToString()
         }
 

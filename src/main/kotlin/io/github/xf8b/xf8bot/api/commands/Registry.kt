@@ -19,7 +19,7 @@
 
 package io.github.xf8b.xf8bot.api.commands
 
-import io.github.xf8b.xf8bot.util.getSubTypesOf
+import io.github.xf8b.xf8bot.util.extensions.getSubTypesOf
 import io.github.xf8b.xf8bot.util.logger
 import org.reflections.Reflections
 import org.reflections.scanners.SubTypesScanner

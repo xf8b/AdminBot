@@ -28,13 +28,13 @@ import reactor.kotlin.core.publisher.toMono
 open class DeleteAction(
     override val table: String,
     private val criteria: Map<String, *>
-) : DatabaseAction<Void> {
-    private fun delete(connection: Connection, deleteCriteria: Map<String, *>): Mono<Void> {
+) : DatabaseAction<Mono<out Void>> {
+    private fun internalDelete(connection: Connection, criteria: Map<String, *>): Mono<out Void> {
         var sql = """DELETE FROM "$table" WHERE """
         val indexedParameters = mutableListOf<String>()
 
-        for (i in 1..deleteCriteria.size) {
-            indexedParameters.add("${deleteCriteria.keys.toList()[i - 1]} = $$i")
+        for (i in 1..criteria.size) {
+            indexedParameters.add("${criteria.keys.toList()[i - 1]} = $$i")
         }
 
         sql += indexedParameters.joinToString(separator = " AND ")
@@ -42,7 +42,7 @@ open class DeleteAction(
         return connection.createStatement(sql)
             .apply {
                 for (i in 1..indexedParameters.size) {
-                    bind("$$i", deleteCriteria.values.toList()[i - 1]!!)
+                    bind("$$i", criteria.values.toList()[i - 1]!!)
                 }
             }
             .execute()
@@ -51,7 +51,7 @@ open class DeleteAction(
             .then()
     }
 
-    override fun invoke(connection: Connection): Mono<Void> = delete(connection, criteria)
+    override fun invoke(connection: Connection) = internalDelete(connection, criteria)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {

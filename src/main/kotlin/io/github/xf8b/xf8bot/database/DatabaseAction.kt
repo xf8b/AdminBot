@@ -20,9 +20,9 @@
 package io.github.xf8b.xf8bot.database
 
 import io.r2dbc.spi.Connection
-import reactor.core.publisher.Mono
+import org.reactivestreams.Publisher
 
-interface DatabaseAction<out R> : (Connection) -> Mono<out R> {
+interface DatabaseAction<out R : Publisher<*>> : (Connection) -> R {
     val table: String
 
     // fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<R>

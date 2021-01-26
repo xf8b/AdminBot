@@ -20,15 +20,14 @@
 package io.github.xf8b.xf8bot.commands.administration
 
 import com.google.common.collect.ImmutableList
-import discord4j.common.util.Snowflake
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.Checks
-import io.github.xf8b.xf8bot.util.InputParsing
-import io.github.xf8b.xf8bot.util.toSingletonImmutableList
-import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.api.commands.InputParser
+import io.github.xf8b.xf8bot.util.extensions.toSingletonImmutableList
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 
@@ -57,12 +56,11 @@ class NicknameCommand : Command(
         val nickname = event[NICKNAME]
         val reset = nickname?.isBlank() ?: true
 
-        return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
+        return InputParser.parseUserId(event.guild, event[MEMBER]!!)
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky
                 .cast())
-            .map(Snowflake::of)
             .flatMap { userId ->
                 event.guild.flatMap { guild ->
                     guild.getMemberById(userId)

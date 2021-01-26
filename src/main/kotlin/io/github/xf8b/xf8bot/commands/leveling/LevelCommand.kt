@@ -23,12 +23,10 @@ import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.database.actions.find.GetXpAction
-import io.github.xf8b.xf8bot.util.LevelsCalculator
-import io.github.xf8b.xf8bot.util.createEmbedDsl
-import io.github.xf8b.xf8bot.util.immutableListOf
-import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.extensions.JAVA_WRAPPER_TYPE
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.cast
 import reactor.kotlin.core.publisher.toMono
 
 // FIXME: not sending an embed
@@ -41,9 +39,8 @@ class LevelCommand : Command(
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> = event.xf8bot.botDatabase
         .execute(GetXpAction(guildId = event.guildId.get(), memberId = event.member.get().id))
-        .filter { it.isNotEmpty() }
-        .flatMap { it[0].map { row, _ -> row["xp", Long::class.javaObjectType] }.toMono() }
-        .cast<Long>()
+        .singleOrEmpty()
+        .flatMap { result -> result.map { row, _ -> row["xp", Long.JAVA_WRAPPER_TYPE] as Long }.toMono() }
         .flatMap { xp ->
             event.channel.flatMap {
                 it.createEmbedDsl {

@@ -24,8 +24,8 @@ import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.LoggerDelegate
-import io.github.xf8b.xf8bot.util.set
-import io.github.xf8b.xf8bot.util.toSingletonImmutableList
+import io.github.xf8b.xf8bot.util.extensions.set
+import io.github.xf8b.xf8bot.util.extensions.toSingletonImmutableList
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl

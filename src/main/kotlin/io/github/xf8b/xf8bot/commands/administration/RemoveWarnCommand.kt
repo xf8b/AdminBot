@@ -24,14 +24,13 @@ import discord4j.common.util.Snowflake
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.InputParser
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveWarnAction
 import io.github.xf8b.xf8bot.database.actions.find.FindWarnsAction
-import io.github.xf8b.xf8bot.util.*
-import io.r2dbc.spi.Result
+import io.github.xf8b.xf8bot.util.extensions.*
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
-import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 import reactor.util.function.Tuples
 import java.util.*
@@ -52,8 +51,7 @@ class RemoveWarnCommand : Command(
         val guildId = event.guildId.get()
 
         val memberIdMono = event[MEMBER].toMono().flatMap { member ->
-            InputParsing.parseUserId(event.guild, member)
-                .map(Long::toSnowflake)
+            InputParser.parseUserId(event.guild, member)
                 .switchIfEmpty(event.channel
                     .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                     .then() // yes i know, very hacky
@@ -61,8 +59,7 @@ class RemoveWarnCommand : Command(
         }
 
         val warnerIdMono = event[WARNER].toMono().flatMap { member ->
-            InputParsing.parseUserId(event.guild, member)
-                .map(Long::toSnowflake)
+            InputParser.parseUserId(event.guild, member)
                 .switchIfEmpty(event.channel
                     .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                     .then() // yes i know, very hacky
@@ -72,9 +69,9 @@ class RemoveWarnCommand : Command(
         val reason = event[REASON]
         val warnId = event[WARN_ID]
 
-        val warns = memberIdMono.flatMap { event.xf8bot.botDatabase.execute(FindWarnsAction(guildId, memberId = it)) }
-            .switchIfEmpty(event.xf8bot.botDatabase.execute(FindWarnsAction(guildId)))
-            .flatMapMany(List<Result>::toFlux)
+        val warns = memberIdMono.flatMapMany { memberId ->
+            event.xf8bot.botDatabase.execute(FindWarnsAction(guildId, memberId))
+        }.switchIfEmpty(event.xf8bot.botDatabase.execute(FindWarnsAction(guildId)))
 
         return Mono.zip(
             { array -> array.cast<Boolean>().any { present -> present } },
@@ -98,9 +95,9 @@ class RemoveWarnCommand : Command(
                                 result.map { row, _ ->
                                     event.xf8bot.botDatabase.execute(
                                         RemoveWarnAction(
-                                            guildId = (row["guildId", Long.JAVA_TYPE] as Long).toSnowflake(),
-                                            memberId = (row["memberId", Long.JAVA_TYPE] as Long).toSnowflake(),
-                                            warnerId = (row["warnerId", Long.JAVA_TYPE] as Long).toSnowflake(),
+                                            guildId = (row["guildId", Long.JAVA_WRAPPER_TYPE] as Long).toSnowflake(),
+                                            memberId = (row["memberId", Long.JAVA_WRAPPER_TYPE] as Long).toSnowflake(),
+                                            warnerId = (row["warnerId", Long.JAVA_WRAPPER_TYPE] as Long).toSnowflake(),
                                             warnId = row["warnId", UUID::class.java],
                                             reason = row["reason", String::class.java]
                                         )

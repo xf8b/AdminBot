@@ -28,6 +28,8 @@ import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.Command.ExecutionChecks
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.util.extensions.canUse
+import io.github.xf8b.xf8bot.util.extensions.isAdministratorLevelHigher
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
@@ -50,15 +52,13 @@ object Checks {
      * Checks if the member from [event] is higher than [member]. If they are not, sends an error message.
      */
     fun isMemberHighEnough(event: CommandFiredEvent, member: Member, action: String): Mono<Boolean> =
-        event.guild.flatMap { guild ->
-            event.member.get().isAdministratorLevelHigher(event.xf8bot, guild, other = member).flatMap { higher ->
-                if (!higher) {
-                    event.channel
-                        .flatMap { it.createMessage("Cannot $action member because the member is higher than or equal to you!") }
-                        .thenReturn(false)
-                } else {
-                    true.toMono()
-                }
+        event.member.get().isAdministratorLevelHigher(event.xf8bot, other = member).flatMap { higher ->
+            if (!higher) {
+                event.channel
+                    .flatMap { it.createMessage("Cannot $action member because the member is higher than or equal to you!") }
+                    .thenReturn(false)
+            } else {
+                true.toMono()
             }
         }
 
@@ -133,7 +133,7 @@ object Checks {
         if (ExecutionChecks.IS_ADMINISTRATOR in command.disabledChecks) {
             true.toMono()
         } else {
-            event.guild.flatMap { event.member.get().canUse(event.xf8bot, it, command = command) }.flatMap { allowed ->
+            event.member.get().canUse(event.xf8bot, command).flatMap { allowed ->
                 if (!allowed) {
                     event.channel
                         .flatMap { it.createMessage("Sorry, you don't have high enough permissions.") }

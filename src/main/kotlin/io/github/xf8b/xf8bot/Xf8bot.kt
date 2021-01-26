@@ -47,6 +47,7 @@ import io.github.xf8b.xf8bot.listeners.MessageListener
 import io.github.xf8b.xf8bot.listeners.ReadyListener
 import io.github.xf8b.xf8bot.settings.BotConfiguration
 import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.extensions.toSnowflake
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.pool.ConnectionPoolConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
@@ -140,7 +141,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
             val classLoader = Thread.currentThread().contextClassLoader
             val url = classLoader.getResource("baseConfig.toml")
                 ?: throw NullPointerException("The base config file does not exist!")
-            val botConfiguration = BotConfiguration(url, getUserDirAndResolve("config.toml"))
+            val botConfiguration = BotConfiguration(url, userResource("config.toml"))
 
             JCommander.newBuilder()
                 .addObject(botConfiguration)
@@ -170,7 +171,7 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
             setupLogging(self.username, self.avatarUrl)
 
             if (botConfiguration.logDumpWebhook.isNotBlank()) {
-                val (webhookId, token) = InputParsing.parseWebhookUrl(botConfiguration.logDumpWebhook)
+                val (webhookId, token) = botConfiguration.logDumpWebhook.parseWebhookUrl()
 
                 client.getWebhookByIdWithToken(webhookId, token).flatMap { webhook ->
                     webhook.executeDsl {
@@ -223,4 +224,12 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
     }
 
     fun isBotAdministrator(id: Snowflake) = botConfiguration.botAdministrators.contains(id)
+}
+
+private fun String.parseWebhookUrl(): Pair<Snowflake, String> {
+    val (id, token) = "https://discordapp\\.com/api/webhooks/(\\d+)/(.+)".toRegex().find(this)
+        ?.destructured
+        ?: throw IllegalArgumentException("Invalid webhook URL!")
+
+    return id.toSnowflake() to token
 }

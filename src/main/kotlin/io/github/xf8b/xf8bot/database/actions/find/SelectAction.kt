@@ -22,8 +22,7 @@ package io.github.xf8b.xf8bot.database.actions.find
 import io.github.xf8b.xf8bot.database.DatabaseAction
 import io.r2dbc.spi.Connection
 import io.r2dbc.spi.Result
-import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.cast
+import reactor.core.publisher.Flux
 import reactor.kotlin.core.publisher.toFlux
 
 
@@ -31,22 +30,22 @@ open class SelectAction(
     override val table: String,
     private val selectedFields: List<String>,
     private val criteria: Map<String, *>
-) : DatabaseAction<List<Result>> {
-    private fun select(
+) : DatabaseAction<Flux<out Result>> {
+    private fun internalSelect(
         connection: Connection,
-        fields: List<String>,
-        selectCriteria: Map<String, *>,
+        selectedFields: List<String>,
+        criteria: Map<String, *>,
         // keySetHandle: KeysetHandle? = null
-    ): Mono<List<Result>> {
-        var sql = """SELECT ${fields.joinToString()} FROM "$table" WHERE """
-        val indexedParameters = selectCriteria.keys.mapIndexed { index, key -> "$key = $${index + 1}" }
+    ): Flux<out Result> {
+        var sql = """SELECT ${selectedFields.joinToString()} FROM "$table" WHERE """
+        val indexedParameters = criteria.keys.mapIndexed { index, key -> "$key = $${index + 1}" }
 
         sql += indexedParameters.joinToString(separator = " AND ")
 
         return connection.createStatement(sql)
             .apply {
                 indexedParameters.indices.forEach {
-                    bind("$${it + 1}", selectCriteria.values.toList()[it]!!)
+                    bind("$${it + 1}", criteria.values.toList()[it]!!)
                 }
             }
             .execute()
@@ -66,11 +65,9 @@ open class SelectAction(
                 }
             }
             */
-            .collectList()
-            .cast()
     }
 
-    override fun invoke(connection: Connection) = select(connection, selectedFields, criteria)
+    override fun invoke(connection: Connection) = internalSelect(connection, selectedFields, criteria)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<List<Result>> {

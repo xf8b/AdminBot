@@ -29,23 +29,23 @@ open class UpdateAction(
     override val table: String,
     private val setFields: Map<String, Any>,
     private val criteria: Map<String, Any>
-) : DatabaseAction<Void> {
-    private fun internalInvoke(
+) : DatabaseAction<Mono<out Void>> {
+    private fun internalUpdate(
         connection: Connection,
-        fields: Map<String, Any>,
-        updateCriteria: Map<String, Any>
-    ): Mono<Void> {
+        setFields: Map<String, Any>,
+        criteria: Map<String, Any>
+    ): Mono<out Void> {
         var sql = "UPDATE $table SET "
         val setFieldsIndexedParameters = mutableListOf<String>()
         val criteriaIndexedParameters = mutableListOf<String>()
-        val fieldsAndCriteria = fields + criteria
+        val fieldsAndCriteria = setFields + criteria
 
-        for (i in 1..fields.size) {
-            setFieldsIndexedParameters += "${fields.keys.toList()[i - 1]} = $$i"
+        for (i in 1..setFields.size) {
+            setFieldsIndexedParameters += "${setFields.keys.toList()[i - 1]} = $$i"
         }
 
-        for (i in fields.size + 1..fieldsAndCriteria.size) {
-            criteriaIndexedParameters += "${updateCriteria.keys.toList()[i - (1 + fields.size)]} = $$i"
+        for (i in setFields.size + 1..fieldsAndCriteria.size) {
+            criteriaIndexedParameters += "${criteria.keys.toList()[i - (1 + setFields.size)]} = $$i"
         }
 
         sql += setFieldsIndexedParameters.joinToString()
@@ -54,12 +54,12 @@ open class UpdateAction(
 
         return connection.createStatement(sql)
             .apply {
-                for (i in 1..fields.size) {
-                    bind("$$i", fields.values.toList()[i - 1])
+                for (i in 1..setFields.size) {
+                    bind("$$i", setFields.values.toList()[i - 1])
                 }
 
-                for (i in fields.size + 1..fieldsAndCriteria.size) {
-                    bind("$$i", updateCriteria.values.toList()[i - (1 + fields.size)])
+                for (i in setFields.size + 1..fieldsAndCriteria.size) {
+                    bind("$$i", criteria.values.toList()[i - (1 + setFields.size)])
                 }
             }
             .execute()
@@ -68,7 +68,7 @@ open class UpdateAction(
             .then()
     }
 
-    override fun invoke(connection: Connection): Mono<Void> = internalInvoke(connection, setFields, criteria)
+    override fun invoke(connection: Connection) = internalUpdate(connection, setFields, criteria)
 
     /*
     override fun runEncrypted(connection: Connection, keySetHandle: KeysetHandle): Mono<Void> {

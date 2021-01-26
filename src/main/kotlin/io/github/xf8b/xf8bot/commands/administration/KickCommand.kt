@@ -24,8 +24,11 @@ import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.InputParser
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.extensions.isNotBot
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 
@@ -52,8 +55,7 @@ class KickCommand : Command(
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
         val reason = event[REASON] ?: "No kick reason was provided."
 
-        return InputParsing.parseUserId(event.guild, event[MEMBER]!!)
-            .map { it.toSnowflake() }
+        return InputParser.parseUserId(event.guild, event[MEMBER]!!)
             .switchIfEmpty(event.channel
                 .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
                 .then() // yes i know, very hacky

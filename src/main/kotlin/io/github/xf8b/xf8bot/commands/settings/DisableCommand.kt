@@ -25,8 +25,7 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.database.actions.add.AddDisabledCommandAction
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
-import io.github.xf8b.xf8bot.util.toSingletonImmutableList
-import io.github.xf8b.xf8bot.util.updatedRows
+import io.github.xf8b.xf8bot.util.extensions.toSingletonImmutableList
 import reactor.core.publisher.Mono
 
 class DisableCommand : Command(
@@ -51,8 +50,7 @@ class DisableCommand : Command(
 
                 else -> event.xf8bot.botDatabase
                     .execute(FindDisabledCommandAction(event.guildId.get(), command))
-                    .filter { it.isNotEmpty() }
-                    .filterWhen { it[0].updatedRows }
+                    .singleOrEmpty()
                     .flatMap { channel.createMessage("`${command.rawName}` is already disabled!") }
                     .switchIfEmpty(
                         event.xf8bot.botDatabase

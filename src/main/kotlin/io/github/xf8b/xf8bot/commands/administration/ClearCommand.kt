@@ -30,8 +30,8 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.util.Checks
-import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
-import io.github.xf8b.xf8bot.util.toSnowflake
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.util.extensions.toSnowflake
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.mono
 import reactor.core.publisher.Mono

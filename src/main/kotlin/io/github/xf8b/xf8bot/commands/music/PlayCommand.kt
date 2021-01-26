@@ -27,7 +27,7 @@ import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.music.GuildMusicHandler
-import io.github.xf8b.xf8bot.util.toMono
+import io.github.xf8b.xf8bot.util.extensions.toMono
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
 

@@ -23,7 +23,7 @@ import discord4j.common.util.Snowflake
 
 class AddXpAction(guildId: Snowflake, memberId: Snowflake, xp: Long = 0L) : InsertAction(
     table = "experience",
-    toInsert = listOf(
+    fields = listOf(
         guildId.asLong(),
         memberId.asLong(),
         xp

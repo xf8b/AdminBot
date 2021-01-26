@@ -117,6 +117,11 @@ class EmbedCreateDsl : Consumer<EmbedCreateSpec> {
         actions.add { setThumbnail(url) }
     }
 
+    fun copy(other: EmbedCreateDsl) {
+        this.actions.clear()
+        this.actions += other.actions
+    }
+
     override fun accept(t: EmbedCreateSpec) {
         for (action in actions) action(t)
     }

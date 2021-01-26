@@ -35,13 +35,14 @@ class PrefixCache(private val botDatabase: BotDatabase) : ReactiveMutableCache<S
     private val cache = Caffeine.newBuilder()
         .expireAfterWrite(Duration.ofSeconds(5))
         .build<Snowflake, Mono<String>> { guildId ->
-            botDatabase.execute(FindPrefixAction(guildId)).flatMap { results ->
-                results.getOrNull(0)
-                    ?.map { row, _ -> row["prefix", String::class.java]!! }
-                    ?.toMono()
-                    ?: botDatabase.execute(AddPrefixAction(guildId, Xf8bot.DEFAULT_PREFIX))
+            botDatabase.execute(FindPrefixAction(guildId))
+                .singleOrEmpty()
+                .flatMap { result -> result.map { row, _ -> row["prefix", String::class.java]!! }.toMono() }
+                .switchIfEmpty(
+                    botDatabase.execute(AddPrefixAction(guildId, Xf8bot.DEFAULT_PREFIX))
                         .thenReturn(Xf8bot.DEFAULT_PREFIX)
-            }.single()
+                )
+                .single()
         }
 
     override fun get(key: Snowflake): Mono<String> = cache.get(key)!!

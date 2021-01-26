@@ -25,8 +25,8 @@ import discord4j.rest.util.PermissionSet
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
-import io.github.xf8b.xf8bot.util.isAlpha
-import io.github.xf8b.xf8bot.util.toSnowflake
+import io.github.xf8b.xf8bot.util.extensions.isAlpha
+import io.github.xf8b.xf8bot.util.extensions.toSnowflake
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux

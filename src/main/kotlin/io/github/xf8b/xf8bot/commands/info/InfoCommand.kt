@@ -24,8 +24,8 @@ import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.util.createEmbedDsl
-import io.github.xf8b.xf8bot.util.toSingletonImmutableList
-import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.util.extensions.toSingletonImmutableList
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
 import reactor.core.publisher.Mono
 
 class InfoCommand : Command(

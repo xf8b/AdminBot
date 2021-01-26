@@ -22,8 +22,8 @@ package io.github.xf8b.xf8bot.commands.`fun`
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.flags.BooleanFlag
-import io.github.xf8b.xf8bot.util.isNotBot
-import io.github.xf8b.xf8bot.util.toSingletonImmutableList
+import io.github.xf8b.xf8bot.util.extensions.isNotBot
+import io.github.xf8b.xf8bot.util.extensions.toSingletonImmutableList
 import reactor.core.publisher.Mono
 
 class SomeoneCommand : Command(

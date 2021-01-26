@@ -26,14 +26,18 @@ import discord4j.rest.util.Permission
 import io.github.xf8b.utils.tuples.and
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
+import io.github.xf8b.xf8bot.api.commands.InputParser
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.data.Warn
 import io.github.xf8b.xf8bot.database.actions.find.FindWarnsAction
 import io.github.xf8b.xf8bot.util.*
+import io.github.xf8b.xf8bot.util.extensions.JAVA_WRAPPER_TYPE
+import io.github.xf8b.xf8bot.util.extensions.toSingletonImmutableList
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.util.extensions.toSnowflake
 import kotlinx.coroutines.reactor.mono
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.cast
-import reactor.kotlin.core.publisher.toFlux
 import java.util.*
 
 class WarnsCommand : Command(
@@ -53,8 +57,7 @@ class WarnsCommand : Command(
     }
 
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> =
-        InputParsing.parseUserId(event.guild, event[MEMBER] ?: event.author.get().id.asString())
-            .map(Long::toSnowflake)
+        InputParser.parseUserId(event.guild, event[MEMBER] ?: event.author.get().id.asString())
             .switchIfEmpty(
                 event.channel
                     .flatMap { it.createMessage("No member found! This may be caused by 2+ people having the same username or nickname.") }
@@ -71,52 +74,50 @@ class WarnsCommand : Command(
                 }
             }
             .flatMap { member ->
-                event.guild.flatMap {
-                    val warnsMono = event.xf8bot.botDatabase
-                        .execute(FindWarnsAction(event.guildId.get(), member.id))
-                        .flatMapMany { it.toFlux() }
-                        .flatMap { it.map { row, _ -> row } }
-                        .map { row ->
+                val warnsMono = event.xf8bot.botDatabase
+                    .execute(FindWarnsAction(event.guildId.get(), member.id))
+                    .flatMap { result ->
+                        result.map { row, _ ->
                             Warn(
-                                row["guildId", Long::class.javaObjectType]!!.toSnowflake(),
-                                row["memberId", Long::class.javaObjectType]!!.toSnowflake(),
-                                row["warnerId", Long::class.javaObjectType]!!.toSnowflake(),
+                                (row["guildId", Long.JAVA_WRAPPER_TYPE]!! as Long).toSnowflake(),
+                                (row["memberId", Long.JAVA_WRAPPER_TYPE]!! as Long).toSnowflake(),
+                                (row["warnerId", Long.JAVA_WRAPPER_TYPE]!! as Long).toSnowflake(),
                                 row["reason", String::class.java]!!,
                                 row["warnId", UUID::class.java]!!
                             )
                         }
-                        .flatMap {
-                            mono {
-                                it.getWarnerMember(event.client)
-                                    .map(Member::getNicknameMention)
-                                    .block()!! to it.reason and it.warnId
-                            }
+                    }
+                    .flatMap { warn ->
+                        mono {
+                            warn.getWarner(event.client)
+                                .map(Member::getNicknameMention)
+                                .block()!! to warn.reason and warn.warnId
                         }
-                        .collectList()
+                    }
+                    .collectList()
 
-                    warnsMono.flatMap sendWarns@{ warns ->
-                        if (warns.isNotEmpty()) {
-                            event.channel.flatMap {
-                                it.createEmbedDsl {
-                                    title("Warnings For `${member.username}`")
+                warnsMono.flatMap sendWarns@{ warns ->
+                    if (warns.isNotEmpty()) {
+                        event.channel.flatMap {
+                            it.createEmbedDsl {
+                                title("Warnings For `${member.username}`")
 
-                                    warns.forEach { (warner, reason, warnId) ->
-                                        field(
-                                            "`$reason`",
-                                            """
+                                warns.forEach { (warner, reason, warnId) ->
+                                    field(
+                                        "`$reason`",
+                                        """
                                                 Warn ID: $warnId
                                                 Member Who Warned/Warner: $warner
                                                 """.trimIndent(),
-                                            inline = true
-                                        )
-                                    }
-
-                                    color(Color.BLUE)
+                                        inline = true
+                                    )
                                 }
+
+                                color(Color.BLUE)
                             }
-                        } else {
-                            event.channel.flatMap { it.createMessage("The member has no warns.") }
                         }
+                    } else {
+                        event.channel.flatMap { it.createMessage("The member has no warns.") }
                     }
                 }
             }.then()

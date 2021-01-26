@@ -28,8 +28,7 @@ import discord4j.core.shard.ShardingStrategy
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.settings.converter.ShardingStrategyConverter
 import io.github.xf8b.xf8bot.settings.converter.SnowflakeConverter
-import io.github.xf8b.xf8bot.util.env
-import io.github.xf8b.xf8bot.util.toSnowflake
+import io.github.xf8b.xf8bot.util.extensions.toSnowflake
 import java.net.URL
 import java.nio.file.Path
 
@@ -83,29 +82,32 @@ class BotConfiguration(baseConfigFilePath: URL, configFilePath: Path) {
         // config is closed after this point
         // can still be used to get values, but save and load will throw an exception
         config.use(FileConfig::load)
-        token = config.getOrElse("required.token", env("BOT_TOKEN")) ?: error("A bot token is required!")
-        activity = config.getOrElse("required.activity", env("BOT_ACTIVITY")) ?: error("A activity is required!")
-            .replace("\${defaultPrefix}", Xf8bot.DEFAULT_PREFIX)
-        logDumpWebhook = config.getOrElse("notRequired.logDumpWebhook", env("BOT_LOG_DUMP_WEBHOOK")) ?: ""
+        token = config.getOrElse("required.token", System.getenv("BOT_TOKEN")) ?: error("A bot token is required!")
+        activity = config.getOrElse(
+            "required.activity",
+            System.getenv("BOT_ACTIVITY")
+        ) ?: error("An activity is required!")
+                .replace("\${defaultPrefix}", Xf8bot.DEFAULT_PREFIX)
+        logDumpWebhook = config.getOrElse("notRequired.logDumpWebhook", System.getenv("BOT_LOG_DUMP_WEBHOOK")) ?: ""
         botAdministrators = config.get<List<Long>?>("required.admins")?.map(Long::toSnowflake)
-            ?: listOf(env("BOT_ADMINISTRATOR")?.toSnowflake() ?: error("Bot administrator(s) are required!"))
+            ?: listOf(System.getenv("BOT_ADMINISTRATOR")?.toSnowflake() ?: error("Bot administrator(s) are required!"))
         shardingStrategy = ShardingStrategyConverter().convert(
-            config.getOrElse("required.sharding", env("BOT_SHARDING_STRATEGY"))
+            config.getOrElse("required.sharding", System.getenv("BOT_SHARDING_STRATEGY"))
                 ?: error("A sharding strategy is required!")
         )
-        databaseHost = config.getOrElse("required.database.host", env("BOT_DATABASE_HOST"))
+        databaseHost = config.getOrElse("required.database.host", System.getenv("BOT_DATABASE_HOST"))
             ?: error("A database host is required!")
-        databasePort = config.getOrElse("required.database.port", env("BOT_DATABASE_PORT")?.toInt())
+        databasePort = config.getOrElse("required.database.port", System.getenv("BOT_DATABASE_PORT")?.toInt())
             ?: error("A database port is required!")
-        databaseUsername = config.getOrElse("required.database.username", env("BOT_DATABASE_USERNAME"))
+        databaseUsername = config.getOrElse("required.database.username", System.getenv("BOT_DATABASE_USERNAME"))
             ?: error("A database username is required!")
-        databasePassword = config.getOrElse("required.database.password", env("BOT_DATABASE_PASSWORD"))
+        databasePassword = config.getOrElse("required.database.password", System.getenv("BOT_DATABASE_PASSWORD"))
             ?: error("A database password is required!")
-        databaseDatabase = config.getOrElse("required.database.database", env("BOT_DATABASE_DATABASE"))
+        databaseDatabase = config.getOrElse("required.database.database", System.getenv("BOT_DATABASE_DATABASE"))
             ?: error("A database database is required!")
         encryptionEnabled = config.getOrElse(
             "required.database.enableEncryption",
-            env("BOT_ENCRYPTION_ENABLED")?.toBoolean()
+            System.getenv("BOT_ENCRYPTION_ENABLED")?.toBoolean()
         ) ?: error("Bot database encryption setting is required!")
     }
 }

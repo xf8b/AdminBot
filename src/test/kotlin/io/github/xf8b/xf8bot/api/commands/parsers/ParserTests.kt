@@ -28,7 +28,7 @@ import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.api.commands.flags.IntegerFlag
 import io.github.xf8b.xf8bot.api.commands.flags.StringFlag
 import io.github.xf8b.xf8bot.api.commands.flags.TimeFlag
-import io.github.xf8b.xf8bot.util.toImmutableList
+import io.github.xf8b.xf8bot.util.extensions.toImmutableList
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono

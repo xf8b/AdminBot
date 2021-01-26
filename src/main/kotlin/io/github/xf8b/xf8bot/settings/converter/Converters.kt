@@ -19,12 +19,12 @@
 
 package io.github.xf8b.xf8bot.settings.converter
 
+import com.beust.jcommander.IStringConverter
 import discord4j.common.util.Snowflake
 import discord4j.core.shard.ShardingStrategy
-import io.github.xf8b.xf8bot.util.Converter
-import io.github.xf8b.xf8bot.util.toSnowflake
+import io.github.xf8b.xf8bot.util.extensions.toSnowflake
 
-class ShardingStrategyConverter : Converter<ShardingStrategy> {
+class ShardingStrategyConverter : IStringConverter<ShardingStrategy> {
     override fun convert(value: String): ShardingStrategy = when (value.toLowerCase()) {
         "recommended" -> ShardingStrategy.recommended()
         "single" -> ShardingStrategy.single()
@@ -32,6 +32,6 @@ class ShardingStrategyConverter : Converter<ShardingStrategy> {
     }
 }
 
-class SnowflakeConverter : Converter<Snowflake> {
-    override fun convert(value: String): Snowflake = value.toSnowflake()
+class SnowflakeConverter : IStringConverter<Snowflake> {
+    override fun convert(value: String) = value.toSnowflake()
 }

@@ -17,23 +17,25 @@
  * along with xf8bot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.xf8b.xf8bot.util
+package io.github.xf8b.xf8bot.api.commands
 
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
+import discord4j.core.`object`.entity.Role
+import io.github.xf8b.xf8bot.util.extensions.onErrorResume
+import io.github.xf8b.xf8bot.util.extensions.toSnowflake
 import org.apache.commons.lang3.StringUtils
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 
-object InputParsing {
-    private const val WEBHOOK_REGEX = "https://discordapp\\.com/api/webhooks/(\\d+)/(.+)"
-
-    fun parseUserId(guild: Publisher<Guild>, input: String): Mono<Long> {
+object InputParser {
+    fun parseUserId(guild: Publisher<Guild>, input: String): Mono<Snowflake> {
         val cleanedInput = input.removePrefix("<@").removePrefix("!").removeSuffix(">")
 
         return if (cleanedInput.length == 18 && StringUtils.isNumeric(cleanedInput)) {
-            cleanedInput.toLong().toMono()
+            cleanedInput.toSnowflake().toMono()
         } else {
             val membersMatched = guild.toMono()
                 .flatMapMany(Guild::requestMembers)
@@ -48,31 +50,20 @@ object InputParsing {
                 .onErrorResume<IndexOutOfBoundsException, Member> {
                     membersMatched.filter { it.tag == input }.singleOrEmpty()
                 }
-                .map { it.id.asLong() }
+                .map(Member::getId)
         }
     }
 
-    fun parseRoleId(guild: Publisher<Guild>, input: String): Mono<Long> {
+    fun parseRoleId(guild: Publisher<Guild>, input: String): Mono<Snowflake> {
         val cleanedInput = input.removePrefix("<@&").removeSuffix(">")
 
         return if (cleanedInput.length == 18 && StringUtils.isNumeric(cleanedInput)) {
-            cleanedInput.toLong().toMono()
+            cleanedInput.toSnowflake().toMono()
         } else {
             guild.toMono().flatMapMany(Guild::getRoles)
                 .filter { role -> role.name == input }
-                .map { role -> role.id.asLong() }
+                .map(Role::getId)
                 .singleOrEmpty()
         }
-    }
-
-    /**
-     * Parses the ID and token of a webhook from the [webhookUrl].
-     */
-    fun parseWebhookUrl(webhookUrl: String) = if (webhookUrl matches WEBHOOK_REGEX.toRegex()) {
-        val (id, token) = WEBHOOK_REGEX.toRegex().find(webhookUrl)!!.destructured
-
-        id.toSnowflake() to token
-    } else {
-        throw IllegalArgumentException("Invalid webhook URL!")
     }
 }

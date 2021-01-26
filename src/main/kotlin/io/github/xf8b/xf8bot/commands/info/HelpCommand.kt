@@ -30,9 +30,9 @@ import io.github.xf8b.xf8bot.api.commands.CommandRegistry
 import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.util.createEmbedDsl
-import io.github.xf8b.xf8bot.util.isAlpha
-import io.github.xf8b.xf8bot.util.toImmutableList
-import io.github.xf8b.xf8bot.util.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.util.extensions.isAlpha
+import io.github.xf8b.xf8bot.util.extensions.toImmutableList
+import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
 import org.apache.commons.text.WordUtils
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux

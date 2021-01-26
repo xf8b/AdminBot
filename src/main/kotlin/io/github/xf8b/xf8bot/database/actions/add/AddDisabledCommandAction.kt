@@ -24,5 +24,5 @@ import io.github.xf8b.xf8bot.api.commands.Command
 
 class AddDisabledCommandAction(guildId: Snowflake, command: Command) : InsertAction(
     table = "disabledCommands",
-    toInsert = listOf(guildId.asLong(), command.rawName)
+    fields = listOf(guildId.asLong(), command.rawName)
 )

@@ -26,7 +26,7 @@ import io.github.xf8b.utils.optional.toNullable
 import io.github.xf8b.xf8bot.Xf8bot
 import io.github.xf8b.xf8bot.api.commands.arguments.Argument
 import io.github.xf8b.xf8bot.api.commands.flags.Flag
-import io.github.xf8b.xf8bot.util.toMono
+import io.github.xf8b.xf8bot.util.extensions.toMono
 import reactor.core.publisher.Mono
 import java.util.*
 

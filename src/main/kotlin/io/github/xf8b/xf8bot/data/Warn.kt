@@ -32,5 +32,5 @@ data class Warn(
     val reason: String,
     val warnId: UUID = UUID.randomUUID()
 ) {
-    fun getWarnerMember(client: GatewayDiscordClient): Mono<Member> = client.getMemberById(guildId, warnerId)
+    fun getWarner(client: GatewayDiscordClient): Mono<Member> = client.getMemberById(guildId, warnerId)
 }

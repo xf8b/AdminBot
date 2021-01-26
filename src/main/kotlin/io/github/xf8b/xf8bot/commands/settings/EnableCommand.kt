@@ -25,11 +25,9 @@ import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
 import io.github.xf8b.xf8bot.database.actions.delete.RemoveDisabledCommandAction
 import io.github.xf8b.xf8bot.database.actions.find.FindDisabledCommandAction
-import io.github.xf8b.xf8bot.util.toSingletonImmutableList
-import io.github.xf8b.xf8bot.util.updatedRows
+import io.github.xf8b.xf8bot.util.extensions.toSingletonImmutableList
+import io.github.xf8b.xf8bot.util.extensions.updatedRows
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
-import reactor.kotlin.extra.bool.logicalAnd
 
 // TODO: add embed for all the disabled commands
 class EnableCommand : Command(
@@ -50,7 +48,8 @@ class EnableCommand : Command(
             } else {
                 event.xf8bot.botDatabase
                     .execute(FindDisabledCommandAction(event.guildId.get(), command))
-                    .filterWhen { it.isNotEmpty().toMono().logicalAnd(it[0].updatedRows) }
+                    .singleOrEmpty()
+                    .filterWhen { result -> result.updatedRows }
                     .flatMap {
                         event.xf8bot.botDatabase
                             .execute(RemoveDisabledCommandAction(event.guildId.get(), command))
