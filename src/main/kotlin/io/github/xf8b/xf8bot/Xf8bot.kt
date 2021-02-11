@@ -32,7 +32,7 @@ import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
-import discord4j.gateway.intent.Intent
+import discord4j.gateway.intent.Intent.*
 import discord4j.gateway.intent.IntentSet
 import discord4j.rest.util.AllowedMentions
 import discord4j.rest.util.Color
@@ -60,7 +60,6 @@ import kotlin.system.exitProcess
 
 // TODO: bass and loop commands
 // TODO: subcommands
-// TODO: member verifying system
 // TODO: impl encryption
 // TODO: reactify all the classes
 // TODO: add spam protection
@@ -111,13 +110,15 @@ class Xf8bot private constructor(private val botConfiguration: BotConfiguration)
         .setEnabledIntents(
             IntentSet.of(
                 // required for: role delete, guilds
-                Intent.GUILDS,
+                GUILDS,
                 // required for: guild members
-                Intent.GUILD_MEMBERS,
+                GUILD_MEMBERS,
                 // required for: message create, bulk delete
-                Intent.GUILD_MESSAGES,
+                GUILD_MESSAGES,
                 // required for: guild voice states
-                Intent.GUILD_VOICE_STATES
+                GUILD_VOICE_STATES,
+                // required for: message pagination
+                GUILD_MESSAGE_REACTIONS
             )
         )
         .login()

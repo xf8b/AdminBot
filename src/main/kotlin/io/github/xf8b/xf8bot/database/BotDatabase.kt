@@ -22,15 +22,14 @@ package io.github.xf8b.xf8bot.database
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.spi.Connection
 import io.r2dbc.spi.ValidationDepth
-import org.reactivestreams.Publisher
-import reactor.kotlin.core.publisher.toFlux
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
-import java.util.function.Function
 
 // FIXME revert back to Mono<List> instead of Flux
 class BotDatabase(private val connectionPool: ConnectionPool/*, private val keySetHandle: KeysetHandle?*/) : Database {
     init {
-        connectAndExecute { connection ->
+        execute { connection ->
             connection.createStatement(
                 """
                 CREATE TABLE IF NOT EXISTS "administratorRoles" (
@@ -68,18 +67,33 @@ class BotDatabase(private val connectionPool: ConnectionPool/*, private val keyS
         }.toMono().block()
     }
 
-    private fun <T : Publisher<*>> connectAndExecute(run: Function<in Connection, out T>): T =
-        connectionPool.create().flatMapMany { connection ->
-            run.apply(connection).toFlux().flatMap { result ->
-                connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
-                    if (connected) {
-                        connection.close().toMono().thenReturn(result)
-                    } else {
-                        result!!.toMono()
-                    }
-                }
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Mono<*>> execute(action: DatabaseAction<T>): T = connectionPool.create().flatMap { connection ->
+        action(connection).flatMap { result: Any ->
+            connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
+                if (connected) connection.close().toMono().thenReturn(result)
+                else result.toMono()
             }
         }
+    } as T
 
-    override fun <T : Publisher<*>> execute(action: DatabaseAction<T>): T = connectAndExecute(action)
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Flux<*>> execute(action: DatabaseAction<T>): T =
+        connectionPool.create().flatMapMany { connection ->
+            action(connection).flatMap { result: Any ->
+                connection.validate(ValidationDepth.LOCAL).toMono().flatMap { connected ->
+                    if (connected) connection.close().toMono().thenReturn(result)
+                    else result.toMono()
+                }
+            }
+        } as T
+
+    fun <T : Mono<*>> execute(action: (Connection) -> T): T = execute(object : DatabaseAction<T> {
+        override val table: String
+            get() = error("No table")
+
+        override fun invoke(connection: Connection): T {
+            return action(connection)
+        }
+    })
 }

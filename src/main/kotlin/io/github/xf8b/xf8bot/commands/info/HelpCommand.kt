@@ -20,26 +20,23 @@
 package io.github.xf8b.xf8bot.commands.info
 
 import com.google.common.collect.Range
-import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.channel.MessageChannel
+import discord4j.common.util.Snowflake
 import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import io.github.xf8b.xf8bot.api.commands.Command
 import io.github.xf8b.xf8bot.api.commands.CommandFiredEvent
-import io.github.xf8b.xf8bot.api.commands.CommandRegistry
-import io.github.xf8b.xf8bot.api.commands.arguments.IntegerArgument
 import io.github.xf8b.xf8bot.api.commands.arguments.StringArgument
+import io.github.xf8b.xf8bot.util.EmbedCreateDsl
 import io.github.xf8b.xf8bot.util.createEmbedDsl
-import io.github.xf8b.xf8bot.util.extensions.isAlpha
-import io.github.xf8b.xf8bot.util.extensions.toImmutableList
-import io.github.xf8b.xf8bot.util.extensions.toSingletonPermissionSet
+import io.github.xf8b.xf8bot.util.extensions.*
+import io.github.xf8b.xf8bot.util.immutableListOf
+import io.github.xf8b.xf8bot.util.pagination.createPaginatedEmbed
 import org.apache.commons.text.WordUtils
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 import java.util.*
 
-// TODO: make paginated embed system so this can go back to using reactions for pages
 class HelpCommand : Command(
     name = "\${prefix}help",
     description = """
@@ -48,11 +45,10 @@ class HelpCommand : Command(
     If no section or command was specified, all the commands will be shown.
     """.trimIndent(),
     commandType = CommandType.INFO,
-    arguments = (SECTION_OR_COMMAND to PAGE).toImmutableList(),
+    arguments = immutableListOf(SECTION_OR_COMMAND),
     botRequiredPermissions = Permission.EMBED_LINKS.toSingletonPermissionSet()
 ) {
     override fun onCommandFired(event: CommandFiredEvent): Mono<Void> {
-        val guildId = event.guildId.orElseThrow().asString()
         val commandOrSection = event[SECTION_OR_COMMAND]
 
         if (commandOrSection == null) {
@@ -85,106 +81,54 @@ class HelpCommand : Command(
         } else {
             for (commandType in CommandType.values()) {
                 if (commandOrSection.equals(commandType.name, ignoreCase = true)) {
-                    val pageNumber = event[PAGE] ?: 1
-                    val commandsWithCurrentCommandType = event.xf8bot
-                        .commandRegistry
-                        .getCommandsWithCommandType(commandType)
-                    if (!commandsWithCurrentCommandType.indices.contains((pageNumber - 1) * 6)) {
-                        return event.channel
-                            .flatMap { it.createMessage("No page with the index $pageNumber exists!") }
-                            .then()
-                    }
-
-                    return event.prefix
-                        .map { prefix -> if (prefix.isAlpha()) "$prefix " else prefix }
-                        .flatMap { prefix ->
-                            event.channel.flatMap { channel ->
-                                generateCommandTypeEmbed(
-                                    event,
-                                    event.xf8bot.commandRegistry,
-                                    channel,
-                                    commandType,
-                                    guildId,
-                                    pageNumber,
-                                    prefix
-                                )
-                            }
-                        }.then()
+                    return generateCommandTypeEmbed(event, commandType)
                 }
             }
 
             for (command in event.xf8bot.commandRegistry) {
-                if (commandOrSection == command.rawName) {
-                    return event.channel.flatMap { channel ->
-                        Mono.zip(
-                            command.getUsageWithPrefix(event.xf8bot, guildId),
-                            command.getAliasesWithPrefixes(event.xf8bot, guildId).collectList()
-                        ).flatMap {
-                            generateCommandEmbed(channel, command, it.t1, it.t2)
-                        }
-                    }.then()
-                } else if (command.aliases.isNotEmpty()) {
-                    for (alias in command.aliases) {
-                        if (commandOrSection == alias.replace("\${prefix}", "")) {
-                            return event.channel.flatMap { channel ->
-                                Mono.zip(
-                                    command.getUsageWithPrefix(event.xf8bot, guildId),
-                                    command.getAliasesWithPrefixes(event.xf8bot, guildId).collectList()
-                                ).flatMap {
-                                    generateCommandEmbed(channel, command, it.t1, it.t2)
-                                }
-                            }.then()
-                        }
-                    }
+                if (commandOrSection == command.rawName || command.rawAliases.any { alias -> commandOrSection == alias }) {
+                    return generateCommandEmbed(event, command)
                 }
             }
         }
+
         return event.channel
             .flatMap { it.createMessage("Could not find command/section $commandOrSection!") }
             .then()
     }
 
-    private fun generateCommandTypeEmbed(
-        event: CommandFiredEvent,
-        commandRegistry: CommandRegistry,
-        messageChannel: MessageChannel,
-        commandType: CommandType,
-        guildId: String,
-        pageNumber: Int,
-        prefix: String
-    ): Mono<Message> =
-        commandRegistry.getCommandsWithCommandType(commandType)
+    private fun generateCommandTypeEmbed(event: CommandFiredEvent, commandType: CommandType): Mono<Void> =
+        event.xf8bot.commandRegistry
+            .getCommandsWithCommandType(commandType)
             .toFlux()
-            .skip((pageNumber - 1) * 6L)
-            .take(6)
-            .flatMap {
+            .flatMap { command ->
                 Mono.zip(
-                    it.getNameWithPrefix(event.xf8bot, guildId),
-                    it.rawName.toMono(),
-                    it.description.toMono(),
-                    it.getUsageWithPrefix(event.xf8bot, guildId),
-                    it.administratorLevelRequired.toMono()
+                    command.getNameWithPrefix(event.xf8bot, event.guildId.map(Snowflake::asString).get()),
+                    command.rawName.toMono(),
+                    command.description.toMono(),
+                    command.getUsageWithPrefix(event.xf8bot, event.guildId.map(Snowflake::asString).get()),
+                    command.administratorLevelRequired.toMono(),
+                    event.prefix
                 )
             }
-            .collectList()
-            .flatMap { commandInfos ->
-                messageChannel.createEmbedDsl {
-                    title("Help Page #$pageNumber")
-                    description(
-                        """
-                        More detailed command information is not listed on this page. To see it, use `${prefix}help <command>`.
-                        To go to a different page, use `${if (prefix.isAlpha()) "$prefix " else prefix}help <section> <page>`.
-                        """.trimIndent(),
-                    )
+            .buffer(6)
+            .map<EmbedCreateDsl.() -> Unit> { information ->
+                {
+                    val prefix = information[0].t6
 
-                    commandInfos.forEach {
+                    title("Help Page")
+                    description("More detailed command information is not listed on this page. To see it, use `${prefix}help <command>`.")
+
+                    for (info in information) {
+                        val (name, rawName, description, usage, administratorLevel) = info
+
                         field(
-                            "`${it.t1}`",
+                            "`$name`",
                             """
-                            ${it.t3}
-                            Usage: `${it.t4}`
-                            Administrator Level Required: ${it.t5}
-                            If you want to go to the help page for this command, use `${prefix}help ${it.t2}`.
+                            $description
+                            Usage: `$usage`
+                            Administrator Level Required: $administratorLevel
+                            If you want to go to the help page for this command, use `${prefix}help $rawName`.
                             """.trimIndent(),
                             inline = false
                         )
@@ -193,60 +137,70 @@ class HelpCommand : Command(
                     color(Color.BLUE)
                 }
             }
+            .collectList()
+            .flatMap { dslInitializers ->
+                event.channel.flatMap { channel ->
+                    channel.createPaginatedEmbed(*dslInitializers.toTypedArray())
+                }
+            }
+            .then()
 
-    private fun generateCommandEmbed(
-        messageChannel: MessageChannel,
-        command: Command,
-        usage: String,
-        aliases: List<String>
-    ): Mono<Message> = messageChannel.createEmbedDsl {
-        title("Help Page For `${command.rawName}`")
+    private fun generateCommandEmbed(event: CommandFiredEvent, command: Command): Mono<Void> = Mono.zip(
+        command.getUsageWithPrefix(event.xf8bot, event.guildId.map(Snowflake::asString).get()),
+        command.getAliasesWithPrefixes(event.xf8bot, event.guildId.map(Snowflake::asString).get()).collectList()
+    ).flatMap { commandInfo ->
+        event.channel.flatMap { channel ->
+            channel.createEmbedDsl {
+                val (usage, aliases) = commandInfo
 
-        field(
-            "`${command.rawName}`",
-            """
-            ${command.description}
-            Usage: `$usage`
-            """.trimIndent(),
-            inline = false
-        )
+                title("Help Page For `${command.rawName}`")
 
-        field("Administrator Level Required", command.administratorLevelRequired.toString(), inline = false)
-        field(
-            "Bot Required Permissions",
-            command.botRequiredPermissions
-                .joinToString { WordUtils.capitalizeFully(it.name.replace("_", " ")) }
-                .takeIf(String::isNotEmpty)
-                ?: "No permissions required",
-            inline = false
-        )
+                field(
+                    "`${command.rawName}`",
+                    """
+                    ${command.description}
+                    Usage: `$usage`
+                    """.trimIndent(),
+                    inline = false
+                )
 
-        color(Color.BLUE)
+                field(
+                    "Administrator Level Required",
+                    command.administratorLevelRequired.toString(),
+                    inline = false
+                )
+                field(
+                    "Bot Required Permissions",
+                    command.botRequiredPermissions
+                        .joinToString { WordUtils.capitalizeFully(it.name.replace("_", " ")) }
+                        .takeIf(String::isNotEmpty)
+                        ?: "No permissions required",
+                    inline = false
+                )
 
-        if (command.actions.isNotEmpty()) {
-            val actionsFormatted = command.actions
-                .toList()
-                .joinToString(separator = "\n") { "`${it.first}`: ${it.second}" }
+                color(Color.BLUE)
 
-            field("Actions", actionsFormatted, inline = false)
+                if (command.actions.isNotEmpty()) {
+                    val actionsFormatted = command.actions
+                        .toList()
+                        .joinToString(separator = "\n") { "`${it.first}`: ${it.second}" }
+
+                    field("Actions", actionsFormatted, inline = false)
+                }
+
+                if (aliases.isNotEmpty()) {
+                    val aliasesFormatted = aliases.joinToString(separator = "\n") { "`$it`" }
+
+                    field("Aliases", aliasesFormatted, inline = false)
+                }
+            }
         }
-
-        if (aliases.isNotEmpty()) {
-            val aliasesFormatted = aliases.joinToString(separator = "\n") { "`$it`" }
-
-            field("Aliases", aliasesFormatted, inline = false)
-        }
-    }
+    }.then()
 
     companion object {
         private val SECTION_OR_COMMAND = StringArgument(
             name = "section or command",
             index = Range.singleton(0),
-            required = false
-        )
-        private val PAGE = IntegerArgument(
-            name = "page",
-            index = Range.singleton(1),
             required = false
         )
     }

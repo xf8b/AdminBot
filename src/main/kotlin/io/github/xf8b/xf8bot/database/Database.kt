@@ -19,8 +19,10 @@
 
 package io.github.xf8b.xf8bot.database
 
-import org.reactivestreams.Publisher
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 interface Database {
-    fun <T : Publisher<*>> execute(action: DatabaseAction<T>): T
+    fun <T : Mono<*>> execute(action: DatabaseAction<T>): T
+    fun <T : Flux<*>> execute(action: DatabaseAction<T>): T
 }
