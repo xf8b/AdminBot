@@ -6,7 +6,7 @@ plugins {
     java
     kotlin("jvm") version "1.4.30"
     application
-    id("com.github.johnrengelman.shadow") version "6.1.0"
+    id("com.github.johnrengelman.shadow") version "7.0.0"
     id("net.minecrell.licenser") version "0.4.1"
     id("com.github.ben-manes.versions") version "0.36.0"
 }
